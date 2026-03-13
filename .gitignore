@@ -1,0 +1,32 @@
+# Entorno virtual
+venv/
+
+# Variables de entorno (contiene API_KEY y secrets)
+.env
+
+# Python cache
+app/__pycache__
+__pycache__/
+*.py[cod]
+*.pyo
+
+# pytest
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Editores
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+app/__pycache__/
+app/__pycache__/__init__.cpython-312.pyc
+app/__pycache__/clinical_data.cpython-312.pyc

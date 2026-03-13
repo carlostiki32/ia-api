@@ -8,10 +8,13 @@ REGLAS ABSOLUTAS:
 - Máximo 5 oraciones.
 - NO agregues información que no esté en los datos.
 - NO uses bullets, listas, ni numeración.
-- NO incluyas recomendaciones a menos que recomendacion_seguimiento tenga valor.
+- NO establezcas relaciones causales entre campos que no estén explícitas en los datos.
+- NO hagas recomendaciones de tipo de lente ni de corrección óptica.
+- NO incluyas recomendaciones de seguimiento a menos que recomendacion_seguimiento tenga valor; en ese caso, redáctala tal cual, sin expandirla.
 - Redacta en tercera persona, tiempo presente, lenguaje clínico en español.
 - Si un campo es nulo, no lo menciones.
-- Termina con punto final. Nada más después del punto."""
+- Termina con punto final. Nada más después del punto.
+- av_sc es agudeza visual SIN corrección. av_cc es agudeza visual CON corrección. Ambas corresponden a visión lejana. NO las interpretes como distancia vs cerca."""
 
 USO_PANTALLAS_MAP = {
     "lt2": "menos de 2 horas diarias",
@@ -125,7 +128,7 @@ def build_user_prompt(req: ImpresionClinicaRequest) -> str:
 
     # Lens type
     if req.tipo_lente is not None:
-        sections.append(f"Tipo de lente indicado: {req.tipo_lente}")
+        sections.append(f"Diseño de lente prescrito: {req.tipo_lente}")
 
     sections.append("Redacta ÚNICAMENTE la impresión clínica:")
 
