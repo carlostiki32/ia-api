@@ -3,40 +3,56 @@ import re
 import httpx
 
 from app.config import settings
-from app.prompt_builder import SYSTEM_PROMPT, build_user_prompt
+from app.prompt_builder import build_system_prompt, build_user_prompt
 from app.schemas import ImpresionClinicaRequest
 
-MAX_SENTENCES = 10
+SENTENCE_SPLIT_RE = re.compile(r"(?<=\.)\s+")
+FOLLOW_UP_KEYWORDS = (
+    "seguimiento",
+    "control",
+    "programa",
+    "cita",
+    "revision",
+    "consulta",
+    "proxima",
+    "recomienda",
+    "indica",
+    "sugiere",
+    "meses",
+    "semanas",
+    "año",
+    "años",
+)
+
+
+def _split_sentences(text: str) -> list[str]:
+    return [
+        sentence.strip()
+        for sentence in SENTENCE_SPLIT_RE.split(text)
+        if sentence.strip()
+    ]
 
 
 def _postprocess(text: str) -> str:
     """Clean and constrain model output."""
-    # Strip whitespace and special chars at edges
-    text = text.strip().strip("```").strip()
+    text = text.strip().strip("`").strip()
 
-    # Remove bullet/list markers and join as prose
-    lines = text.splitlines()
-    cleaned = []
-    for line in lines:
+    cleaned_lines = []
+    for line in text.splitlines():
         line = line.strip()
-        # Remove bullet markers
-        line = re.sub(r"^[-•*]\s+", "", line)
-        # Remove numbered list markers
+        line = re.sub("^(?:-|\\*|\\u2022)\\s+", "", line)
         line = re.sub(r"^\d+\.\s+", "", line)
         if line:
-            cleaned.append(line)
-    text = " ".join(cleaned)
+            cleaned_lines.append(line)
+    text = " ".join(cleaned_lines)
 
-    # Count sentences and truncate if needed
-    sentences = re.split(r"(?<=\.)\s+", text)
-    sentences = [s for s in sentences if s.strip()]
-    if len(sentences) > MAX_SENTENCES:
-        sentences = sentences[:MAX_SENTENCES]
+    sentences = _split_sentences(text)
+    if len(sentences) > settings.max_sentences:
+        sentences = sentences[: settings.max_sentences]
         text = " ".join(sentences)
 
-    # Ensure ends with period
     if text and not text.endswith("."):
-        text = text.rstrip() + "."
+        text = f"{text.rstrip()}."
 
     if not text:
         raise ValueError("Model returned empty output after postprocessing")
@@ -44,45 +60,58 @@ def _postprocess(text: str) -> str:
     return text
 
 
-async def run_inference(payload: ImpresionClinicaRequest) -> str:
+def _looks_like_follow_up(sentence: str) -> bool:
+    sentence_lower = sentence.lower()
+    return any(keyword in sentence_lower for keyword in FOLLOW_UP_KEYWORDS)
+
+
+def _append_follow_up(text: str, recommendation: str | None) -> str:
+    """Ensure the follow-up sentence is last without exceeding the sentence cap."""
+    if not recommendation:
+        return text
+
+    follow_up = recommendation.strip()
+    if not follow_up:
+        return text
+    if not follow_up.endswith("."):
+        follow_up = f"{follow_up}."
+
+    sentences = _split_sentences(text)
+    if sentences and _looks_like_follow_up(sentences[-1]):
+        sentences = sentences[:-1]
+
+    if settings.max_sentences > 0 and len(sentences) >= settings.max_sentences:
+        sentences = sentences[: settings.max_sentences - 1]
+
+    sentences.append(follow_up)
+    return " ".join(sentences)
+
+
+async def run_inference(
+    payload: ImpresionClinicaRequest,
+    client: httpx.AsyncClient,
+) -> str:
     user_prompt = build_user_prompt(payload)
 
     request_body = {
         "model": settings.ollama_model,
         "prompt": user_prompt,
-        "system": SYSTEM_PROMPT,
+        "system": build_system_prompt(),
         "stream": False,
         "options": {
-            "temperature": 0.1,
-            "num_predict": 768,
+            "temperature": settings.ollama_temperature,
+            "num_predict": settings.ollama_num_predict,
         },
     }
 
-    async with httpx.AsyncClient(timeout=settings.ollama_timeout) as client:
-        response = await client.post(
-            f"{settings.ollama_url}/api/generate",
-            json=request_body,
-        )
-        response.raise_for_status()
+    response = await client.post(
+        f"{settings.ollama_url}/api/generate",
+        json=request_body,
+    )
+    response.raise_for_status()
 
     data = response.json()
     raw_text = data.get("response", "")
     text = _postprocess(raw_text)
 
-# Garantizar que recomendacion_seguimiento aparece al final, siempre
-    recomendacion = payload.clinica.recomendacion_seguimiento
-    if recomendacion:
-        seguimiento = recomendacion if recomendacion.endswith(".") else recomendacion + "."
-        sentences = re.split(r"(?<=\.)\s+", text)
-        sentences = [s for s in sentences if s.strip()]
-        last = sentences[-1].lower() if sentences else ""
-        skip_last = any(w in last for w in [
-            "seguimiento", "control", "programa", "cita",
-            "revisión", "revision", "consulta", "próxima", "proxima",
-            "recomienda", "indica", "sugiere", "meses", "semanas", "año", "anos"
-        ])
-        if skip_last:
-            sentences = sentences[:-1]
-        text = " ".join(sentences).rstrip(".") + ". " + seguimiento
-
-    return text 
+    return _append_follow_up(text, payload.clinica.recomendacion_seguimiento)

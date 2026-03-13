@@ -1,28 +1,31 @@
+from app.config import settings
 from app.schemas import ImpresionClinicaRequest
 
 
-SYSTEM_PROMPT = """Eres un asistente de documentación clínica optométrica.
-Tu ÚNICA función es redactar la impresión clínica basándote
+def build_system_prompt() -> str:
+    """Build the system prompt from runtime configuration."""
+    return f"""Eres un asistente de documentacion clinica optometrica.
+Tu UNICA funcion es redactar la impresion clinica basandote
 EXCLUSIVAMENTE en los datos proporcionados.
 
 REGLAS ABSOLUTAS:
-- Máximo 10 oraciones.
-- NO agregues información que no esté en los datos.
-- NO uses bullets, listas, ni numeración.
-- NO establezcas relaciones causales entre campos que no estén explícitas en los datos.
-- NO hagas recomendaciones de tipo de lente ni de corrección óptica.
-- Usa siempre "El paciente" en tercera persona, nunca asumas género.
-- Si recomendacion_seguimiento tiene valor, DEBES incluirlo como última oración.
+- Maximo {settings.max_sentences} oraciones.
+- NO agregues informacion que no este en los datos.
+- NO uses bullets, listas ni numeracion.
+- NO establezcas relaciones causales entre campos que no esten explicitas en los datos.
+- NO hagas recomendaciones de tipo de lente ni de correccion optica.
+- Usa siempre "El paciente" en tercera persona; nunca asumas genero.
+- Si recomendacion_seguimiento tiene valor, DEBES incluirlo como ultima oracion.
 - Si un campo es nulo, no lo menciones.
-- Redacta en tiempo presente, lenguaje clínico en español.
-- Termina con punto final. Nada más después del punto.
-- av_sc es agudeza visual SIN corrección. av_cc es agudeza visual CON corrección. Ambas corresponden a visión lejana. NO las interpretes como distancia vs cerca."""
+- Redacta en tiempo presente y con lenguaje clinico en espanol.
+- Termina con punto final. Nada mas despues del punto.
+- av_sc es agudeza visual sin correccion. av_cc es agudeza visual con correccion. Ambas corresponden a vision lejana. NO las interpretes como distancia vs cerca."""
 
 
 USO_PANTALLAS_MAP = {
     "lt2": "menos de 2 horas diarias",
     "btw2_6": "entre 2 y 6 horas diarias",
-    "gt6": "más de 6 horas diarias",
+    "gt6": "mas de 6 horas diarias",
 }
 
 
@@ -34,7 +37,7 @@ def _format_ojo(label: str, ojo) -> str:
     if ojo.cilindro is not None:
         parts.append(f"Cil {ojo.cilindro:+.2f}")
     if ojo.eje is not None:
-        parts.append(f"Eje {ojo.eje}°")
+        parts.append(f"Eje {ojo.eje} grados")
     if hasattr(ojo, "add") and ojo.add is not None:
         parts.append(f"Add {ojo.add:+.2f}")
     if hasattr(ojo, "av_sc") and ojo.av_sc is not None:
@@ -49,22 +52,24 @@ def _format_ojo(label: str, ojo) -> str:
 def _format_akr_comparison(req: ImpresionClinicaRequest) -> str:
     """Build AKR vs refraction comparison text."""
     akr = req.akr
-    todos_nulos = all(
-        v is None
+    all_null = all(
+        value is None
         for ojo in [akr.od, akr.oi]
-        for v in [ojo.esfera, ojo.cilindro, ojo.eje]
+        for value in [ojo.esfera, ojo.cilindro, ojo.eje]
     )
-    if todos_nulos:
+    if all_null:
         return ""
+
     lines = []
     for side, label in [("od", "OD"), ("oi", "OI")]:
-        akr_ojo = getattr(req.akr, side)
-        ref_ojo = getattr(req.refraccion, side)
-        akr_str = _format_ojo(f"AKR {label}", akr_ojo)
-        ref_str = _format_ojo(f"Rx final {label}", ref_ojo)
-        if akr_str and ref_str:
-            lines.append(akr_str)
-            lines.append(ref_str)
+        akr_eye = getattr(req.akr, side)
+        ref_eye = getattr(req.refraccion, side)
+        akr_text = _format_ojo(f"AKR {label}", akr_eye)
+        ref_text = _format_ojo(f"Rx final {label}", ref_eye)
+        if akr_text and ref_text:
+            lines.append(akr_text)
+            lines.append(ref_text)
+
     return "\n".join(lines)
 
 
@@ -72,38 +77,35 @@ def build_user_prompt(req: ImpresionClinicaRequest) -> str:
     """Build the dynamic user prompt from the request payload."""
     sections = []
 
-    # Contexto del paciente (clínicamente relevante)
     paciente = req.paciente
     paciente_parts = []
     if paciente.edad is not None:
-        paciente_parts.append(f"Edad: {paciente.edad} años")
+        paciente_parts.append(f"Edad: {paciente.edad} anos")
     if paciente.ocupacion is not None:
-        paciente_parts.append(f"Ocupación: {paciente.ocupacion}")
+        paciente_parts.append(f"Ocupacion: {paciente.ocupacion}")
     if paciente.motivo_consulta is not None:
         paciente_parts.append(f"Motivo de consulta: {paciente.motivo_consulta}")
     if paciente_parts:
         sections.append("Contexto del paciente:\n  " + "\n  ".join(paciente_parts))
 
-    # Refraction
-    od_str = _format_ojo("OD", req.refraccion.od)
-    oi_str = _format_ojo("OI", req.refraccion.oi)
-    if od_str or oi_str:
-        ref_lines = ["Refracción final:"]
-        if od_str:
-            ref_lines.append(f"  {od_str}")
-        if oi_str:
-            ref_lines.append(f"  {oi_str}")
+    od_text = _format_ojo("OD", req.refraccion.od)
+    oi_text = _format_ojo("OI", req.refraccion.oi)
+    if od_text or oi_text:
+        ref_lines = ["Refraccion final:"]
+        if od_text:
+            ref_lines.append(f"  {od_text}")
+        if oi_text:
+            ref_lines.append(f"  {oi_text}")
         sections.append("\n".join(ref_lines))
 
-    # AKR comparison
-    akr_comp = _format_akr_comparison(req)
-    if akr_comp:
+    akr_comparison = _format_akr_comparison(req)
+    if akr_comparison:
         sections.append(
-            f"Correlación AKR vs refracción final (la diferencia indica "
-            f"el ajuste del examen subjetivo):\n{akr_comp}"
+            "Correlacion AKR vs refraccion final "
+            "(la diferencia indica el ajuste del examen subjetivo):\n"
+            f"{akr_comparison}"
         )
 
-    # Clinical data
     clinica = req.clinica
     if clinica.uso_pantallas is not None:
         sections.append(
@@ -117,7 +119,7 @@ def build_user_prompt(req: ImpresionClinicaRequest) -> str:
         sections.append(f"Motilidad ocular: {clinica.motilidad_ocular}")
     if clinica.confrontacion_campos_visuales is not None:
         sections.append(
-            f"Confrontación de campos visuales: "
+            "Confrontacion de campos visuales: "
             f"{clinica.confrontacion_campos_visuales}"
         )
     if clinica.fondo_de_ojo is not None:
@@ -125,30 +127,27 @@ def build_user_prompt(req: ImpresionClinicaRequest) -> str:
     if clinica.grid_de_amsler is not None:
         sections.append(f"Grid de Amsler: {clinica.grid_de_amsler}")
     if clinica.ojo_seco_but_seg is not None:
-        sections.append(
-            f"Ojo seco (BUT): {clinica.ojo_seco_but_seg} segundos"
-        )
+        sections.append(f"Ojo seco (BUT): {clinica.ojo_seco_but_seg} segundos")
     if clinica.cover_test is not None:
         sections.append(f"Cover test: {clinica.cover_test}")
     if clinica.ppc_cm is not None:
         sections.append(f"PPC: {clinica.ppc_cm} cm")
     if clinica.recomendacion_seguimiento is not None:
         sections.append(
-            f"Recomendación de seguimiento: {clinica.recomendacion_seguimiento}"
+            f"Recomendacion de seguimiento: {clinica.recomendacion_seguimiento}"
         )
 
-    # Lens type
     if req.tipo_lente is not None:
-        sections.append(f"Diseño de lente prescrito: {req.tipo_lente}")
+        sections.append(f"Diseno de lente prescrito: {req.tipo_lente}")
 
     sections.append(
-        "Redacta la impresión clínica en exactamente este orden:\n"
-        "1. Motivo de consulta y agudeza visual sin corrección (av_sc) de cada ojo.\n"
-        "2. Refracción final de cada ojo con agudeza visual con corrección (av_cc).\n"
+        "Redacta la impresion clinica en exactamente este orden:\n"
+        "1. Motivo de consulta y agudeza visual sin correccion (av_sc) de cada ojo.\n"
+        "2. Refraccion final de cada ojo con agudeza visual con correccion (av_cc).\n"
         "3. Hallazgos del segmento anterior y posterior.\n"
         "4. Hallazgos binoculares y de superficie ocular.\n"
-        "5. Recomendación de seguimiento si existe.\n"
-        "Redacta cada punto como una oración continua, sin numeración ni bullets."
+        "5. Recomendacion de seguimiento si existe.\n"
+        "Redacta cada punto como una oracion continua, sin numeracion ni bullets."
     )
 
     return "\n\n".join(sections)
