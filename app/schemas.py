@@ -1,4 +1,6 @@
-from pydantic import BaseModel, Field
+import re
+
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional, Literal
 
 
@@ -39,6 +41,28 @@ class DatosClinica(BaseModel):
     cover_test: Optional[str] = None
     ppc_cm: Optional[int] = Field(None, ge=1, le=15)
     recomendacion_seguimiento: Optional[str] = None
+
+    @field_validator("motilidad_ocular", mode="before")
+    @classmethod
+    def normalize_motilidad_ocular(cls, value):
+        if value is None:
+            return None
+
+        value = str(value).replace("\r\n", " ").replace("\r", " ").replace("\n", " ")
+        value = re.sub(r"\s+", " ", value).strip()
+
+        return value or None
+
+    @field_validator("cover_test", mode="before")
+    @classmethod
+    def normalize_cover_test(cls, value):
+        if value is None:
+            return None
+
+        value = re.sub(r"\s+-\s+", " y ", str(value))
+        value = re.sub(r"\s+", " ", value).strip()
+
+        return value or None
 
 
 class ContextoPaciente(BaseModel):

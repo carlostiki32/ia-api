@@ -48,6 +48,14 @@ def _format_ojo(label: str, ojo) -> str:
 
 def _format_akr_comparison(req: ImpresionClinicaRequest) -> str:
     """Build AKR vs refraction comparison text."""
+    akr = req.akr
+    todos_nulos = all(
+        v is None
+        for ojo in [akr.od, akr.oi]
+        for v in [ojo.esfera, ojo.cilindro, ojo.eje]
+    )
+    if todos_nulos:
+        return ""
     lines = []
     for side, label in [("od", "OD"), ("oi", "OI")]:
         akr_ojo = getattr(req.akr, side)
