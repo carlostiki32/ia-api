@@ -6,7 +6,7 @@ from app.config import settings
 from app.prompt_builder import SYSTEM_PROMPT, build_user_prompt
 from app.schemas import ImpresionClinicaRequest
 
-MAX_SENTENCES = 5
+MAX_SENTENCES = 10
 
 
 def _postprocess(text: str) -> str:
@@ -45,7 +45,6 @@ def _postprocess(text: str) -> str:
 
 
 async def run_inference(payload: ImpresionClinicaRequest) -> str:
-    """Call Ollama and return the cleaned clinical impression text."""
     user_prompt = build_user_prompt(payload)
 
     request_body = {
@@ -54,8 +53,8 @@ async def run_inference(payload: ImpresionClinicaRequest) -> str:
         "system": SYSTEM_PROMPT,
         "stream": False,
         "options": {
-            "temperature": 0.3,
-            "num_predict": 512,
+            "temperature": 0.1,
+            "num_predict": 768,
         },
     }
 
@@ -68,4 +67,22 @@ async def run_inference(payload: ImpresionClinicaRequest) -> str:
 
     data = response.json()
     raw_text = data.get("response", "")
-    return _postprocess(raw_text)
+    text = _postprocess(raw_text)
+
+# Garantizar que recomendacion_seguimiento aparece al final, siempre
+    recomendacion = payload.clinica.recomendacion_seguimiento
+    if recomendacion:
+        seguimiento = recomendacion if recomendacion.endswith(".") else recomendacion + "."
+        sentences = re.split(r"(?<=\.)\s+", text)
+        sentences = [s for s in sentences if s.strip()]
+        last = sentences[-1].lower() if sentences else ""
+        skip_last = any(w in last for w in [
+            "seguimiento", "control", "programa", "cita",
+            "revisión", "revision", "consulta", "próxima", "proxima",
+            "recomienda", "indica", "sugiere", "meses", "semanas", "año", "anos"
+        ])
+        if skip_last:
+            sentences = sentences[:-1]
+        text = " ".join(sentences).rstrip(".") + ". " + seguimiento
+
+    return text 

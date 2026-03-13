@@ -1,20 +1,23 @@
 from app.schemas import ImpresionClinicaRequest
 
+
 SYSTEM_PROMPT = """Eres un asistente de documentación clínica optométrica.
 Tu ÚNICA función es redactar la impresión clínica basándote
 EXCLUSIVAMENTE en los datos proporcionados.
 
 REGLAS ABSOLUTAS:
-- Máximo 5 oraciones.
+- Máximo 10 oraciones.
 - NO agregues información que no esté en los datos.
 - NO uses bullets, listas, ni numeración.
 - NO establezcas relaciones causales entre campos que no estén explícitas en los datos.
 - NO hagas recomendaciones de tipo de lente ni de corrección óptica.
-- NO incluyas recomendaciones de seguimiento a menos que recomendacion_seguimiento tenga valor; en ese caso, redáctala tal cual, sin expandirla.
-- Redacta en tercera persona, tiempo presente, lenguaje clínico en español.
+- Usa siempre "El paciente" en tercera persona, nunca asumas género.
+- Si recomendacion_seguimiento tiene valor, DEBES incluirlo como última oración.
 - Si un campo es nulo, no lo menciones.
+- Redacta en tiempo presente, lenguaje clínico en español.
 - Termina con punto final. Nada más después del punto.
 - av_sc es agudeza visual SIN corrección. av_cc es agudeza visual CON corrección. Ambas corresponden a visión lejana. NO las interpretes como distancia vs cerca."""
+
 
 USO_PANTALLAS_MAP = {
     "lt2": "menos de 2 horas diarias",
@@ -130,6 +133,14 @@ def build_user_prompt(req: ImpresionClinicaRequest) -> str:
     if req.tipo_lente is not None:
         sections.append(f"Diseño de lente prescrito: {req.tipo_lente}")
 
-    sections.append("Redacta ÚNICAMENTE la impresión clínica:")
+    sections.append(
+        "Redacta la impresión clínica en exactamente este orden:\n"
+        "1. Motivo de consulta y agudeza visual sin corrección (av_sc) de cada ojo.\n"
+        "2. Refracción final de cada ojo con agudeza visual con corrección (av_cc).\n"
+        "3. Hallazgos del segmento anterior y posterior.\n"
+        "4. Hallazgos binoculares y de superficie ocular.\n"
+        "5. Recomendación de seguimiento si existe.\n"
+        "Redacta cada punto como una oración continua, sin numeración ni bullets."
+    )
 
     return "\n\n".join(sections)
