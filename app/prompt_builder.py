@@ -4,18 +4,18 @@ from app.schemas import ImpresionClinicaRequest
 
 def build_system_prompt() -> str:
     """Build the system prompt from runtime configuration."""
-    return f"""Eres un asistente de documentacion clinica optometrica.
+    return f"""\
+Eres un asistente de documentacion clinica optometrica.
 Tu UNICA funcion es redactar la impresion clinica basandote
 EXCLUSIVAMENTE en los datos proporcionados.
 
 REGLAS ABSOLUTAS:
-- Maximo {settings.max_sentences} oraciones.
+- Maximo {settings.max_sentences} oraciones en un solo parrafo corrido, sin bullets, listas, encabezados ni numeracion.
 - NO agregues informacion que no este en los datos.
-- NO uses bullets, listas ni numeracion.
-- NO establezcas relaciones causales entre campos que no esten explicitas en los datos.
-- NO hagas recomendaciones de tipo de lente ni de correccion optica.
+- NO inventes interpretaciones, diagnosticos, causas ni relaciones clinicas que no puedan sostenerse directamente con los datos proporcionados.
+- Si los datos incluyen un diseno de lente prescrito, puedes mencionarlo como parte de la prescripcion del optometrista y correlacionarlo con datos clinicos explicitos como edad, add o hallazgos refractivos. NO inventes ni sugieras un tipo de lente distinto al prescrito.
+- NO incluyas recomendaciones de seguimiento en tu redaccion. Si existe una recomendacion de seguimiento, sera agregada automaticamente al final.
 - Usa siempre "El paciente" en tercera persona; nunca asumas genero.
-- Si recomendacion_seguimiento tiene valor, DEBES incluirlo como ultima oracion.
 - Si un campo es nulo, no lo menciones.
 - Redacta en tiempo presente y con lenguaje clinico en espanol.
 - Termina con punto final. Nada mas despues del punto.
@@ -32,6 +32,7 @@ USO_PANTALLAS_MAP = {
 def _format_ojo(label: str, ojo) -> str:
     """Format refraction data for one eye."""
     parts = []
+
     if ojo.esfera is not None:
         parts.append(f"Esf {ojo.esfera:+.2f}")
     if ojo.cilindro is not None:
@@ -44,8 +45,10 @@ def _format_ojo(label: str, ojo) -> str:
         parts.append(f"AV s/c {ojo.av_sc}")
     if hasattr(ojo, "av_cc") and ojo.av_cc is not None:
         parts.append(f"AV c/c {ojo.av_cc}")
+
     if not parts:
         return ""
+
     return f"{label}: {', '.join(parts)}"
 
 
@@ -64,8 +67,10 @@ def _format_akr_comparison(req: ImpresionClinicaRequest) -> str:
     for side, label in [("od", "OD"), ("oi", "OI")]:
         akr_eye = getattr(req.akr, side)
         ref_eye = getattr(req.refraccion, side)
+
         akr_text = _format_ojo(f"AKR {label}", akr_eye)
         ref_text = _format_ojo(f"Rx final {label}", ref_eye)
+
         if akr_text and ref_text:
             lines.append(akr_text)
             lines.append(ref_text)
@@ -79,17 +84,20 @@ def build_user_prompt(req: ImpresionClinicaRequest) -> str:
 
     paciente = req.paciente
     paciente_parts = []
+
     if paciente.edad is not None:
         paciente_parts.append(f"Edad: {paciente.edad} anos")
     if paciente.ocupacion is not None:
         paciente_parts.append(f"Ocupacion: {paciente.ocupacion}")
     if paciente.motivo_consulta is not None:
         paciente_parts.append(f"Motivo de consulta: {paciente.motivo_consulta}")
+
     if paciente_parts:
         sections.append("Contexto del paciente:\n  " + "\n  ".join(paciente_parts))
 
     od_text = _format_ojo("OD", req.refraccion.od)
     oi_text = _format_ojo("OI", req.refraccion.oi)
+
     if od_text or oi_text:
         ref_lines = ["Refraccion final:"]
         if od_text:
@@ -107,6 +115,7 @@ def build_user_prompt(req: ImpresionClinicaRequest) -> str:
         )
 
     clinica = req.clinica
+
     if clinica.uso_pantallas is not None:
         sections.append(
             f"Uso de pantallas: {USO_PANTALLAS_MAP[clinica.uso_pantallas]}"
@@ -132,22 +141,16 @@ def build_user_prompt(req: ImpresionClinicaRequest) -> str:
         sections.append(f"Cover test: {clinica.cover_test}")
     if clinica.ppc_cm is not None:
         sections.append(f"PPC: {clinica.ppc_cm} cm")
-    if clinica.recomendacion_seguimiento is not None:
-        sections.append(
-            f"Recomendacion de seguimiento: {clinica.recomendacion_seguimiento}"
-        )
 
     if req.tipo_lente is not None:
         sections.append(f"Diseno de lente prescrito: {req.tipo_lente}")
 
     sections.append(
-        "Redacta la impresion clinica en exactamente este orden:\n"
-        "1. Motivo de consulta y agudeza visual sin correccion (av_sc) de cada ojo.\n"
-        "2. Refraccion final de cada ojo con agudeza visual con correccion (av_cc).\n"
-        "3. Hallazgos del segmento anterior y posterior.\n"
-        "4. Hallazgos binoculares y de superficie ocular.\n"
-        "5. Recomendacion de seguimiento si existe.\n"
-        "Redacta cada punto como una oracion continua, sin numeracion ni bullets."
+        "Redacta una sola impresion clinica en un parrafo corrido y en este orden exacto: "
+        "motivo de consulta y agudeza visual sin correccion (av_sc) de cada ojo; "
+        "refraccion final de cada ojo con agudeza visual con correccion (av_cc) de cada ojo; "
+        "hallazgos del segmento anterior y posterior; "
+        "hallazgos binoculares y de superficie ocular."
     )
 
     return "\n\n".join(sections)

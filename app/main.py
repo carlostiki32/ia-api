@@ -22,7 +22,7 @@ _bearer_scheme = HTTPBearer(auto_error=False)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    app.state.http_client = httpx.AsyncClient(timeout=settings.ollama_timeout)
+    app.state.http_client = httpx.AsyncClient(timeout=settings.ollama_timeout + 5)
     logger.info("HTTP client started for model %s", settings.ollama_model)
     try:
         yield
