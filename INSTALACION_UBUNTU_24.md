@@ -139,9 +139,20 @@ HOST=0.0.0.0
 PORT=8888
 API_KEY=cambia-este-token-por-uno-seguro
 MAX_SENTENCES=10
+CACHE_TTL_SECONDS=86400
+CACHE_MAX_SIZE=500
 HEALTH_CHECK_TIMEOUT=5.0
 LOG_LEVEL=INFO
 ```
+
+Sobre el cache:
+
+- `CACHE_TTL_SECONDS=86400` significa que una respuesta cacheada dura 24 horas antes de expirar
+- `CACHE_MAX_SIZE=500` es el maximo de respuestas distintas que se guardan en memoria
+- el cache compara el contenido clinico completo del payload (excluyendo `receta_id`), asi que si el mismo optometrista envia el mismo estudio varias veces por accidente, la segunda respuesta es instantanea sin tocar la GPU
+- cuando el cache esta lleno, se descarta la entrada mas antigua para hacer espacio
+- el cache vive en memoria y se limpia automaticamente al reiniciar la API
+- la respuesta incluye `"cached": true` cuando proviene del cache
 
 Muy importante:
 
@@ -410,3 +421,26 @@ Si esta API va a vivir en una PC o servidor casero con GPU:
 - ajusta `QUEUE_WAIT_TIMEOUT` segun el tiempo real de tu modelo
 
 Eso protege la VRAM y evita errores por OOM cuando dos inferencias se disparan al mismo tiempo.
+
+## 13. Cache de respuestas
+
+La API incluye un cache en memoria que evita enviar peticiones duplicadas a la GPU.
+
+Como funciona:
+
+- cada peticion genera un hash SHA-256 del payload clinico completo (sin `receta_id`)
+- si el hash ya existe en cache y no ha expirado, se retorna la respuesta anterior sin tocar Ollama
+- la respuesta cacheada incluye `"cached": true` en el JSON
+- cuando se reinicia la API, el cache se limpia automaticamente
+
+Configuracion en `.env`:
+
+```env
+CACHE_TTL_SECONDS=86400
+CACHE_MAX_SIZE=500
+```
+
+- `CACHE_TTL_SECONDS`: tiempo en segundos que una entrada permanece valida (default: 86400 = 24 horas)
+- `CACHE_MAX_SIZE`: maximo de entradas en cache (default: 500). Al llenarse, se descarta la mas antigua
+
+Esto es especialmente util cuando el optometrista envia la misma consulta varias veces por accidente o impaciencia: la GPU solo trabaja la primera vez.

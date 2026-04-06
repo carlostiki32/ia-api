@@ -8,6 +8,7 @@ import httpx
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
+from app.cache import inference_cache
 from app.clinical_data import has_clinical_data
 from app.config import settings
 from app.inference import run_inference
@@ -97,6 +98,11 @@ async def crear_impresion_clinica(
             "Al menos un campo de refraccion o clinica debe tener valor.",
         )
 
+    cached = inference_cache.get(req)
+    if cached is not None:
+        logger.info("Returning cached result for receta %s", req.receta_id)
+        return {"status": "ok", "impresion_clinica": cached, "cached": True}
+
     try:
         await _acquire_inference_slot(req.receta_id)
     except asyncio.TimeoutError:
@@ -116,6 +122,7 @@ async def crear_impresion_clinica(
         logger.info(
             "Inference for receta %s completed in %.1fs", req.receta_id, elapsed
         )
+        inference_cache.put(req, result)
         return {"status": "ok", "impresion_clinica": result}
     except asyncio.TimeoutError:
         raise HTTPException(

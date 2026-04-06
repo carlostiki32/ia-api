@@ -25,6 +25,10 @@ class Settings(BaseSettings):
     # Inference post-processing
     max_sentences: int = 10
 
+    # Cache
+    cache_ttl_seconds: int = 86400
+    cache_max_size: int = 500
+
     # Health check
     health_check_timeout: float = 5.0
 
