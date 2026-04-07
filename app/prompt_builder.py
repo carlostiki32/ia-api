@@ -22,6 +22,8 @@ REGLAS ABSOLUTAS:
 - av_sc es agudeza visual sin correccion. av_cc es agudeza visual con correccion. Ambas corresponden a vision lejana. NO las interpretes como distancia vs cerca."""
 
 
+SYSTEM_PROMPT = build_system_prompt()
+
 USO_PANTALLAS_MAP = {
     "lt2": "menos de 2 horas diarias",
     "btw2_6": "entre 2 y 6 horas diarias",
@@ -150,7 +152,8 @@ def build_user_prompt(req: ImpresionClinicaRequest) -> str:
         "motivo de consulta y agudeza visual sin correccion (av_sc) de cada ojo; "
         "refraccion final de cada ojo con agudeza visual con correccion (av_cc) de cada ojo; "
         "hallazgos del segmento anterior y posterior; "
-        "hallazgos binoculares y de superficie ocular."
+        "hallazgos binoculares y de superficie ocular. "
+        "Responde UNICAMENTE con el parrafo clinico, sin encabezados, sin listas, sin explicaciones adicionales."
     )
 
     return "\n\n".join(sections)

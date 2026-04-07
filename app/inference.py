@@ -4,7 +4,7 @@ import re
 import httpx
 
 from app.config import settings
-from app.prompt_builder import build_system_prompt, build_user_prompt
+from app.prompt_builder import SYSTEM_PROMPT, build_user_prompt
 from app.schemas import ImpresionClinicaRequest
 
 logger = logging.getLogger(__name__)
@@ -78,7 +78,9 @@ def _strip_leading_list_markers(line: str) -> str:
 
 def _postprocess(text: str) -> str:
     """Clean and constrain model output."""
-    text = text.strip().strip("`").strip()
+    text = re.sub(r"^```\w*\n?", "", text.strip())
+    text = re.sub(r"\n?```\s*$", "", text)
+    text = text.strip("`").strip()
 
     cleaned_lines = []
     for line in text.splitlines():
@@ -156,7 +158,7 @@ async def run_inference(
     request_body = {
         "model": settings.ollama_model,
         "prompt": user_prompt,
-        "system": build_system_prompt(),
+        "system": SYSTEM_PROMPT,
         "stream": False,
         "options": {
             "temperature": settings.ollama_temperature,
@@ -164,11 +166,26 @@ async def run_inference(
         },
     }
 
-    response = await client.post(
-        f"{settings.ollama_url}/api/generate",
-        json=request_body,
-    )
-    response.raise_for_status()
+    last_error: Exception | None = None
+    for attempt in range(2):
+        try:
+            response = await client.post(
+                f"{settings.ollama_url}/api/generate",
+                json=request_body,
+            )
+            response.raise_for_status()
+            break
+        except httpx.ReadTimeout as exc:
+            last_error = exc
+            if attempt == 0:
+                logger.warning(
+                    "Ollama read timeout (attempt 1), retrying — "
+                    "model may be loading into VRAM"
+                )
+                continue
+            raise
+    else:
+        raise last_error  # type: ignore[misc]
 
     data = response.json()
     raw_text = data.get("response", "")
@@ -182,6 +199,13 @@ async def run_inference(
             raw_text[-80:],
         )
 
-    text = _postprocess(raw_text)
+    try:
+        text = _postprocess(raw_text)
+    except ValueError:
+        logger.error(
+            "Model output empty after postprocessing. Raw output: '%s'",
+            raw_text[:200],
+        )
+        raise
 
     return _ensure_follow_up_last(text, payload.clinica.recomendacion_seguimiento)
