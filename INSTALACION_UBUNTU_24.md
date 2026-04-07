@@ -28,6 +28,7 @@ Minimos:
 - `curl`
 - Python 3.12 con `venv`
 - Ollama instalado
+- GPU Nvidia con al menos 8 GB de VRAM (referencia: RTX 3070 Ti)
 
 Para instalar las dependencias base del sistema:
 
@@ -46,7 +47,36 @@ curl --version
 
 En Ubuntu 24.04 normalmente `python3` sera `3.12.x`.
 
-## 2. Descargar el proyecto desde GitHub
+## 2. Instalar drivers Nvidia (referencia RTX 3070 Ti)
+
+Si tu GPU es Nvidia, necesitas los drivers propietarios y el CUDA toolkit para que Ollama use la GPU.
+
+```bash
+sudo apt install -y nvidia-driver-550
+sudo reboot
+```
+
+Despues de reiniciar, verifica que el driver detecte la GPU:
+
+```bash
+nvidia-smi
+```
+
+Deberias ver algo como:
+
+```text
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 550.x       Driver Version: 550.x       CUDA Version: 12.x                  |
+|   GPU  Name       ...        Memory-Usage                                               |
+|   0    NVIDIA GeForce RTX 3070 Ti   ...   8192MiB                                       |
++-----------------------------------------------------------------------------------------+
+```
+
+Si `nvidia-smi` no muestra tu GPU, revisa que el driver se instalo correctamente antes de continuar.
+
+Ollama detecta automaticamente la GPU Nvidia si los drivers estan instalados. No necesitas instalar CUDA por separado para Ollama.
+
+## 3. Descargar el proyecto desde GitHub
 
 Clona el repo y entra a la carpeta:
 
@@ -62,7 +92,7 @@ unzip ia-api-main.zip
 cd ia-api-main
 ```
 
-## 3. Aislar Python para no chocar con otras versiones
+## 4. Aislar Python para no chocar con otras versiones
 
 No uses `sudo pip install`.
 No instales dependencias globales del proyecto.
@@ -104,6 +134,14 @@ python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 ```
 
+Las dependencias del proyecto son:
+
+- `fastapi` - framework web
+- `uvicorn[standard]` - servidor ASGI
+- `httpx` - cliente HTTP async para comunicarse con Ollama
+- `pydantic` / `pydantic-settings` - validacion y configuracion
+- `python-dotenv` - carga de variables de entorno
+
 Si despues cierras la terminal, vuelve a activarlo con:
 
 ```bash
@@ -111,7 +149,7 @@ cd /ruta/al/proyecto/ia-api
 source .venv/bin/activate
 ```
 
-## 4. Crear el archivo `.env`
+## 5. Crear el archivo `.env`
 
 Copia el ejemplo:
 
@@ -125,41 +163,32 @@ Edita `.env`:
 nano .env
 ```
 
-Configuracion minima recomendada:
+Configuracion minima recomendada (RTX 3070 Ti):
 
 ```env
 OLLAMA_URL=http://localhost:11434
-OLLAMA_MODEL=llama3.1:8b
+OLLAMA_MODEL=qwen2.5:7b
 OLLAMA_TIMEOUT=120.0
 OLLAMA_TEMPERATURE=0.1
-OLLAMA_NUM_PREDICT=768
+OLLAMA_NUM_PREDICT=400
 MAX_CONCURRENT=1
 QUEUE_WAIT_TIMEOUT=120.0
 HOST=0.0.0.0
 PORT=8888
 API_KEY=cambia-este-token-por-uno-seguro
 MAX_SENTENCES=10
-CACHE_TTL_SECONDS=86400
-CACHE_MAX_SIZE=500
 HEALTH_CHECK_TIMEOUT=5.0
 LOG_LEVEL=INFO
 ```
 
-Sobre el cache:
+Sobre las variables:
 
-- `CACHE_TTL_SECONDS=86400` significa que una respuesta cacheada dura 24 horas antes de expirar
-- `CACHE_MAX_SIZE=500` es el maximo de respuestas distintas que se guardan en memoria
-- el cache compara el contenido clinico completo del payload (excluyendo `receta_id`), asi que si el mismo optometrista envia el mismo estudio varias veces por accidente, la segunda respuesta es instantanea sin tocar la GPU
-- cuando el cache esta lleno, se descarta la entrada mas antigua para hacer espacio
-- el cache vive en memoria y se limpia automaticamente al reiniciar la API
-- la respuesta incluye `"cached": true` cuando proviene del cache
-
-Muy importante:
-
-- `MAX_CONCURRENT=1` es el valor correcto para este proyecto cuando corre en una GPU casera
-- eso hace que solo se procese una inferencia a la vez
-- las demas peticiones esperan en cola hasta que se libere la GPU
+- `OLLAMA_MODEL=qwen2.5:7b` es el modelo default del proyecto. Funciona bien en GPUs con 8 GB de VRAM como la RTX 3070 Ti
+- `OLLAMA_NUM_PREDICT=400` limita la cantidad de tokens que genera el modelo por respuesta
+- `OLLAMA_TEMPERATURE=0.1` mantiene las respuestas consistentes y poco creativas (ideal para uso clinico)
+- `MAX_CONCURRENT=1` es el valor correcto para este proyecto cuando corre en una GPU casera. Solo se procesa una inferencia a la vez, las demas esperan en cola
 - `QUEUE_WAIT_TIMEOUT` define cuanto tiempo puede esperar una peticion en la cola antes de recibir `503`
+- `CACHE_TTL_SECONDS` y `CACHE_MAX_SIZE` no necesitan estar en `.env` a menos que quieras cambiar los defaults (86400 segundos y 500 entradas respectivamente). Si los omites, `config.py` usa esos defaults
 
 Genera un token seguro para `API_KEY`:
 
@@ -167,18 +196,13 @@ Genera un token seguro para `API_KEY`:
 openssl rand -hex 32
 ```
 
-## 5. Instalar Ollama en Ubuntu 24
+## 6. Instalar Ollama en Ubuntu 24
 
-La instalacion recomendada por la documentacion oficial de Ollama para Linux, verificada el 13 de marzo de 2026, es:
+La instalacion recomendada por la documentacion oficial de Ollama para Linux:
 
 ```bash
 curl -fsSL https://ollama.com/install.sh | sh
 ```
-
-Fuente oficial:
-
-- https://docs.ollama.com/linux
-- https://ollama.com/download/linux
 
 Verifica que quedo instalado:
 
@@ -186,9 +210,9 @@ Verifica que quedo instalado:
 ollama -v
 ```
 
-Si tu servidor tiene GPU Nvidia o AMD, la configuracion exacta de drivers depende de tu hardware. La parte de `ia-api` no cambia, pero Ollama necesita que la aceleracion del sistema ya este sana.
+Si tu servidor tiene GPU Nvidia con drivers correctamente instalados (paso 2), Ollama la detectara automaticamente.
 
-## 6. Arrancar Ollama manualmente por primera vez
+## 7. Arrancar Ollama manualmente por primera vez
 
 Puedes probarlo manualmente antes de usar el script:
 
@@ -204,12 +228,12 @@ curl http://localhost:11434/api/tags
 
 Si responde JSON, Ollama ya esta escuchando.
 
-## 7. Descargar el modelo configurado
+## 8. Descargar el modelo configurado
 
-Si dejaste el default:
+Con el modelo default del proyecto:
 
 ```bash
-ollama pull llama3.1:8b
+ollama pull qwen2.5:7b
 ```
 
 Si cambiaste `OLLAMA_MODEL` en `.env`, descarga exactamente ese modelo:
@@ -218,7 +242,7 @@ Si cambiaste `OLLAMA_MODEL` en `.env`, descarga exactamente ese modelo:
 ollama pull <MODELO_CONFIGURADO>
 ```
 
-## 8. Probar la API manualmente
+## 9. Probar la API manualmente
 
 Con el entorno virtual activo:
 
@@ -236,10 +260,10 @@ curl http://localhost:8888/health
 Respuesta esperada:
 
 ```json
-{"status":"ok","model":"llama3.1:8b","ollama":"ok"}
+{"status":"ok","model":"qwen2.5:7b","ollama":"ok"}
 ```
 
-## 9. Script Linux de arranque completo
+## 10. Script Linux de arranque completo
 
 En la raiz del proyecto se incluye:
 
@@ -277,7 +301,7 @@ Para detener todo:
 - presiona `Ctrl + C`
 - si `start_linux.sh` fue quien lanzo `ollama serve`, tambien intentara detener ese proceso
 
-## 10. Comandos de uso diario
+## 11. Comandos de uso diario
 
 Entrar al proyecto y activar el entorno:
 
@@ -356,7 +380,7 @@ curl --location 'http://localhost:8888/inferencia/impresion-clinica' \
   }'
 ```
 
-## 11. Problemas comunes
+## 12. Problemas comunes
 
 ### `No module named fastapi`
 
@@ -397,8 +421,8 @@ El modelo esta tardando demasiado.
 Revisa:
 
 - que Ollama este vivo
-- que el modelo correcto este descargado
-- que la GPU tenga memoria suficiente
+- que el modelo correcto este descargado (`ollama list` debe mostrar `qwen2.5:7b`)
+- que la GPU tenga memoria suficiente (`nvidia-smi`)
 - que `OLLAMA_TIMEOUT` sea razonable para tu equipo
 
 ### `start_linux.sh` dice que no encuentra el entorno virtual
@@ -411,18 +435,30 @@ source .venv/bin/activate
 python -m pip install -r requirements.txt
 ```
 
-## 12. Recomendacion operativa para este proyecto
+### Ollama no usa la GPU
 
-Si esta API va a vivir en una PC o servidor casero con GPU:
+Verifica que `nvidia-smi` detecta tu GPU. Si no la detecta:
+
+```bash
+sudo apt install -y nvidia-driver-550
+sudo reboot
+```
+
+Despues de reiniciar, ejecuta `nvidia-smi` de nuevo. Si la GPU aparece, Ollama la usara automaticamente.
+
+## 13. Recomendacion operativa para este proyecto
+
+Si esta API va a vivir en una PC o servidor casero con GPU (como una RTX 3070 Ti con 8 GB de VRAM):
 
 - deja `MAX_CONCURRENT=1`
 - no subas concurrencia aunque tengas varios usuarios
 - deja que las peticiones esperen en cola
 - ajusta `QUEUE_WAIT_TIMEOUT` segun el tiempo real de tu modelo
+- `qwen2.5:7b` cabe holgadamente en 8 GB de VRAM
 
 Eso protege la VRAM y evita errores por OOM cuando dos inferencias se disparan al mismo tiempo.
 
-## 13. Cache de respuestas
+## 14. Cache de respuestas
 
 La API incluye un cache en memoria que evita enviar peticiones duplicadas a la GPU.
 
@@ -433,14 +469,16 @@ Como funciona:
 - la respuesta cacheada incluye `"cached": true` en el JSON
 - cuando se reinicia la API, el cache se limpia automaticamente
 
-Configuracion en `.env`:
+Configuracion (valores default en `config.py`, se pueden sobreescribir en `.env`):
+
+- `CACHE_TTL_SECONDS=86400` - tiempo en segundos que una entrada permanece valida (24 horas)
+- `CACHE_MAX_SIZE=500` - maximo de entradas en cache. Al llenarse, se descarta la mas antigua
+
+Si quieres cambiar los defaults, agrega las variables a tu `.env`:
 
 ```env
 CACHE_TTL_SECONDS=86400
 CACHE_MAX_SIZE=500
 ```
-
-- `CACHE_TTL_SECONDS`: tiempo en segundos que una entrada permanece valida (default: 86400 = 24 horas)
-- `CACHE_MAX_SIZE`: maximo de entradas en cache (default: 500). Al llenarse, se descarta la mas antigua
 
 Esto es especialmente util cuando el optometrista envia la misma consulta varias veces por accidente o impaciencia: la GPU solo trabaja la primera vez.

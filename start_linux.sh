@@ -12,7 +12,7 @@ if [ -f ".env" ]; then
 fi
 
 OLLAMA_URL="${OLLAMA_URL:-http://localhost:11434}"
-OLLAMA_MODEL="${OLLAMA_MODEL:-llama3.1:8b}"
+OLLAMA_MODEL="${OLLAMA_MODEL:-qwen2.5:7b}"
 HOST="${HOST:-0.0.0.0}"
 PORT="${PORT:-8888}"
 STARTUP_WAIT_SECONDS="${STARTUP_WAIT_SECONDS:-45}"
