@@ -4,25 +4,39 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    # Ollama
+    # Ollama — conexión y modelo
     ollama_url: str = "http://localhost:11434"
     ollama_model: str = "qwen3.5:9b"
     ollama_timeout: float = 120.0
+
+    # Ollama — sampling
     ollama_temperature: float = 0.1
     ollama_num_predict: int = 600
+    ollama_num_ctx: int = 2048          # Consumo real máximo ~1700 tokens;
+                                        # 2048 ahorra ~256MB de VRAM vs 4096.
+    ollama_repeat_penalty: float = 1.0  # 1.0 = desactivado. La terminología
+                                        # clínica requiere repetición exacta
+                                        # de términos (OD/OI, agudeza visual);
+                                        # penalizarla genera circunloquios.
+    ollama_top_p: float = 1.0           # Desactivado (nucleus sampling inútil
+                                        # con temperature <= 0.1 — la distrib.
+                                        # ya está concentrada en el top token).
+    ollama_seed: int = 42               # Fija reproducibilidad. -1 para
+                                        # desactivar y obtener variabilidad.
+    ollama_max_retries: int = 2         # Intentos ante ReadTimeout o error 5xx.
 
-    # Concurrency / queue
+    # Concurrencia / cola
     max_concurrent: int = 1
     queue_wait_timeout: float = 120.0
 
-    # Server
+    # Servidor
     host: str = "0.0.0.0"
     port: int = 8888
 
-    # Auth
+    # Autenticación
     api_key: str = ""
 
-    # Inference post-processing
+    # Postprocesamiento de inferencia
     max_sentences: int = 15
 
     # Cache

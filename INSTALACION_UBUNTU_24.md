@@ -163,32 +163,44 @@ Edita `.env`:
 nano .env
 ```
 
-Configuracion minima recomendada (RTX 3070 Ti):
+Configuracion recomendada (RTX 3070 Ti):
 
 ```env
 OLLAMA_URL=http://localhost:11434
-OLLAMA_MODEL=qwen2.5:7b
+OLLAMA_MODEL=qwen3.5:9b
 OLLAMA_TIMEOUT=120.0
 OLLAMA_TEMPERATURE=0.1
 OLLAMA_NUM_PREDICT=600
+OLLAMA_NUM_CTX=2048
+OLLAMA_REPEAT_PENALTY=1.05
+OLLAMA_TOP_P=0.9
+OLLAMA_SEED=42
+OLLAMA_MAX_RETRIES=2
 MAX_CONCURRENT=1
 QUEUE_WAIT_TIMEOUT=120.0
 HOST=0.0.0.0
 PORT=8888
 API_KEY=cambia-este-token-por-uno-seguro
 MAX_SENTENCES=10
+CACHE_TTL_SECONDS=86400
+CACHE_MAX_SIZE=500
 HEALTH_CHECK_TIMEOUT=5.0
 LOG_LEVEL=INFO
 ```
 
 Sobre las variables:
 
-- `OLLAMA_MODEL=qwen2.5:7b` es el modelo default del proyecto. Funciona bien en GPUs con 8 GB de VRAM como la RTX 3070 Ti
-- `OLLAMA_NUM_PREDICT=600` limita la cantidad de tokens que genera el modelo por respuesta
+- `OLLAMA_MODEL=qwen3.5:9b` es el modelo default del proyecto. Funciona bien en GPUs con 8 GB de VRAM como la RTX 3070 Ti
+- `OLLAMA_NUM_PREDICT=600` limita la cantidad de tokens que genera el modelo por respuesta. Con `MAX_SENTENCES=10` y texto clinico denso en espanol, 400 tokens es insuficiente; usa 600
 - `OLLAMA_TEMPERATURE=0.1` mantiene las respuestas consistentes y poco creativas (ideal para uso clinico)
-- `MAX_CONCURRENT=1` es el valor correcto para este proyecto cuando corre en una GPU casera. Solo se procesa una inferencia a la vez, las demas esperan en cola
+- `OLLAMA_NUM_CTX=2048` limita la ventana de contexto del modelo. El consumo real maximo es ~1700 tokens (system prompt + datos + respuesta); 2048 ahorra ~256MB de VRAM en KV cache comparado con el default de 4096
+- `OLLAMA_REPEAT_PENALTY=1.05` penaliza levemente la repeticion de frases. 1.0 la desactiva; valores mayores a 1.1 pueden distorsionar terminologia clinica
+- `OLLAMA_TOP_P=0.9` controla la diversidad del sampling. Con temperature 0.1 tiene impacto minimo pero se declara explicitamente para no depender de defaults de Ollama
+- `OLLAMA_SEED=42` fija la semilla para reproducibilidad. Cambialo o usa -1 si necesitas variabilidad entre respuestas
+- `OLLAMA_MAX_RETRIES=2` cantidad de intentos ante errores transitorios de Ollama (timeout o error 5xx)
+- `MAX_CONCURRENT=1` es el valor correcto para una GPU dedicada. Solo se procesa una inferencia a la vez; las demas esperan en cola
 - `QUEUE_WAIT_TIMEOUT` define cuanto tiempo puede esperar una peticion en la cola antes de recibir `503`
-- `CACHE_TTL_SECONDS` y `CACHE_MAX_SIZE` no necesitan estar en `.env` a menos que quieras cambiar los defaults (86400 segundos y 500 entradas respectivamente). Si los omites, `config.py` usa esos defaults
+- `CACHE_TTL_SECONDS=86400` y `CACHE_MAX_SIZE=500` controlan el cache en memoria (24 horas, 500 entradas). Si los omites, `config.py` usa esos mismos defaults
 
 Genera un token seguro para `API_KEY`:
 
@@ -233,7 +245,7 @@ Si responde JSON, Ollama ya esta escuchando.
 Con el modelo default del proyecto:
 
 ```bash
-ollama pull qwen2.5:7b
+ollama pull qwen3.5:9b
 ```
 
 Si cambiaste `OLLAMA_MODEL` en `.env`, descarga exactamente ese modelo:
@@ -260,7 +272,7 @@ curl http://localhost:8888/health
 Respuesta esperada:
 
 ```json
-{"status":"ok","model":"qwen2.5:7b","ollama":"ok"}
+{"status":"ok","model":"qwen3.5:9b","ollama":"ok"}
 ```
 
 ## 10. Script Linux de arranque completo
@@ -421,7 +433,7 @@ El modelo esta tardando demasiado.
 Revisa:
 
 - que Ollama este vivo
-- que el modelo correcto este descargado (`ollama list` debe mostrar `qwen2.5:7b`)
+- que el modelo correcto este descargado (`ollama list` debe mostrar `qwen3.5:9b`)
 - que la GPU tenga memoria suficiente (`nvidia-smi`)
 - que `OLLAMA_TIMEOUT` sea razonable para tu equipo
 
@@ -454,7 +466,7 @@ Si esta API va a vivir en una PC o servidor casero con GPU (como una RTX 3070 Ti
 - no subas concurrencia aunque tengas varios usuarios
 - deja que las peticiones esperen en cola
 - ajusta `QUEUE_WAIT_TIMEOUT` segun el tiempo real de tu modelo
-- `qwen2.5:7b` cabe holgadamente en 8 GB de VRAM
+- `qwen3.5:9b` cabe holgadamente en 8 GB de VRAM
 
 Eso protege la VRAM y evita errores por OOM cuando dos inferencias se disparan al mismo tiempo.
 

@@ -28,6 +28,12 @@ class InferenceCache:
         data["__prompt_hash"] = hashlib.sha256(
             SYSTEM_PROMPT.encode()
         ).hexdigest()[:16]
+        # El system prompt efectivo varía según si hay recomendación de seguimiento
+        # (effective_max = max_sentences - 1). Se incluye en el hash para evitar
+        # devolver del cache una respuesta generada con un límite de oraciones distinto.
+        data["__has_recommendation"] = bool(
+            payload.clinica.recomendacion_seguimiento
+        )
         raw = json.dumps(data, sort_keys=True, ensure_ascii=False)
         return hashlib.sha256(raw.encode()).hexdigest()
 

@@ -4,7 +4,7 @@ import hmac
 import logging
 import time
 from contextlib import asynccontextmanager
-from typing import Annotated
+from typing import Annotated, Any
 
 import httpx
 from fastapi import Depends, FastAPI, HTTPException, Request
@@ -20,6 +20,8 @@ logger = logging.getLogger(__name__)
 
 _inference_semaphore = asyncio.Semaphore(settings.max_concurrent)
 _bearer_scheme = HTTPBearer(auto_error=False)
+_MAX_QUEUE_SIZE = 5  # Requests máximas en espera antes de devolver 503
+_queue_waiting = 0
 
 
 def _safe_id(receta_id: str) -> str:
@@ -28,21 +30,24 @@ def _safe_id(receta_id: str) -> str:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    per_request_timeout = settings.ollama_timeout / 2
-    app.state.http_client = httpx.AsyncClient(timeout=per_request_timeout + 5)
-    logger.info("HTTP client started for model %s", settings.ollama_model)
+    # httpx timeout: ollama_timeout + margen suficiente para que asyncio.wait_for
+    # sea siempre el mecanismo de timeout activo, nunca httpx.
+    _httpx_timeout = max(settings.ollama_timeout * 1.2, settings.ollama_timeout + 10)
+    app.state.http_client = httpx.AsyncClient(timeout=_httpx_timeout)
+    logger.info("HTTP client started (timeout=%.0fs) for model %s",
+                _httpx_timeout, settings.ollama_model)
 
     try:
         await app.state.http_client.post(
             f"{settings.ollama_url}/api/chat",
             json={
-                "model": settings.ollama_model,
+                "model":   settings.ollama_model,
                 "messages": [{"role": "user", "content": "ok"}],
-                "stream": False,
-                "think": False,
+                "stream":  False,
+                "think":   False,
                 "options": {"num_predict": 1, "num_ctx": 512},
             },
-            timeout=60.0,
+            timeout=settings.ollama_timeout,
         )
         logger.info("Warmup completado — modelo en VRAM")
     except Exception as exc:
@@ -57,7 +62,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="ia-api - Inferencia Clinica Optometrica",
-    version="2.0.0",
+    version="2.1.0",
     lifespan=lifespan,
 )
 
@@ -90,14 +95,21 @@ def verify_api_key(
 
 
 async def _acquire_inference_slot(safe_id: str) -> None:
-    logger.info("Inference request queued [%s]", safe_id)
-    if settings.queue_wait_timeout <= 0:
-        await _inference_semaphore.acquire()
-    else:
-        await asyncio.wait_for(
-            _inference_semaphore.acquire(),
-            timeout=settings.queue_wait_timeout,
-        )
+    global _queue_waiting
+    if _queue_waiting >= _MAX_QUEUE_SIZE:
+        raise asyncio.TimeoutError
+    _queue_waiting += 1
+    logger.info("Inference request queued [%s] (queue: %d)", safe_id, _queue_waiting)
+    try:
+        if settings.queue_wait_timeout <= 0:
+            await _inference_semaphore.acquire()
+        else:
+            await asyncio.wait_for(
+                _inference_semaphore.acquire(),
+                timeout=settings.queue_wait_timeout,
+            )
+    finally:
+        _queue_waiting -= 1
     logger.info("Inference slot acquired [%s]", safe_id)
 
 
@@ -140,6 +152,7 @@ async def crear_impresion_clinica(
         logger.info("Inference completed [%s] in %.1fs", sid, elapsed)
         inference_cache.put(req, result)
         return {"status": "ok", "impresion_clinica": result}
+
     except asyncio.TimeoutError:
         raise HTTPException(
             status_code=504,
@@ -153,9 +166,10 @@ async def crear_impresion_clinica(
             status_code=502,
             detail=f"Error de Ollama: {exc.response.status_code}",
         )
-    except Exception as exc:
+    except Exception:
+        # Los detalles del error ya están en el log — no exponerlos al cliente
         logger.exception("Inference failed [%s]", sid)
-        raise HTTPException(status_code=500, detail=f"Error interno: {exc}")
+        raise HTTPException(status_code=500, detail="Error interno del servidor.")
     finally:
         _inference_semaphore.release()
         logger.info("Inference slot released [%s]", sid)
@@ -165,21 +179,37 @@ async def crear_impresion_clinica(
 async def health(client: Annotated[httpx.AsyncClient, Depends(get_http_client)]):
     ollama_status = "error"
     model_available = False
+    model_loaded = False
     try:
-        resp = await client.get(
+        tags_resp = await client.get(
             f"{settings.ollama_url}/api/tags",
             timeout=settings.health_check_timeout,
         )
-        resp.raise_for_status()
-        available = [m["name"] for m in resp.json().get("models", [])]
+        tags_resp.raise_for_status()
+        available = [m["name"] for m in tags_resp.json().get("models", [])]
         model_available = settings.ollama_model in available
         ollama_status = "ok"
     except Exception:
         pass
 
+    if ollama_status == "ok":
+        try:
+            ps_resp = await client.get(
+                f"{settings.ollama_url}/api/ps",
+                timeout=settings.health_check_timeout,
+            )
+            ps_resp.raise_for_status()
+            loaded: list[dict[str, Any]] = ps_resp.json().get("models", [])
+            model_loaded = any(
+                m.get("name") == settings.ollama_model for m in loaded
+            )
+        except Exception:
+            pass
+
     return {
         "status": "ok" if ollama_status == "ok" else "degraded",
         "model": settings.ollama_model,
         "model_available": model_available,
+        "model_loaded": model_loaded,
         "ollama": ollama_status,
     }
