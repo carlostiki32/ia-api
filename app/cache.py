@@ -5,6 +5,7 @@ import time
 import threading
 
 from app.config import settings
+from app.prompt_builder import SYSTEM_PROMPT
 from app.schemas import ImpresionClinicaRequest
 
 logger = logging.getLogger(__name__)
@@ -23,6 +24,10 @@ class InferenceCache:
     def _build_key(payload: ImpresionClinicaRequest) -> str:
         data = payload.model_dump(mode="json")
         data.pop("receta_id", None)
+        data["__model"] = settings.ollama_model
+        data["__prompt_hash"] = hashlib.sha256(
+            SYSTEM_PROMPT.encode()
+        ).hexdigest()[:16]
         raw = json.dumps(data, sort_keys=True, ensure_ascii=False)
         return hashlib.sha256(raw.encode()).hexdigest()
 

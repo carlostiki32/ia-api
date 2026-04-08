@@ -23,10 +23,12 @@ ABBREVIATIONS = {
     "Sra.": "__ABBR_SRA__",
     "p. ej.": "__ABBR_PEJ__",
     "p.ej.": "__ABBR_PEJ2__",
+    "D.": "__ABBR_D__",
+    "mmHg.": "__ABBR_MMHG__",
 }
 
 LIST_BULLET_RE = re.compile(r"^(?:[-*•])\s+")
-LIST_NUMBER_RE = re.compile(r"^\d+\.\s+")
+LIST_NUMBER_RE = re.compile(r"^\d{1,2}\.\s+")
 MULTISPACE_RE = re.compile(r"\s+")
 SENTENCE_END_RE = re.compile(r"(?<=[.!?])\s+(?=[A-ZÁÉÍÓÚÑ])")
 
@@ -44,23 +46,18 @@ def _restore_abbreviations(text: str) -> str:
 
 
 def _split_sentences(text: str) -> list[str]:
-    """Split sentences without breaking common clinical abbreviations."""
     if not text:
         return []
-
     clean = MULTISPACE_RE.sub(" ", text).strip()
     if not clean:
         return []
-
     protected = _protect_abbreviations(clean)
     parts = SENTENCE_END_RE.split(protected)
-
     sentences = []
     for part in parts:
         restored = _restore_abbreviations(part).strip()
         if restored:
             sentences.append(restored)
-
     return sentences
 
 
@@ -77,7 +74,6 @@ def _strip_leading_list_markers(line: str) -> str:
 
 
 def _postprocess(text: str) -> str:
-    """Clean and constrain model output."""
     text = re.sub(r"^```\w*\n?", "", text.strip())
     text = re.sub(r"\n?```\s*$", "", text)
     text = text.strip("`").strip()
@@ -90,11 +86,7 @@ def _postprocess(text: str) -> str:
 
     text = " ".join(cleaned_lines)
     text = MULTISPACE_RE.sub(" ", text).strip()
-
     sentences = _split_sentences(text)
-    if settings.max_sentences > 0 and len(sentences) > settings.max_sentences:
-        sentences = sentences[: settings.max_sentences]
-
     text = " ".join(sentences).strip()
 
     if text and not text.endswith("."):
@@ -107,16 +99,6 @@ def _postprocess(text: str) -> str:
 
 
 def _ensure_follow_up_last(text: str, recommendation: str | None) -> str:
-    """
-    Append the structured follow-up as the final sentence.
-
-    The model does NOT receive follow-up data and is instructed not to
-    generate follow-up text.  This function is the single authority for
-    inserting the follow-up recommendation.
-
-    A normalised exact-match check on the last sentence is kept as a
-    safety net in case the 7B model produces one despite instructions.
-    """
     if not recommendation:
         return text
 
@@ -157,54 +139,68 @@ async def run_inference(
 
     request_body = {
         "model": settings.ollama_model,
-        "prompt": user_prompt,
-        "system": SYSTEM_PROMPT,
+        "messages": [
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": user_prompt},
+        ],
         "stream": False,
+        "think": False,
         "options": {
-            "temperature": settings.ollama_temperature,
-            "num_predict": settings.ollama_num_predict,
+            "temperature":    settings.ollama_temperature,
+            "num_predict":    settings.ollama_num_predict,
+            "num_ctx":        4096,
+            "repeat_penalty": 1.0,
+            "seed":           42,
         },
     }
 
     last_error: Exception | None = None
+    data: dict = {}
+    raw_text = ""
+
     for attempt in range(2):
         try:
             response = await client.post(
-                f"{settings.ollama_url}/api/generate",
+                f"{settings.ollama_url}/api/chat",
                 json=request_body,
             )
             response.raise_for_status()
+            data = response.json()
+            raw_text = data.get("message", {}).get("content", "")
+
+            if not raw_text.strip():
+                raise ValueError(
+                    f"Ollama returned empty response "
+                    f"(done_reason={data.get('done_reason', 'unknown')})"
+                )
             break
-        except httpx.ReadTimeout as exc:
+
+        except (httpx.ReadTimeout, ValueError) as exc:
             last_error = exc
             if attempt == 0:
                 logger.warning(
-                    "Ollama read timeout (attempt 1), retrying — "
-                    "model may be loading into VRAM"
+                    "Attempt 1 failed (%s), retrying...", type(exc).__name__
                 )
                 continue
             raise
     else:
         raise last_error  # type: ignore[misc]
 
-    data = response.json()
-    raw_text = data.get("response", "")
-
     done_reason = data.get("done_reason", "")
     if done_reason == "length":
         logger.warning(
-            "Model output truncated by num_predict limit (%d tokens). "
-            "Raw tail: '...%s'",
+            "Model output truncated by num_predict limit (%d tokens). Output length: %d chars",
             settings.ollama_num_predict,
-            raw_text[-80:],
+            len(raw_text),
         )
 
     try:
         text = _postprocess(raw_text)
     except ValueError:
         logger.error(
-            "Model output empty after postprocessing. Raw output: '%s'",
-            raw_text[:200],
+            "Model output empty after postprocessing. Raw length: %d chars, done_reason: '%s'",
+            len(raw_text),
+            done_reason,
         )
         raise
 

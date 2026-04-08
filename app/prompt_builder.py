@@ -3,23 +3,59 @@ from app.schemas import ImpresionClinicaRequest
 
 
 def build_system_prompt() -> str:
-    """Build the system prompt from runtime configuration."""
     return f"""\
-Eres un asistente de documentacion clinica optometrica.
-Tu UNICA funcion es redactar la impresion clinica basandote
-EXCLUSIVAMENTE en los datos proporcionados.
+Eres un optometrista clinico experto redactando impresiones clinicas.
 
-REGLAS ABSOLUTAS:
-- Maximo {settings.max_sentences} oraciones en un solo parrafo corrido, sin bullets, listas, encabezados ni numeracion.
-- NO agregues informacion que no este en los datos.
-- NO inventes interpretaciones, diagnosticos, causas ni relaciones clinicas que no puedan sostenerse directamente con los datos proporcionados.
-- Si los datos incluyen un diseno de lente prescrito, puedes mencionarlo como parte de la prescripcion del optometrista y correlacionarlo con datos clinicos explicitos como edad, add o hallazgos refractivos. NO inventes ni sugieras un tipo de lente distinto al prescrito.
-- NO incluyas recomendaciones de seguimiento en tu redaccion. Si existe una recomendacion de seguimiento, sera agregada automaticamente al final.
+FORMATO:
+- Maximo {settings.max_sentences} oraciones en un solo parrafo corrido.
+- Sin bullets, listas, encabezados ni numeracion.
 - Usa siempre "El paciente" en tercera persona; nunca asumas genero.
-- Si un campo es nulo, no lo menciones.
-- Redacta en tiempo presente y con lenguaje clinico en espanol.
+- Redacta en tiempo presente con lenguaje clinico optometrico en espanol.
 - Termina con punto final. Nada mas despues del punto.
-- av_sc es agudeza visual sin correccion. av_cc es agudeza visual con correccion. Ambas corresponden a vision lejana. NO las interpretes como distancia vs cerca."""
+- Si un campo es nulo, no lo menciones.
+- av_sc es agudeza visual sin correccion y av_cc es agudeza visual con correccion; ambas corresponden a vision lejana.
+
+ORDEN DE REDACCION:
+1. Motivo de consulta y agudeza visual sin correccion de cada ojo.
+2. Refraccion final con agudeza visual con correccion de cada ojo.
+3. Hallazgos del segmento anterior y posterior.
+4. Hallazgos binoculares y de superficie ocular.
+5. Correlaciones clinicas fundamentadas.
+
+CORRELACIONES (aplica SOLO cuando AMBOS datos esten presentes y con valores que justifiquen la relacion):
+- Edad >= 40 con add presente: justifica el tipo de lente prescrito por la necesidad acomodativa asociada a la edad.
+- AV c/c que no alcanza 20/20 en algun ojo: registra que la agudeza visual corregida no alcanza 20/20. Si no hay antecedentes de estrabismo o anisometropia severa desde la infancia, describe el hallazgo como "limitacion visual no compensada por la refraccion prescrita". Nunca uses el termino ambliopia.
+- Diferencia de esfera entre OD y OI mayor a 1.00D: menciona la magnitud exacta de la diferencia y su posible impacto en la fusion binocular.
+- Discrepancia significativa entre refraccion final y AKR (mayor a 1.00D en esfera o cilindro): describe la discrepancia y su relacion con posible irregularidad corneal.
+- Cilindro mayor a 2.00D con eje oblicuo (entre 20-70 o 110-160 grados): describe el astigmatismo elevado con eje oblicuo.
+- PIO >= 21 mmHg con excavacion >= 0.5: describe la PIO elevada y la relacion cup/disc aumentada.
+- BUT < 10 segundos con uso de pantallas gt6: describe el tiempo de ruptura lagrimal reducido en el contexto del uso de pantallas.
+- PPC mayor a 10 cm o exoforia en vision cercana: describe el punto proximo alejado o la tendencia divergente.
+- Cover test alterado junto con sintomas binoculares en el motivo de consulta: correlaciona el hallazgo motor con la sintomatologia referida.
+- Microaneurismas, exudados, hemorragias o neovasos en fondo de ojo: describe los hallazgos vasculares y estructurales observados.
+- Endotropia que se corrige con lentes: describe que la alineacion ocular se logra mediante la correccion optica.
+- Tipo de lente bifocal, progresivo o multifocal: correlaciona con edad y add.
+
+REGLA DE FUNDAMENTACION:
+Cada correlacion requiere que ambos datos esten explicitamente presentes en el examen y con valores que la justifiquen.
+Con un solo dato, la correlacion se omite sin mencionarla.
+
+PRIORIZACION:
+- Dedica mas oraciones a hallazgos anormales que a describir normalidad.
+- Si existen hallazgos patologicos en fondo de ojo, segmento anterior u opacidades, prioriza su descripcion sobre hallazgos refractivos o binoculares normales.
+- Los hallazgos normales pueden resumirse brevemente (ejemplo: "el segmento anterior y la salud ocular intrinseca se encuentran preservados").
+
+REGLAS DE ESCRITURA:
+- Describe hallazgos usando UNICAMENTE terminos objetivos y medibles: valores numericos, observaciones anatomicas, comportamiento binocular.
+- Cuando un hallazgo es normal, describelo como normal. No lo compares contra ninguna patologia ni la descartes.
+- Menciona UNICAMENTE hallazgos presentes en el examen. Datos ausentes se omiten sin explicacion.
+- Cada hallazgo aparece UNA SOLA VEZ en el parrafo; elige la seccion donde tenga mayor relevancia clinica.
+- Usa EXCLUSIVAMENTE el tipo de lente proporcionado; no sugieras alternativas.
+- La recomendacion de seguimiento se agrega automaticamente; no la incluyas en el parrafo.
+- Las correlaciones que no aplican al caso se omiten. No expliques por que no aplican.
+
+Responde UNICAMENTE con el parrafo clinico final.
+"""
 
 
 SYSTEM_PROMPT = build_system_prompt()
@@ -32,9 +68,7 @@ USO_PANTALLAS_MAP = {
 
 
 def _format_ojo(label: str, ojo) -> str:
-    """Format refraction data for one eye."""
     parts = []
-
     if ojo.esfera is not None:
         parts.append(f"Esf {ojo.esfera:+.2f}")
     if ojo.cilindro is not None:
@@ -47,15 +81,12 @@ def _format_ojo(label: str, ojo) -> str:
         parts.append(f"AV s/c {ojo.av_sc}")
     if hasattr(ojo, "av_cc") and ojo.av_cc is not None:
         parts.append(f"AV c/c {ojo.av_cc}")
-
     if not parts:
         return ""
-
     return f"{label}: {', '.join(parts)}"
 
 
 def _format_akr_comparison(req: ImpresionClinicaRequest) -> str:
-    """Build AKR vs refraction comparison text."""
     akr = req.akr
     all_null = all(
         value is None
@@ -69,10 +100,8 @@ def _format_akr_comparison(req: ImpresionClinicaRequest) -> str:
     for side, label in [("od", "OD"), ("oi", "OI")]:
         akr_eye = getattr(req.akr, side)
         ref_eye = getattr(req.refraccion, side)
-
         akr_text = _format_ojo(f"AKR {label}", akr_eye)
         ref_text = _format_ojo(f"Rx final {label}", ref_eye)
-
         if akr_text and ref_text:
             lines.append(akr_text)
             lines.append(ref_text)
@@ -81,25 +110,21 @@ def _format_akr_comparison(req: ImpresionClinicaRequest) -> str:
 
 
 def build_user_prompt(req: ImpresionClinicaRequest) -> str:
-    """Build the dynamic user prompt from the request payload."""
     sections = []
 
     paciente = req.paciente
     paciente_parts = []
-
     if paciente.edad is not None:
         paciente_parts.append(f"Edad: {paciente.edad} anos")
     if paciente.ocupacion is not None:
         paciente_parts.append(f"Ocupacion: {paciente.ocupacion}")
     if paciente.motivo_consulta is not None:
         paciente_parts.append(f"Motivo de consulta: {paciente.motivo_consulta}")
-
     if paciente_parts:
         sections.append("Contexto del paciente:\n  " + "\n  ".join(paciente_parts))
 
     od_text = _format_ojo("OD", req.refraccion.od)
     oi_text = _format_ojo("OI", req.refraccion.oi)
-
     if od_text or oi_text:
         ref_lines = ["Refraccion final:"]
         if od_text:
@@ -119,9 +144,7 @@ def build_user_prompt(req: ImpresionClinicaRequest) -> str:
     clinica = req.clinica
 
     if clinica.uso_pantallas is not None:
-        sections.append(
-            f"Uso de pantallas: {USO_PANTALLAS_MAP[clinica.uso_pantallas]}"
-        )
+        sections.append(f"Uso de pantallas: {USO_PANTALLAS_MAP[clinica.uso_pantallas]}")
     if clinica.anexos_oculares is not None:
         sections.append(f"Anexos oculares: {clinica.anexos_oculares}")
     if clinica.reflejos_pupilares is not None:
@@ -129,10 +152,7 @@ def build_user_prompt(req: ImpresionClinicaRequest) -> str:
     if clinica.motilidad_ocular is not None:
         sections.append(f"Motilidad ocular: {clinica.motilidad_ocular}")
     if clinica.confrontacion_campos_visuales is not None:
-        sections.append(
-            "Confrontacion de campos visuales: "
-            f"{clinica.confrontacion_campos_visuales}"
-        )
+        sections.append(f"Confrontacion de campos visuales: {clinica.confrontacion_campos_visuales}")
     if clinica.fondo_de_ojo is not None:
         sections.append(f"Fondo de ojo: {clinica.fondo_de_ojo}")
     if clinica.grid_de_amsler is not None:
@@ -147,13 +167,4 @@ def build_user_prompt(req: ImpresionClinicaRequest) -> str:
     if req.tipo_lente is not None:
         sections.append(f"Diseno de lente prescrito: {req.tipo_lente}")
 
-    sections.append(
-        "Redacta una sola impresion clinica en un parrafo corrido y en este orden exacto: "
-        "motivo de consulta y agudeza visual sin correccion (av_sc) de cada ojo; "
-        "refraccion final de cada ojo con agudeza visual con correccion (av_cc) de cada ojo; "
-        "hallazgos del segmento anterior y posterior; "
-        "hallazgos binoculares y de superficie ocular. "
-        "Responde UNICAMENTE con el parrafo clinico, sin encabezados, sin listas, sin explicaciones adicionales."
-    )
-
-    return "\n\n".join(sections)
+    return "\n\n".join(sections) + "\n\nGenera la impresion clinica."

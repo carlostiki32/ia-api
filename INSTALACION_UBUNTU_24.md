@@ -170,7 +170,7 @@ OLLAMA_URL=http://localhost:11434
 OLLAMA_MODEL=qwen2.5:7b
 OLLAMA_TIMEOUT=120.0
 OLLAMA_TEMPERATURE=0.1
-OLLAMA_NUM_PREDICT=400
+OLLAMA_NUM_PREDICT=600
 MAX_CONCURRENT=1
 QUEUE_WAIT_TIMEOUT=120.0
 HOST=0.0.0.0
@@ -184,7 +184,7 @@ LOG_LEVEL=INFO
 Sobre las variables:
 
 - `OLLAMA_MODEL=qwen2.5:7b` es el modelo default del proyecto. Funciona bien en GPUs con 8 GB de VRAM como la RTX 3070 Ti
-- `OLLAMA_NUM_PREDICT=400` limita la cantidad de tokens que genera el modelo por respuesta
+- `OLLAMA_NUM_PREDICT=600` limita la cantidad de tokens que genera el modelo por respuesta
 - `OLLAMA_TEMPERATURE=0.1` mantiene las respuestas consistentes y poco creativas (ideal para uso clinico)
 - `MAX_CONCURRENT=1` es el valor correcto para este proyecto cuando corre en una GPU casera. Solo se procesa una inferencia a la vez, las demas esperan en cola
 - `QUEUE_WAIT_TIMEOUT` define cuanto tiempo puede esperar una peticion en la cola antes de recibir `503`

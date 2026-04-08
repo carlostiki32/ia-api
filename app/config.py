@@ -6,10 +6,10 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     # Ollama
     ollama_url: str = "http://localhost:11434"
-    ollama_model: str = "qwen2.5:7b"
+    ollama_model: str = "qwen3.5:9b"
     ollama_timeout: float = 120.0
     ollama_temperature: float = 0.1
-    ollama_num_predict: int = 400
+    ollama_num_predict: int = 600
 
     # Concurrency / queue
     max_concurrent: int = 1
@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     api_key: str = ""
 
     # Inference post-processing
-    max_sentences: int = 10
+    max_sentences: int = 15
 
     # Cache
     cache_ttl_seconds: int = 86400
