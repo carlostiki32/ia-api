@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     ollama_timeout: float = 120.0
 
     # Ollama — sampling
-    ollama_temperature: float = 0.1
+    ollama_temperature: float = 0.7
     ollama_num_predict: int = 600
     ollama_num_ctx: int = 2048          # Consumo real máximo ~1700 tokens;
                                         # 2048 ahorra ~256MB de VRAM vs 4096.
@@ -18,9 +18,9 @@ class Settings(BaseSettings):
                                         # clínica requiere repetición exacta
                                         # de términos (OD/OI, agudeza visual);
                                         # penalizarla genera circunloquios.
-    ollama_top_p: float = 1.0           # Desactivado (nucleus sampling inútil
-                                        # con temperature <= 0.1 — la distrib.
-                                        # ya está concentrada en el top token).
+    ollama_top_p: float = 0.8
+    ollama_top_k: int = 20              # Qwen3.5 non-thinking mode requiere top_k=20
+    ollama_min_p: float = 0.0           # Qwen3.5 non-thinking mode requiere min_p=0.0
     ollama_seed: int = 42               # Fija reproducibilidad. -1 para
                                         # desactivar y obtener variabilidad.
     ollama_max_retries: int = 2         # Intentos ante ReadTimeout o error 5xx.
@@ -37,7 +37,7 @@ class Settings(BaseSettings):
     api_key: str = ""
 
     # Postprocesamiento de inferencia
-    max_sentences: int = 15
+    max_sentences: int = 10
 
     # Cache
     cache_ttl_seconds: int = 86400

@@ -169,11 +169,13 @@ Configuracion recomendada (RTX 3070 Ti):
 OLLAMA_URL=http://localhost:11434
 OLLAMA_MODEL=qwen3.5:9b
 OLLAMA_TIMEOUT=120.0
-OLLAMA_TEMPERATURE=0.1
+OLLAMA_TEMPERATURE=0.7
 OLLAMA_NUM_PREDICT=600
 OLLAMA_NUM_CTX=2048
-OLLAMA_REPEAT_PENALTY=1.05
-OLLAMA_TOP_P=0.9
+OLLAMA_REPEAT_PENALTY=1.0
+OLLAMA_TOP_P=0.8
+OLLAMA_TOP_K=20
+OLLAMA_MIN_P=0.0
 OLLAMA_SEED=42
 OLLAMA_MAX_RETRIES=2
 MAX_CONCURRENT=1
@@ -192,10 +194,10 @@ Sobre las variables:
 
 - `OLLAMA_MODEL=qwen3.5:9b` es el modelo default del proyecto. Funciona bien en GPUs con 8 GB de VRAM como la RTX 3070 Ti
 - `OLLAMA_NUM_PREDICT=600` limita la cantidad de tokens que genera el modelo por respuesta. Con `MAX_SENTENCES=10` y texto clinico denso en espanol, 400 tokens es insuficiente; usa 600
-- `OLLAMA_TEMPERATURE=0.1` mantiene las respuestas consistentes y poco creativas (ideal para uso clinico)
+- `OLLAMA_TEMPERATURE=0.7` es el valor recomendado por la documentacion oficial de Qwen3.5 para modo non-thinking. Valores bajos como 0.1 producen greedy decoding, que el modelo desaconseja explicitamente
 - `OLLAMA_NUM_CTX=2048` limita la ventana de contexto del modelo. El consumo real maximo es ~1700 tokens (system prompt + datos + respuesta); 2048 ahorra ~256MB de VRAM en KV cache comparado con el default de 4096
-- `OLLAMA_REPEAT_PENALTY=1.05` penaliza levemente la repeticion de frases. 1.0 la desactiva; valores mayores a 1.1 pueden distorsionar terminologia clinica
-- `OLLAMA_TOP_P=0.9` controla la diversidad del sampling. Con temperature 0.1 tiene impacto minimo pero se declara explicitamente para no depender de defaults de Ollama
+- `OLLAMA_REPEAT_PENALTY=1.0` desactiva la penalizacion de repeticion. La terminologia clinica (OD/OI, agudeza visual) requiere repeticion exacta de terminos; con temperature=0.7 no hay riesgo de bucles de repeticion
+- `OLLAMA_TOP_P=0.8`, `OLLAMA_TOP_K=20` y `OLLAMA_MIN_P=0.0` son los parametros de sampling recomendados por la documentacion oficial de Qwen3.5 para modo non-thinking
 - `OLLAMA_SEED=42` fija la semilla para reproducibilidad. Cambialo o usa -1 si necesitas variabilidad entre respuestas
 - `OLLAMA_MAX_RETRIES=2` cantidad de intentos ante errores transitorios de Ollama (timeout o error 5xx)
 - `MAX_CONCURRENT=1` es el valor correcto para una GPU dedicada. Solo se procesa una inferencia a la vez; las demas esperan en cola
@@ -272,7 +274,13 @@ curl http://localhost:8888/health
 Respuesta esperada:
 
 ```json
-{"status":"ok","model":"qwen3.5:9b","ollama":"ok"}
+{
+  "status": "ok",
+  "model": "qwen3.5:9b",
+  "model_available": true,
+  "model_loaded": true,
+  "ollama": "ok"
+}
 ```
 
 ## 10. Script Linux de arranque completo

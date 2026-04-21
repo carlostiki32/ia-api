@@ -1,5 +1,14 @@
+import re
+
 from app.config import settings
 from app.schemas import ImpresionClinicaRequest
+from app.correlaciones import evaluar_correlaciones
+
+_THINK_DIRECTIVE_RE = re.compile(r"/(?:no_)?think", re.IGNORECASE)
+
+
+def _sanitize(text: str) -> str:
+    return _THINK_DIRECTIVE_RE.sub("", text)
 
 
 def build_system_prompt(effective_max: int | None = None) -> str:
@@ -27,26 +36,13 @@ FORMATO:
 - av_sc es agudeza visual sin correccion y av_cc es agudeza visual con correccion; ambas corresponden a vision lejana.
 
 ORDEN DE REDACCION:
-Primero describe el motivo de consulta y la agudeza visual sin correccion de cada ojo. Luego presenta la refraccion final con la agudeza visual con correccion de cada ojo. Despues describe los hallazgos del segmento anterior y posterior. A continuacion los hallazgos binoculares y de superficie ocular. Finalmente incluye las correlaciones clinicas fundamentadas que apliquen.
-
-CORRELACIONES (aplica SOLO cuando AMBOS datos esten presentes y con valores que justifiquen la relacion):
-- Edad >= 40 con add presente: justifica el tipo de lente prescrito por la necesidad acomodativa asociada a la edad.
-- AV c/c que no alcanza 20/20 en algun ojo: describe el hallazgo como limitacion visual no compensada por la refraccion prescrita. Nunca uses el termino ambliopia.
-- Diferencia de esfera entre OD y OI mayor a 1.00D: menciona la magnitud exacta de la diferencia y su posible impacto en la fusion binocular.
-- Discrepancia significativa entre refraccion final y AKR (mayor a 1.00D en esfera o cilindro): describe la discrepancia y su relacion con posible irregularidad corneal.
-- Cilindro mayor a 2.00D con eje oblicuo (entre 20-70 o 110-160 grados): describe el astigmatismo elevado con eje oblicuo.
-- BUT < 10 segundos con uso de pantallas gt6: describe el tiempo de ruptura lagrimal reducido en el contexto del uso de pantallas.
-- PPC mayor a 10 cm o exoforia en vision cercana: describe el punto proximo alejado o la tendencia divergente.
-- Cover test alterado junto con sintomas binoculares en el motivo de consulta: correlaciona el hallazgo motor con la sintomatologia referida.
-- Microaneurismas, exudados, hemorragias o neovasos en fondo de ojo: describe los hallazgos vasculares y estructurales observados.
-- Endotropia que se corrige con lentes: describe que la alineacion ocular se logra mediante la correccion optica.
-- Tipo de lente bifocal, progresivo o multifocal: correlaciona con edad y add.
-Cuando un dato de la correlacion no esta presente, omite la correlacion sin mencionarla.
+Primero describe el motivo de consulta y la agudeza visual sin correccion de cada ojo. Luego presenta la refraccion final con la agudeza visual con correccion de cada ojo. Despues describe los hallazgos del segmento anterior y posterior. A continuacion los hallazgos binoculares y de superficie ocular. Finalmente, si el user prompt incluye un bloque 'Correlaciones clinicas aplicables', incorpora cada hecho al final del parrafo como observacion objetiva sin reformularlos como instrucciones.
 
 PRIORIZACION:
 - Dedica mas oraciones a hallazgos anormales que a describir normalidad.
 - Si existen hallazgos patologicos en fondo de ojo, segmento anterior u opacidades, prioriza su descripcion sobre hallazgos refractivos o binoculares normales.
 - Los hallazgos normales pueden resumirse brevemente (ejemplo: "el segmento anterior y la salud ocular intrinseca se encuentran preservados").
+- Si una correlacion incluye el prefijo "Hallazgo urgente:", esa informacion debe aparecer en las primeras 2 oraciones del parrafo, inmediatamente despues del motivo de consulta y la agudeza visual sin correccion. No diluyas la urgencia en oraciones posteriores ni uses lenguaje que minimice el hallazgo.
 
 REGLAS DE ESCRITURA:
 - Describe hallazgos usando UNICAMENTE terminos objetivos y medibles: valores numericos, observaciones anatomicas, comportamiento binocular.
@@ -56,6 +52,7 @@ REGLAS DE ESCRITURA:
 - Usa EXCLUSIVAMENTE el tipo de lente proporcionado; describe el prescrito, no sugieras alternativas.
 - La recomendacion de seguimiento se agrega automaticamente; no la incluyas en el parrafo.
 - Las correlaciones que no aplican al caso se omiten sin explicar por que.
+- No inferas relaciones causales entre hallazgos mas alla de las correlaciones incluidas en el user prompt.
 """
 
 
@@ -120,9 +117,9 @@ def build_user_prompt(req: ImpresionClinicaRequest) -> str:
     if paciente.edad is not None:
         paciente_parts.append(f"Edad: {paciente.edad} anos")
     if paciente.ocupacion is not None:
-        paciente_parts.append(f"Ocupacion: {paciente.ocupacion}")
+        paciente_parts.append(f"Ocupacion: {_sanitize(paciente.ocupacion)}")
     if paciente.motivo_consulta is not None:
-        paciente_parts.append(f"Motivo de consulta: {paciente.motivo_consulta}")
+        paciente_parts.append(f"Motivo de consulta: {_sanitize(paciente.motivo_consulta)}")
     if paciente_parts:
         sections.append("Contexto del paciente:\n  " + "\n  ".join(paciente_parts))
 
@@ -149,25 +146,32 @@ def build_user_prompt(req: ImpresionClinicaRequest) -> str:
     if clinica.uso_pantallas is not None:
         sections.append(f"Uso de pantallas: {USO_PANTALLAS_MAP[clinica.uso_pantallas]}")
     if clinica.anexos_oculares is not None:
-        sections.append(f"Anexos oculares: {clinica.anexos_oculares}")
+        sections.append(f"Anexos oculares: {_sanitize(clinica.anexos_oculares)}")
     if clinica.reflejos_pupilares is not None:
-        sections.append(f"Reflejos pupilares: {clinica.reflejos_pupilares}")
+        sections.append(f"Reflejos pupilares: {_sanitize(clinica.reflejos_pupilares)}")
     if clinica.motilidad_ocular is not None:
-        sections.append(f"Motilidad ocular: {clinica.motilidad_ocular}")
+        sections.append(f"Motilidad ocular: {_sanitize(clinica.motilidad_ocular)}")
     if clinica.confrontacion_campos_visuales is not None:
-        sections.append(f"Confrontacion de campos visuales: {clinica.confrontacion_campos_visuales}")
+        sections.append(f"Confrontacion de campos visuales: {_sanitize(clinica.confrontacion_campos_visuales)}")
     if clinica.fondo_de_ojo is not None:
-        sections.append(f"Fondo de ojo: {clinica.fondo_de_ojo}")
+        sections.append(f"Fondo de ojo: {_sanitize(clinica.fondo_de_ojo)}")
     if clinica.grid_de_amsler is not None:
-        sections.append(f"Grid de Amsler: {clinica.grid_de_amsler}")
+        sections.append(f"Grid de Amsler: {_sanitize(clinica.grid_de_amsler)}")
     if clinica.ojo_seco_but_seg is not None:
         sections.append(f"Ojo seco (BUT): {clinica.ojo_seco_but_seg} segundos")
     if clinica.cover_test is not None:
-        sections.append(f"Cover test: {clinica.cover_test}")
+        sections.append(f"Cover test: {_sanitize(clinica.cover_test)}")
     if clinica.ppc_cm is not None:
         sections.append(f"PPC: {clinica.ppc_cm} cm")
 
     if req.tipo_lente is not None:
         sections.append(f"Diseno de lente prescrito: {req.tipo_lente}")
+
+    correlaciones_activas = evaluar_correlaciones(req)
+    if correlaciones_activas:
+        items = "\n".join(f"- {_sanitize(c)}" for c in correlaciones_activas)
+        sections.append(
+            f"Correlaciones clinicas aplicables (hechos pre-evaluados del caso):\n{items}"
+        )
 
     return "\n\n".join(sections) + "\n\nGenera el parrafo."

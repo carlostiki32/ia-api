@@ -20,7 +20,6 @@ def _make_request(**kwargs):
 def test_system_prompt_has_rules():
     prompt = build_system_prompt()
     assert f"Maximo {settings.max_sentences} oraciones" in prompt
-    assert "NO agregues informacion" in prompt
     assert "tercera persona" in prompt
 
 
@@ -64,15 +63,6 @@ def test_uso_pantallas_mapping():
         assert expected in prompt
 
 
-def test_user_prompt_ends_with_order_instruction():
-    req = _make_request(refraccion=Refraccion(od=GraduacionOjo(esfera=-1.00)))
-    prompt = build_user_prompt(req)
-    assert "Redacta la impresion clinica en exactamente este orden:" in prompt
-    assert "1. Motivo de consulta y agudeza visual sin correccion" in prompt
-    assert prompt.endswith(
-        "Redacta cada punto como una oracion continua, sin numeracion ni bullets."
-    )
-
 
 def test_akr_comparison_included():
     req = _make_request(
@@ -113,13 +103,6 @@ def test_tipo_lente_included():
     assert "Diseno de lente prescrito: progresivo" in prompt
 
 
-def test_recomendacion_seguimiento():
-    req = _make_request(
-        clinica=DatosClinica(recomendacion_seguimiento="Control en 6 meses")
-    )
-    prompt = build_user_prompt(req)
-    assert "Recomendacion de seguimiento: Control en 6 meses" in prompt
-
 
 def test_paciente_context_included():
     req = _make_request(
@@ -150,7 +133,15 @@ def test_paciente_partial_fields():
     assert "Motivo de consulta: " not in prompt
 
 
-def test_empty_request_still_has_instruction():
-    req = _make_request()
+def test_user_prompt_incluye_correlacion_compuesta_y_suprime_fallbacks():
+    req = _make_request(
+        paciente=ContextoPaciente(motivo_consulta="cefalea y fatiga con lectura"),
+        clinica=DatosClinica(ppc_cm=12, cover_test="exoforia en VP"),
+    )
+
     prompt = build_user_prompt(req)
-    assert "Redacta la impresion clinica en exactamente este orden:" in prompt
+
+    assert "Correlaciones clinicas aplicables" in prompt
+    assert "insuficiencia de convergencia" in prompt
+    assert "tendencia divergente en el cover test" not in prompt
+

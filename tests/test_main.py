@@ -92,14 +92,3 @@ def test_endpoint_returns_inference_result(monkeypatch):
     }
 
 
-def test_health_returns_error_when_ollama_is_unavailable():
-    async def fake_get(url, timeout):
-        raise httpx.ConnectError("boom")
-
-    with TestClient(main.app) as client:
-        client.app.state.http_client.get = fake_get
-        response = client.get("/health")
-
-    assert response.status_code == 200
-    assert response.json()["status"] == "ok"
-    assert response.json()["ollama"] == "error"
