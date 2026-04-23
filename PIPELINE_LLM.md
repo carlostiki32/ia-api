@@ -143,12 +143,14 @@ Durante el `lifespan` de FastAPI se crea un `httpx.AsyncClient` y se hace un war
 
 El tipo raiz es `ImpresionClinicaRequest`.
 
+> **Fuente de verdad:** el SaaS (Laravel) es la unica fuente que construye el payload. Todos los tipos, rangos y enums aqui listados reflejan lo que el SaaS realmente puede enviar (validacion en `RecetaValidationRules` + construccion en `IaApiService::buildPayload`). El schema Pydantic de `ia-api` debe mantenerse alineado con este contrato y nunca asumir datos que el SaaS no genera.
+
 ### Campos de primer nivel
 
 | Campo | Tipo | Uso |
 |---|---|---|
-| `receta_id` | `str` | Identificador del caso. Se usa para logging seguro, no para el cache. |
-| `paciente` | `ContextoPaciente` | Edad, ocupacion y motivo de consulta. |
+| `receta_id` | `str` | Identificador del caso. Se usa para logging seguro, no para el cache. Puede ser `"nueva"` cuando la receta aun no se guardo. |
+| `paciente` | `ContextoPaciente` | Edad (calculada en SaaS), ocupacion y motivo de consulta. |
 | `refraccion` | `Refraccion` | Refraccion final prescrita en OD y OI. |
 | `akr` | `AkrSnapshot` | Medicion del autorrefractometro en OD y OI. |
 | `clinica` | `DatosClinica` | Hallazgos de examen clinico. |
@@ -156,28 +158,30 @@ El tipo raiz es `ImpresionClinicaRequest`.
 
 ### ContextoPaciente
 
-| Campo | Tipo |
-|---|---|
-| `edad` | `int \| None` |
-| `ocupacion` | `str \| None` |
-| `motivo_consulta` | `str \| None` |
+| Campo | Tipo | Restriccion real del SaaS |
+|---|---|---|
+| `edad` | `int \| None` | Calculada desde `paciente.fecha_nacimiento` con `Carbon::parse(...)->age`. Si no hay fecha de nacimiento, llega `None`. |
+| `ocupacion` | `str \| None` | `required\|max:255` en el SaaS. En la practica siempre llega con valor (nunca None). |
+| `motivo_consulta` | `str \| None` | `required\|max:255` en el SaaS. En la practica siempre llega con valor (nunca None). |
+
+El SaaS **no envia** `nombre`, `telefono` ni `fecha_nacimiento`.
 
 ### GraduacionOjo
 
 Se usa en `refraccion.od` y `refraccion.oi`.
 
-| Campo | Tipo |
-|---|---|
-| `esfera` | `float \| None` |
-| `cilindro` | `float \| None` |
-| `eje` | `int \| None` |
-| `add` | `float \| None` |
-| `av_sc` | `str \| None` |
-| `av_cc` | `str \| None` |
+| Campo | Tipo | Restriccion real del SaaS |
+|---|---|---|
+| `esfera` | `float \| None` | Rango UI: `-20.00` a `+20.00` con paso `0.25` |
+| `cilindro` | `float \| None` | Rango UI: `-8.00` a `0.00` con paso `0.25` |
+| `eje` | `int \| None` | `0..180` |
+| `add` | `float \| None` | Libre |
+| `av_sc` | `str \| None` | Valores Snellen cerrados: `20/10`, `20/15`, `20/20`, `20/25`, `20/30`, `20/40`, `20/50`, `20/60`, `20/70`, `20/80`, `20/100`, `20/120`, `20/160`, `20/200`, `20/400`, `20/600` |
+| `av_cc` | `str \| None` | Mismos valores que `av_sc` |
 
 ### AkrOjo
 
-Se usa en `akr.od` y `akr.oi`.
+Se usa en `akr.od` y `akr.oi`. Es un snapshot del autorrefractometro; **no** incluye `add`, `av_sc` ni `av_cc`, ni `pd` (el SaaS no lo envia).
 
 | Campo | Tipo |
 |---|---|
@@ -187,24 +191,43 @@ Se usa en `akr.od` y `akr.oi`.
 
 ### DatosClinica
 
-| Campo | Tipo | Restriccion |
+| Campo | Tipo | Restriccion real del SaaS |
 |---|---|---|
-| `uso_pantallas` | `"lt2" \| "btw2_6" \| "gt6" \| None` | Literal |
-| `anexos_oculares` | `str \| None` | libre |
-| `reflejos_pupilares` | `str \| None` | libre |
-| `motilidad_ocular` | `str \| None` | libre |
-| `confrontacion_campos_visuales` | `str \| None` | libre |
-| `fondo_de_ojo` | `str \| None` | libre |
-| `grid_de_amsler` | `str \| None` | libre |
-| `ojo_seco_but_seg` | `int \| None` | entre 1 y 15 |
-| `cover_test` | `str \| None` | libre |
-| `ppc_cm` | `int \| None` | entre 1 y 15 |
-| `recomendacion_seguimiento` | `str \| None` | libre |
+| `uso_pantallas` | `"lt2" \| "btw2_6" \| "gt6" \| None` | Enum cerrado |
+| `anexos_oculares` | `str \| None` | Texto libre `max:255` |
+| `reflejos_pupilares` | `str \| None` | `max:255`. **La UI compone** `"{opcion}: {nota}"`. Opciones UI fijas: `"Reflejo fotomotor, consesual, acomodativo"` o `"Marcus Gunn"` |
+| `motilidad_ocular` | `str \| None` | `max:255`. **La UI compone** una sola linea: `"Versiones: X Ducciones: Y Sacadicos: Z Seguimiento: W"` (los saltos de linea se colapsan en el SaaS antes de enviar) |
+| `confrontacion_campos_visuales` | `str \| None` | Texto libre `max:255` |
+| `fondo_de_ojo` | `str \| None` | Texto libre `max:255` |
+| `grid_de_amsler` | `str \| None` | Texto libre `max:255` |
+| `ojo_seco_but_seg` | `int \| None` | `1..15` (unsignedTinyInteger en DB del SaaS) |
+| `cover_test` | `str \| None` | `max:255`. **La UI compone siempre** `"OD: {tipo_od}[ y {sub_od}] \| OI: {tipo_oi}[ y {sub_oi}]"`. `tipo ∈ {Orto, Endo, Exo, Hiper, Hipo}`, `sub ∈ {Tropia, Foria}`. Ejemplos reales: `"OD: Orto \| OI: Exo y Foria"`, `"OD: Endo y Tropia \| OI: Orto"`. **No** se envian cadenas como `"exoforia"` unidas. |
+| `ppc_cm` | `int \| None` | `1..15` (unsignedTinyInteger en DB del SaaS) |
+| `recomendacion_seguimiento` | `str \| None` | Texto libre (TEXT en DB, sin limite duro) |
 
 ### Normalizaciones Pydantic relevantes
 
-- `motilidad_ocular`: colapsa saltos de linea y espacios duplicados.
-- `cover_test`: reemplaza `" - "` por `" y "` y colapsa espacios.
+- `motilidad_ocular`: colapsa saltos de linea y espacios duplicados (el SaaS ya envia una sola linea; la normalizacion es defensiva).
+- `cover_test`: reemplaza `" - "` por `" y "` y colapsa espacios. En la practica **el SaaS ya envia `" y "`** como separador entre tipo y subtipo; este normalize es defensivo.
+
+### Campos que existen en la receta del SaaS y que NO llegan
+
+El ia-api nunca debe asumir ni procesar ninguno de estos:
+
+- Paciente: `nombre`, `telefono`, `fecha_nacimiento` (se envia solo `edad`).
+- Graduacion: `prisma`, `base_prisma`, `dnp`, `altura_montaje`.
+- Receta: `folio`, `estado`, `fecha_receta`, `precio_total`, `anticipo`, `observaciones_laboratorio`, `akr_pd`.
+- Lente: `material`, `tratamientos`, `armazon_marca`, `armazon_modelo`, `armazon_color`.
+- Clinica: `impresion_clinica_plan` (ese es precisamente la salida de esta API, nunca entrada).
+
+### Brechas actuales del contrato
+
+Al auditar ambos repositorios el `2026-04-23`, se confirmo lo siguiente:
+
+- El payload real que sale del SaaS **si** coincide en estructura con este documento.
+- `ia-api` sigue siendo mas permisiva que la receta en varios puntos: hoy Pydantic no restringe `tipo_lente` a enum cerrado, no limita `eje` a `0..180`, no valida el catalogo Snellen de `av_sc` / `av_cc` y no declara `extra="forbid"` en los modelos de entrada.
+- Eso significa que una llamada directa a `ia-api` podria mandar valores fuera del contrato real de la receta, aunque el SaaS no los emita normalmente.
+- Las pruebas y ejemplos de `ia-api` deben preferir siempre valores que la UI real del SaaS si puede producir. En particular, `cover_test` debe modelarse como `"OD: {tipo}[ y {sub}] | OI: {tipo}[ y {sub}]"`, no como strings sinteticos tipo `"ortoforia"` o `"exoforia en VP"`.
 
 ---
 

@@ -115,7 +115,7 @@ def test_insuficiencia_convergencia_suprime_ppc_y_cover_exoforia():
         paciente=ContextoPaciente(motivo_consulta="cefalea frontal y fatiga con lectura"),
         clinica=DatosClinica(
             ppc_cm=12,
-            cover_test="exoforia en VP",
+            cover_test="OD: Exo y Foria | OI: Orto",
         ),
     )
 
@@ -176,7 +176,7 @@ def test_hipermetropia_alta_adapta_texto_en_paciente_joven():
 
 def test_exotropia_lente_activa():
     req = _make_request(
-        clinica=DatosClinica(cover_test="exotropia intermitente"),
+        clinica=DatosClinica(cover_test="OD: Exo y Tropia | OI: Orto"),
         tipo_lente="monofocal",
     )
 
@@ -187,7 +187,7 @@ def test_exotropia_lente_activa():
 
 def test_desviacion_vertical_activa():
     req = _make_request(
-        clinica=DatosClinica(cover_test="hiperforia en vision lejana"),
+        clinica=DatosClinica(cover_test="OD: Hiper y Foria | OI: Orto"),
     )
 
     names = _active_names(req)
@@ -226,4 +226,3 @@ def test_but_critico_esta_antes_que_correlaciones_contextuales():
 
     assert names.index("but_critico") < names.index("presbicia_multifocal")
     assert names.index("but_critico") < names.index("but_pantallas")
-

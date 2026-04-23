@@ -28,6 +28,11 @@ _NEGACIONES = (
     "ausenc",
     "ausente",
 )
+# El SaaS compone cover_test como "OD: Tipo [y Sub] | OI: Tipo [y Sub]"
+# con tipo ∈ {Orto, Endo, Exo, Hiper, Hipo} y sub ∈ {Tropia, Foria}.
+# Las correlaciones buscan keywords unidas (exoforia, endotropia, etc.);
+# esta regex reconoce los pares para expandirlos a la forma unida.
+_COVER_PAIR_RE = re.compile(r"\b(endo|exo|hiper|hipo)\s+y\s+(foria|tropia)\b")
 _KEYWORDS_BINOCULAR = (
     "diplopia", "vision doble",
     "cefalea", "dolor de cabeza",
@@ -163,6 +168,23 @@ def _normalize_text(value: str | None) -> str:
     normalized = unicodedata.normalize("NFKD", str(value))
     ascii_only = "".join(ch for ch in normalized if not unicodedata.combining(ch))
     return re.sub(r"\s+", " ", ascii_only).strip().lower()
+
+
+def _normalize_cover_text(value: str | None) -> str:
+    """Normaliza cover_test y expande los pares 'tipo y sub' a su forma unida.
+
+    La UI del SaaS compone cover_test como 'OD: Exo y Foria | OI: Orto'. Las
+    correlaciones buscan keywords unidas como 'exoforia' o 'endotropia'.
+    Esta funcion agrega las formas unidas al texto normalizado para que
+    ambas convenciones (unida o separada por ' y ') matcheen.
+    """
+    text = _normalize_text(value)
+    if not text:
+        return ""
+    expanded = _COVER_PAIR_RE.sub(lambda m: f"{m.group(1)}{m.group(2)}", text)
+    if expanded == text:
+        return text
+    return f"{text} {expanded}"
 
 
 def _dedupe(values: list[str]) -> list[str]:
@@ -826,7 +848,7 @@ def _cond_ppc_exoforia(req: ImpresionClinicaRequest) -> bool:
     if _cond_insuficiencia_convergencia(req):
         return False
     ppc_alto = clinica.ppc_cm is not None and clinica.ppc_cm > 10
-    cover = _normalize_text(clinica.cover_test)
+    cover = _normalize_cover_text(clinica.cover_test)
     return ppc_alto or ("exoforia" in cover)
 
 
@@ -834,7 +856,7 @@ def _texto_ppc_exoforia(req: ImpresionClinicaRequest) -> str:
     partes = []
     clinica = req.clinica
     ppc = clinica.ppc_cm if clinica is not None else None
-    cover = _normalize_text(clinica.cover_test if clinica is not None else None)
+    cover = _normalize_cover_text(clinica.cover_test if clinica is not None else None)
     if ppc is not None and ppc > 10:
         if ppc > 15:
             partes.append(f"punto proximo de convergencia marcadamente alejado ({ppc} cm)")
@@ -856,7 +878,7 @@ def _cond_cover_exoforia_sintomatica(req: ImpresionClinicaRequest) -> bool:
         return False
     if _cond_insuficiencia_convergencia(req):
         return False
-    cover = _normalize_text(req.clinica.cover_test)
+    cover = _normalize_cover_text(req.clinica.cover_test)
     return "exoforia" in cover and _has_binocular_symptoms(req)
 
 
@@ -871,7 +893,7 @@ def _cond_cover_endoforia_sintomatica(req: ImpresionClinicaRequest) -> bool:
     """Caso clinico: endoforia sintomatica sin endotropia sugiere exceso de convergencia."""
     if req.clinica is None or req.paciente is None:
         return False
-    cover = _normalize_text(req.clinica.cover_test)
+    cover = _normalize_cover_text(req.clinica.cover_test)
     return "endoforia" in cover and "endotropia" not in cover and _has_binocular_symptoms(req)
 
 
@@ -888,7 +910,7 @@ def _cond_insuficiencia_convergencia(req: ImpresionClinicaRequest) -> bool:
         return False
     if req.clinica.ppc_cm is None or req.clinica.ppc_cm <= 10:
         return False
-    cover = _normalize_text(req.clinica.cover_test)
+    cover = _normalize_cover_text(req.clinica.cover_test)
     if "exoforia" not in cover:
         return False
     return _contains_keyword(req.paciente.motivo_consulta, _KEYWORDS_CERCANIA)
@@ -924,7 +946,7 @@ def _cond_endotropia_lente(req: ImpresionClinicaRequest) -> bool:
     clinica = req.clinica
     if clinica is None:
         return False
-    cover = _normalize_text(clinica.cover_test)
+    cover = _normalize_cover_text(clinica.cover_test)
     return "endotropia" in cover and req.tipo_lente is not None
 
 
@@ -941,7 +963,7 @@ def _cond_exotropia_lente(req: ImpresionClinicaRequest) -> bool:
     clinica = req.clinica
     if clinica is None:
         return False
-    cover = _normalize_text(clinica.cover_test)
+    cover = _normalize_cover_text(clinica.cover_test)
     return "exotropia" in cover and req.tipo_lente is not None
 
 
@@ -958,12 +980,12 @@ def _cond_desviacion_vertical(req: ImpresionClinicaRequest) -> bool:
     clinica = req.clinica
     if clinica is None:
         return False
-    cover = _normalize_text(clinica.cover_test)
+    cover = _normalize_cover_text(clinica.cover_test)
     return any(keyword in cover for keyword in _KEYWORDS_DESVIACION_VERTICAL)
 
 
 def _texto_desviacion_vertical(req: ImpresionClinicaRequest) -> str:
-    cover = _normalize_text(req.clinica.cover_test if req.clinica is not None else None)
+    cover = _normalize_cover_text(req.clinica.cover_test if req.clinica is not None else None)
     forias = [k for k in _KEYWORDS_DESVIACION_VERTICAL if k in cover and "foria" in k]
     tropias = [k for k in _KEYWORDS_DESVIACION_VERTICAL if k in cover and "tropia" in k]
     partes = []

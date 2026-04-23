@@ -85,7 +85,7 @@ def test_clinical_fields_included():
             reflejos_pupilares="normales OU",
             fondo_de_ojo="papila nitida",
             ojo_seco_but_seg=8,
-            cover_test="ortoforia",
+            cover_test="OD: Orto | OI: Orto",
             ppc_cm=10,
         )
     )
@@ -93,7 +93,7 @@ def test_clinical_fields_included():
     assert "Reflejos pupilares: normales OU" in prompt
     assert "Fondo de ojo: papila nitida" in prompt
     assert "Ojo seco (BUT): 8 segundos" in prompt
-    assert "Cover test: ortoforia" in prompt
+    assert "Cover test: OD: Orto | OI: Orto" in prompt
     assert "PPC: 10 cm" in prompt
 
 
@@ -136,7 +136,7 @@ def test_paciente_partial_fields():
 def test_user_prompt_incluye_correlacion_compuesta_y_suprime_fallbacks():
     req = _make_request(
         paciente=ContextoPaciente(motivo_consulta="cefalea y fatiga con lectura"),
-        clinica=DatosClinica(ppc_cm=12, cover_test="exoforia en VP"),
+        clinica=DatosClinica(ppc_cm=12, cover_test="OD: Exo y Foria | OI: Orto"),
     )
 
     prompt = build_user_prompt(req)
@@ -144,4 +144,3 @@ def test_user_prompt_incluye_correlacion_compuesta_y_suprime_fallbacks():
     assert "Correlaciones clinicas aplicables" in prompt
     assert "insuficiencia de convergencia" in prompt
     assert "tendencia divergente en el cover test" not in prompt
-
