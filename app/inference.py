@@ -32,9 +32,21 @@ LIST_NUMBER_RE      = re.compile(r"^\d{1,2}\.\s+(?=[A-ZÁÉÍÓÚÑ])")
 MULTISPACE_RE       = re.compile(r"\s+")
 SENTENCE_END_RE     = re.compile(r"(?<=[.!?])\s+(?=[A-ZÁÉÍÓÚÑ])")
 THINK_BLOCK_RE      = re.compile(r"<think>.*?</think>", re.DOTALL)
-THINK_UNCLOSED_RE   = re.compile(r"<think>.*$", re.DOTALL)
 CODEFENCE_OPEN_RE   = re.compile(r"^```\w*\n?")
 CODEFENCE_CLOSE_RE  = re.compile(r"\n?```\s*$")
+
+# Heuristico para español con tokenizer Qwen: ~3.5 chars/token.
+# Se usa solo para validacion preemptiva; el conteo real viene del
+# prompt_eval_count que Ollama devuelve tras la inferencia.
+_CHARS_PER_TOKEN_ES = 3.5
+
+# Prefijo que marca ValueError de oversized prompt para que main.py
+# lo pueda distinguir de otros ValueError y responder 413 en vez de 500.
+CONTEXT_OVERFLOW_PREFIX = "context_overflow:"
+
+
+def _estimate_tokens(text: str) -> int:
+    return int(len(text) / _CHARS_PER_TOKEN_ES)
 
 
 def _build_ollama_options() -> dict:
@@ -94,13 +106,23 @@ def _strip_leading_list_markers(line: str) -> str:
 
 
 def _postprocess(text: str) -> str:
-    # Elimina bloques <think> que Qwen 3.5 puede generar aunque think=False.
-    # El segundo sub captura bloques incompletos (truncados por num_predict).
-    text = THINK_BLOCK_RE.sub("", text.strip()).strip()
-    text = THINK_UNCLOSED_RE.sub("", text).strip()
-    # Strip razonamiento sin tag de apertura (overthinking silencioso)
+    # Qwen 3.5 puede emitir <think>..</think> aun con think=False.
+    text = text.strip()
+
+    # Caso 1: bloques completos — eliminarlos.
+    text = THINK_BLOCK_RE.sub("", text).strip()
+
+    # Caso 2: </think> residual (apertura implicita al inicio, cierre presente).
+    # Conservar solo lo posterior al ultimo </think>.
     if "</think>" in text:
-        text = text[text.rfind("</think>") + len("</think>"):].strip()
+        text = text.rsplit("</think>", 1)[-1].strip()
+
+    # Caso 3: <think> sin cerrar (num_predict agoto el budget dentro del
+    # razonamiento). Conservar solo lo ANTERIOR al primer <think>: si hay
+    # parrafo valido antes se mantiene, si no queda vacio y cae al ValueError
+    # final para disparar retry.
+    if "<think>" in text:
+        text = text.split("<think>", 1)[0].strip()
 
     text = CODEFENCE_OPEN_RE.sub("", text)
     text = CODEFENCE_CLOSE_RE.sub("", text)
@@ -183,6 +205,20 @@ async def run_inference(
 
     system_prompt = build_system_prompt(effective_max)
     user_prompt = build_user_prompt(payload)
+
+    # Validacion preemptiva: si el prompt estimado + budget de salida
+    # excede el 95% de num_ctx, rechazar antes de llamar a Ollama.
+    # Evita truncamiento silencioso y libera el slot de inferencia.
+    est_input = _estimate_tokens(system_prompt + user_prompt)
+    est_total = est_input + settings.ollama_num_predict
+    ctx_budget = int(settings.ollama_num_ctx * 0.95)
+    if est_total > ctx_budget:
+        raise ValueError(
+            f"{CONTEXT_OVERFLOW_PREFIX} prompt estimado ({est_input} tok) + "
+            f"salida ({settings.ollama_num_predict} tok) excede num_ctx "
+            f"({settings.ollama_num_ctx}). Revisar longitud de campos "
+            "clinicos de texto libre."
+        )
 
     request_body = {
         "model": settings.ollama_model,

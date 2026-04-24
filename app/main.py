@@ -13,7 +13,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from app.cache import inference_cache
 from app.clinical_data import has_clinical_data
 from app.config import settings
-from app.inference import run_inference
+from app.inference import CONTEXT_OVERFLOW_PREFIX, run_inference
 from app.schemas import ImpresionClinicaRequest
 
 logger = logging.getLogger(__name__)
@@ -39,6 +39,8 @@ async def lifespan(app: FastAPI):
                 _read_timeout, settings.ollama_model)
 
     try:
+        # num_ctx debe coincidir con produccion para que Ollama asigne el
+        # KV cache definitivo aqui y no en el primer request real.
         await app.state.http_client.post(
             f"{settings.ollama_url}/api/chat",
             json={
@@ -46,7 +48,10 @@ async def lifespan(app: FastAPI):
                 "messages": [{"role": "user", "content": "ok"}],
                 "stream":  False,
                 "think":   False,
-                "options": {"num_predict": 1, "num_ctx": 512},
+                "options": {
+                    "num_predict": 1,
+                    "num_ctx": settings.ollama_num_ctx,
+                },
             },
             timeout=settings.ollama_timeout,
         )
@@ -161,7 +166,15 @@ async def crear_impresion_clinica(
             detail="Ollama no respondio a tiempo. Intente de nuevo.",
         )
     except ValueError as exc:
-        raise HTTPException(status_code=500, detail=str(exc))
+        detail = str(exc)
+        if detail.startswith(CONTEXT_OVERFLOW_PREFIX):
+            # Prompt demasiado grande para num_ctx: 413 Payload Too Large.
+            # Se strippea el prefijo interno antes de exponer al cliente.
+            raise HTTPException(
+                status_code=413,
+                detail=detail[len(CONTEXT_OVERFLOW_PREFIX):].strip(),
+            )
+        raise HTTPException(status_code=500, detail=detail)
     except httpx.HTTPStatusError as exc:
         logger.exception("Ollama HTTP error [%s]", sid)
         raise HTTPException(

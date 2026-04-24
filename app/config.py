@@ -11,9 +11,17 @@ class Settings(BaseSettings):
 
     # Ollama — sampling
     ollama_temperature: float = 0.7
-    ollama_num_predict: int = 600
-    ollama_num_ctx: int = 2048          # Consumo real máximo ~1700 tokens;
-                                        # 2048 ahorra ~256MB de VRAM vs 4096.
+    ollama_num_predict: int = 1024      # Budget de salida. 1024 elimina el
+                                        # truncado (done_reason=length) en
+                                        # casos con 4+ correlaciones activas
+                                        # + recomendacion; impacto de VRAM
+                                        # marginal con num_ctx=4096.
+    ollama_num_ctx: int = 4096          # Minimo operacional seguro: cubre
+                                        # system prompt (~300 tok) + user
+                                        # prompt peak (~1200 tok) + correlaciones
+                                        # (~400 tok) + num_predict (1024) con
+                                        # margen. KV extra sobre 2048 son ~80MB
+                                        # en Q4_K_M, absorbible en la 3070 Ti.
     ollama_repeat_penalty: float = 1.0  # 1.0 = desactivado. La terminología
                                         # clínica requiere repetición exacta
                                         # de términos (OD/OI, agudeza visual);

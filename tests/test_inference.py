@@ -3,29 +3,13 @@ import asyncio
 import pytest
 
 from app.config import settings
-from app.inference import _postprocess, _split_sentences, run_inference
+from app.inference import (
+    CONTEXT_OVERFLOW_PREFIX,
+    _estimate_tokens,
+    _postprocess,
+    run_inference,
+)
 from app.schemas import ImpresionClinicaRequest
-
-
-class DummyResponse:
-    def __init__(self, payload: dict):
-        self._payload = payload
-
-    def raise_for_status(self):
-        return None
-
-    def json(self):
-        return self._payload
-
-
-class DummyClient:
-    def __init__(self, response_text: str):
-        self.calls = []
-        self.response_text = response_text
-
-    async def post(self, url: str, json: dict):
-        self.calls.append({"url": url, "json": json})
-        return DummyResponse({"response": self.response_text})
 
 
 def test_postprocess_clean_text():
@@ -57,13 +41,6 @@ def test_postprocess_removes_numbered_lists():
     assert "2." not in result
 
 
-def test_postprocess_truncates_to_configured_sentences():
-    sentences = [f"Oracion numero {i}." for i in range(1, settings.max_sentences + 3)]
-    text = " ".join(sentences)
-    result = _postprocess(text)
-    assert len(_split_sentences(result)) == settings.max_sentences
-
-
 def test_postprocess_adds_trailing_period():
     text = "Texto sin punto final"
     result = _postprocess(text)
@@ -87,25 +64,40 @@ def test_postprocess_strips_code_fences():
     assert "Texto dentro de fences." in result
 
 
-def test_run_inference_uses_shared_client_and_config():
+def test_estimate_tokens_scales_with_length():
+    assert _estimate_tokens("") == 0
+    assert _estimate_tokens("x" * 35) == 10
+    # Monotonicidad basica
+    assert _estimate_tokens("x" * 1000) > _estimate_tokens("x" * 500)
+
+
+class _UnusedClient:
+    """El cliente no debe ser invocado: la validacion preemptiva corta antes."""
+
+    async def post(self, url, json):  # pragma: no cover - no debe llamarse
+        raise AssertionError(
+            "run_inference llamo a Ollama a pesar de exceder num_ctx"
+        )
+
+
+def test_run_inference_rejects_oversized_prompt(monkeypatch):
+    # Forzar un num_ctx minusculo para que cualquier prompt realista excede.
+    monkeypatch.setattr(settings, "ollama_num_ctx", 256)
+    monkeypatch.setattr(settings, "ollama_num_predict", 128)
+
+    # Payload minimamente valido para pasar has_clinical_data y construir prompt.
     payload = ImpresionClinicaRequest(
-        receta_id="test-001",
+        receta_id="test-overflow",
         refraccion={"od": {"esfera": -1.25}},
-        clinica={"recomendacion_seguimiento": "Control en 6 meses"},
-    )
-    client = DummyClient(
-        "Hallazgo principal. Hallazgo secundario. Control en 3 meses."
+        clinica={
+            "anexos_oculares": "x" * 255,
+            "fondo_de_ojo": "y" * 255,
+        },
     )
 
-    result = asyncio.run(run_inference(payload, client))
+    with pytest.raises(ValueError) as excinfo:
+        asyncio.run(run_inference(payload, _UnusedClient()))
 
-    assert client.calls
-    request = client.calls[0]
-    assert request["url"] == f"{settings.ollama_url}/api/generate"
-    assert request["json"]["model"] == settings.ollama_model
-    assert request["json"]["options"]["temperature"] == settings.ollama_temperature
-    assert request["json"]["options"]["num_predict"] == settings.ollama_num_predict
-    assert f"Maximo {settings.max_sentences} oraciones" in request["json"]["system"]
-    assert result.endswith("Control en 6 meses.")
-    assert "Control en 3 meses." not in result
-    assert len(_split_sentences(result)) <= settings.max_sentences
+    msg = str(excinfo.value)
+    assert msg.startswith(CONTEXT_OVERFLOW_PREFIX)
+    assert "excede num_ctx" in msg

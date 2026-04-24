@@ -4,11 +4,22 @@ from app.config import settings
 from app.schemas import ImpresionClinicaRequest
 from app.correlaciones import evaluar_correlaciones
 
-_THINK_DIRECTIVE_RE = re.compile(r"/(?:no_)?think", re.IGNORECASE)
+# Tokens de control de Qwen3.5 que nunca deben aparecer en user content.
+# /think y /no_think no se soportan en Qwen3.5 (rule 2 del model card).
+# Los delimitadores del chat template pueden romper el prompt si se inyectan
+# accidentalmente en texto libre clinico (copiado desde un log del modelo, etc.).
+_QWEN_CONTROL_RE = re.compile(
+    r"(?:/(?:no_)?think"
+    r"|<\|im_(?:start|end)\|>"
+    r"|<\|(?:system|user|assistant)\|>"
+    r"|</?think>"
+    r"|</?tool_call>)",
+    re.IGNORECASE,
+)
 
 
 def _sanitize(text: str) -> str:
-    return _THINK_DIRECTIVE_RE.sub("", text)
+    return _QWEN_CONTROL_RE.sub("", text)
 
 
 def build_system_prompt(effective_max: int | None = None) -> str:
@@ -32,8 +43,6 @@ FORMATO:
 - Usa siempre "El paciente" en tercera persona; nunca asumas genero.
 - Redacta en tiempo presente con lenguaje clinico optometrico en español.
 - Termina con punto final.
-- Si un campo es nulo, no lo menciones.
-- av_sc es agudeza visual sin correccion y av_cc es agudeza visual con correccion; ambas corresponden a vision lejana.
 
 ORDEN DE REDACCION:
 Primero describe el motivo de consulta y la agudeza visual sin correccion de cada ojo. Luego presenta la refraccion final con la agudeza visual con correccion de cada ojo. Despues describe los hallazgos del segmento anterior y posterior. A continuacion los hallazgos binoculares y de superficie ocular. Finalmente, si el user prompt incluye un bloque 'Correlaciones clinicas aplicables', incorpora cada hecho al final del parrafo como observacion objetiva sin reformularlos como instrucciones.
@@ -42,17 +51,7 @@ PRIORIZACION:
 - Dedica mas oraciones a hallazgos anormales que a describir normalidad.
 - Si existen hallazgos patologicos en fondo de ojo, segmento anterior u opacidades, prioriza su descripcion sobre hallazgos refractivos o binoculares normales.
 - Los hallazgos normales pueden resumirse brevemente (ejemplo: "el segmento anterior y la salud ocular intrinseca se encuentran preservados").
-- Si una correlacion incluye el prefijo "Hallazgo urgente:", esa informacion debe aparecer en las primeras 2 oraciones del parrafo, inmediatamente despues del motivo de consulta y la agudeza visual sin correccion. No diluyas la urgencia en oraciones posteriores ni uses lenguaje que minimice el hallazgo.
-
-REGLAS DE ESCRITURA:
-- Describe hallazgos usando UNICAMENTE terminos objetivos y medibles: valores numericos, observaciones anatomicas, comportamiento binocular.
-- Describe hallazgos normales como normales, sin referencia a patologias ni descartes.
-- Menciona UNICAMENTE hallazgos presentes en el examen. Datos ausentes se omiten sin explicacion.
-- Cada hallazgo aparece UNA SOLA VEZ en el parrafo; elige la seccion donde tenga mayor relevancia clinica.
-- Usa EXCLUSIVAMENTE el tipo de lente proporcionado; describe el prescrito, no sugieras alternativas.
-- La recomendacion de seguimiento se agrega automaticamente; no la incluyas en el parrafo.
-- Las correlaciones que no aplican al caso se omiten sin explicar por que.
-- No inferas relaciones causales entre hallazgos mas alla de las correlaciones incluidas en el user prompt.
+- Si una correlacion incluye el prefijo "Hallazgo urgente:", esa informacion debe aparecer inmediatamente despues del motivo de consulta y la agudeza visual sin correccion, es decir en la segunda o tercera oracion del parrafo. No diluyas la urgencia en oraciones posteriores ni uses lenguaje que minimice el hallazgo.
 """
 
 
