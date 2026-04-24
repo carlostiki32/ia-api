@@ -20,7 +20,6 @@ logger = logging.getLogger(__name__)
 
 _inference_semaphore = asyncio.Semaphore(settings.max_concurrent)
 _bearer_scheme = HTTPBearer(auto_error=False)
-_MAX_QUEUE_SIZE = 5  # Requests máximas en espera antes de devolver 503
 _queue_waiting = 0
 
 
@@ -30,12 +29,14 @@ def _safe_id(receta_id: str) -> str:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # httpx timeout: ollama_timeout + margen suficiente para que asyncio.wait_for
-    # sea siempre el mecanismo de timeout activo, nunca httpx.
-    _httpx_timeout = max(settings.ollama_timeout * 1.2, settings.ollama_timeout + 10)
+    # httpx read timeout: ollama_timeout + margen suficiente para que asyncio.wait_for
+    # sea siempre el mecanismo de timeout activo, nunca httpx. connect/write/pool
+    # se limitan por separado para que un socket colgado no consuma el presupuesto completo.
+    _read_timeout = max(settings.ollama_timeout * 1.2, settings.ollama_timeout + 10)
+    _httpx_timeout = httpx.Timeout(connect=5.0, read=_read_timeout, write=5.0, pool=5.0)
     app.state.http_client = httpx.AsyncClient(timeout=_httpx_timeout)
-    logger.info("HTTP client started (timeout=%.0fs) for model %s",
-                _httpx_timeout, settings.ollama_model)
+    logger.info("HTTP client started (read_timeout=%.0fs) for model %s",
+                _read_timeout, settings.ollama_model)
 
     try:
         await app.state.http_client.post(
@@ -96,7 +97,7 @@ def verify_api_key(
 
 async def _acquire_inference_slot(safe_id: str) -> None:
     global _queue_waiting
-    if _queue_waiting >= _MAX_QUEUE_SIZE:
+    if _queue_waiting >= settings.max_queue_size:
         raise asyncio.TimeoutError
     _queue_waiting += 1
     logger.info("Inference request queued [%s] (queue: %d)", safe_id, _queue_waiting)
@@ -128,7 +129,8 @@ async def crear_impresion_clinica(
             "Al menos un campo de refraccion o clinica debe tener valor.",
         )
 
-    cached = inference_cache.get(req)
+    cache_key = inference_cache.build_key(req)
+    cached = inference_cache.get(req, key=cache_key)
     if cached is not None:
         logger.info("Cache hit [%s]", sid)
         return {"status": "ok", "impresion_clinica": cached, "cached": True}
@@ -142,15 +144,15 @@ async def crear_impresion_clinica(
             "Intente de nuevo en unos segundos.",
         )
 
-    start_time = time.time()
+    start_time = time.perf_counter()
     try:
         result = await asyncio.wait_for(
             run_inference(req, client),
             timeout=settings.ollama_timeout,
         )
-        elapsed = time.time() - start_time
+        elapsed = time.perf_counter() - start_time
         logger.info("Inference completed [%s] in %.1fs", sid, elapsed)
-        inference_cache.put(req, result)
+        inference_cache.put(req, result, key=cache_key)
         return {"status": "ok", "impresion_clinica": result}
 
     except asyncio.TimeoutError:

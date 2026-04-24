@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import contextvars
+import functools
 import logging
 import re
 import unicodedata
@@ -10,12 +12,40 @@ from app.schemas import ImpresionClinicaRequest
 
 logger = logging.getLogger(__name__)
 
+_eval_cache: contextvars.ContextVar[dict | None] = contextvars.ContextVar(
+    "_eval_cache", default=None
+)
+
+
+def _memoize_cond(fn):
+    """Cachea el resultado de una condicion durante una evaluacion de evaluar_correlaciones.
+
+    Fuera de ese scope (cache is None), la funcion se ejecuta sin memoizar para
+    preservar el comportamiento en llamadas directas desde tests.
+    """
+    name = fn.__name__
+
+    @functools.wraps(fn)
+    def wrapper(req):
+        cache = _eval_cache.get()
+        if cache is None:
+            return fn(req)
+        if name not in cache:
+            cache[name] = fn(req)
+        return cache[name]
+
+    return wrapper
+
 
 @dataclass(frozen=True)
 class Correlacion:
     nombre: str
     condicion: Callable[[ImpresionClinicaRequest], bool]
-    texto: Callable[[ImpresionClinicaRequest], str]
+    texto: str | Callable[[ImpresionClinicaRequest], str]
+
+    def render(self, req: ImpresionClinicaRequest) -> str:
+        texto = self.texto
+        return texto if isinstance(texto, str) else texto(req)
 
 
 _NEGACIONES = (
@@ -93,7 +123,6 @@ _KEYWORDS_PUPILAS = {
     "discoria": "discoria",
     "ausente": "respuesta pupilar ausente",
 }
-_NORMALIDAD_PUPILAS = ("normal", "simetric", "isocoric")
 _KEYWORDS_MOTILIDAD = (
     "limitacion", "paresia", "paralisis", "restriccion", "nistagmo", "nistagmus",
     "dolor con movimiento", "dolor al movimiento", "sobreacti", "hiperfuncion",
@@ -162,14 +191,29 @@ _KEYWORDS_FONDO_PERIFERICO_MAP = {
 }
 
 
+_WHITESPACE_RE = re.compile(r"\s+")
+
+
+@functools.lru_cache(maxsize=512)
 def _normalize_text(value: str | None) -> str:
     if not value:
         return ""
     normalized = unicodedata.normalize("NFKD", str(value))
     ascii_only = "".join(ch for ch in normalized if not unicodedata.combining(ch))
-    return re.sub(r"\s+", " ", ascii_only).strip().lower()
+    return _WHITESPACE_RE.sub(" ", ascii_only).strip().lower()
 
 
+@functools.lru_cache(maxsize=1024)
+def _compiled_keyword(keyword: str) -> re.Pattern:
+    return re.compile(re.escape(keyword))
+
+
+@functools.lru_cache(maxsize=64)
+def _compiled_union(keywords: tuple[str, ...]) -> re.Pattern:
+    return re.compile("|".join(re.escape(k) for k in keywords))
+
+
+@functools.lru_cache(maxsize=256)
 def _normalize_cover_text(value: str | None) -> str:
     """Normaliza cover_test y expande los pares 'tipo y sub' a su forma unida.
 
@@ -207,13 +251,10 @@ def _join_hallazgos(values: list[str]) -> str:
 
 
 def _keyword_matches(text: str, keyword: str, *, allow_negation_window: bool) -> bool:
-    for match in re.finditer(re.escape(keyword), text):
+    for match in _compiled_keyword(keyword).finditer(text):
         if not allow_negation_window:
             return True
         sentence_start = max(text.rfind(sep, 0, match.start()) for sep in ".;!?") + 1
-        next_positions = [text.find(sep, match.end()) for sep in ".;!?"]
-        valid_positions = [position for position in next_positions if position != -1]
-        sentence_end = min(valid_positions) if valid_positions else len(text)
         sentence_prefix = text[sentence_start:match.start()]
         if any(neg in sentence_prefix for neg in _NEGACIONES):
             continue
@@ -230,6 +271,10 @@ def _contains_keyword(
     text = _normalize_text(value)
     if not text:
         return False
+    if not allow_negation_window:
+        # Path rapido: una sola busqueda sobre la union de keywords.
+        kw_tuple = tuple(keywords)
+        return _compiled_union(kw_tuple).search(text) is not None
     return any(
         _keyword_matches(text, keyword, allow_negation_window=allow_negation_window)
         for keyword in keywords
@@ -249,21 +294,6 @@ def _extract_normalized_findings(
         if _keyword_matches(text, keyword, allow_negation_window=allow_negation_window)
     ]
     return _dedupe(findings)
-
-
-def _extract_keyword_hits(
-    value: str | None,
-    keyword_map: dict[str, str],
-    *,
-    allow_negation_window: bool = False,
-) -> list[str]:
-    text = _normalize_text(value)
-    hits = [
-        label
-        for keyword, label in keyword_map.items()
-        if _keyword_matches(text, keyword, allow_negation_window=allow_negation_window)
-    ]
-    return _dedupe(hits)
 
 
 def _fondo_contains(req: ImpresionClinicaRequest, keywords: tuple[str, ...]) -> bool:
@@ -321,13 +351,14 @@ def _has_binocular_symptoms(req: ImpresionClinicaRequest) -> bool:
     return _contains_keyword(motivo, _KEYWORDS_BINOCULAR)
 
 
+@_memoize_cond
 def _cond_fondo_periferico_riesgo(req: ImpresionClinicaRequest) -> bool:
     """Caso clinico: fondo con lattice o desgarro periferico activa urgencia retinologica."""
     return _fondo_contains(req, _KEYWORDS_FONDO_PERIFERICO)
 
 
 def _texto_fondo_periferico_riesgo(req: ImpresionClinicaRequest) -> str:
-    hallazgos = _extract_keyword_hits(
+    hallazgos = _extract_normalized_findings(
         req.clinica.fondo_de_ojo if req.clinica is not None else None,
         _KEYWORDS_FONDO_PERIFERICO_MAP,
         allow_negation_window=True,
@@ -339,6 +370,7 @@ def _texto_fondo_periferico_riesgo(req: ImpresionClinicaRequest) -> str:
     )
 
 
+@_memoize_cond
 def _cond_glaucoma_asimetrico(req: ImpresionClinicaRequest) -> bool:
     """Caso clinico: DPAR + fondo glaucomatoso confirman neuropatia optica glaucomatosa asimetrica con compromiso funcional."""
     if req.clinica is None:
@@ -350,15 +382,15 @@ def _cond_glaucoma_asimetrico(req: ImpresionClinicaRequest) -> bool:
     return _fondo_contains(req, _KEYWORDS_FONDO_GLAUCOMATOSO)
 
 
-def _texto_glaucoma_asimetrico(req: ImpresionClinicaRequest) -> str:
-    return (
-        "Hallazgo urgente: los hallazgos papilares glaucomatosos asociados a defecto pupilar "
-        "aferente relativo son compatibles con neuropatia optica glaucomatosa avanzada y "
-        "asimetrica, con compromiso funcional confirmado, ameritando valoracion oftalmologica "
-        "priorizada."
-    )
+_texto_glaucoma_asimetrico = (
+    "Hallazgo urgente: los hallazgos papilares glaucomatosos asociados a defecto pupilar "
+    "aferente relativo son compatibles con neuropatia optica glaucomatosa avanzada y "
+    "asimetrica, con compromiso funcional confirmado, ameritando valoracion oftalmologica "
+    "priorizada."
+)
 
 
+@_memoize_cond
 def _cond_fondo_glaucomatoso(req: ImpresionClinicaRequest) -> bool:
     """Caso clinico: excavacion aumentada o notch papilar activa sospecha glaucomatosa."""
     if _cond_glaucoma_asimetrico(req):
@@ -366,14 +398,14 @@ def _cond_fondo_glaucomatoso(req: ImpresionClinicaRequest) -> bool:
     return _fondo_contains(req, _KEYWORDS_FONDO_GLAUCOMATOSO)
 
 
-def _texto_fondo_glaucomatoso(req: ImpresionClinicaRequest) -> str:
-    return (
-        "Los hallazgos papilares documentados sugieren neuropatia optica glaucomatosa, "
-        "ameritando valoracion oftalmologica con tonometria, paquimetria y perimetria "
-        "para estadificacion."
-    )
+_texto_fondo_glaucomatoso = (
+    "Los hallazgos papilares documentados sugieren neuropatia optica glaucomatosa, "
+    "ameritando valoracion oftalmologica con tonometria, paquimetria y perimetria "
+    "para estadificacion."
+)
 
 
+@_memoize_cond
 def _cond_papila_patologica(req: ImpresionClinicaRequest) -> bool:
     """Caso clinico: palidez, edema o neuritis papilar activan alerta neurooftalmica."""
     return _fondo_contains(req, _KEYWORDS_PAPILA_NO_GLAUCOMA)
@@ -398,42 +430,43 @@ def _texto_papila_patologica(req: ImpresionClinicaRequest) -> str:
     )
 
 
+@_memoize_cond
 def _cond_fondo_macular_dmae(req: ImpresionClinicaRequest) -> bool:
     """Caso clinico: drusas o alteracion del EPR en fondo sugieren patron de DMAE."""
     return _fondo_contains(req, _KEYWORDS_FONDO_DMAE)
 
 
-def _texto_fondo_macular_dmae(req: ImpresionClinicaRequest) -> str:
-    return (
-        "Los hallazgos maculares documentados son compatibles con degeneracion macular "
-        "asociada a la edad, ameritando OCT macular para caracterizacion y monitorizacion."
-    )
+_texto_fondo_macular_dmae = (
+    "Los hallazgos maculares documentados son compatibles con degeneracion macular "
+    "asociada a la edad, ameritando OCT macular para caracterizacion y monitorizacion."
+)
 
 
+@_memoize_cond
 def _cond_fondo_macular_otros(req: ImpresionClinicaRequest) -> bool:
     """Caso clinico: edema macular o MER en fondo activa correlacion macular no DMAE."""
     return _fondo_contains(req, _KEYWORDS_FONDO_MACULAR_OTROS)
 
 
-def _texto_fondo_macular_otros(req: ImpresionClinicaRequest) -> str:
-    return (
-        "En la region macular se documenta alteracion que amerita OCT y valoracion "
-        "retinologica."
-    )
+_texto_fondo_macular_otros = (
+    "En la region macular se documenta alteracion que amerita OCT y valoracion "
+    "retinologica."
+)
 
 
+@_memoize_cond
 def _cond_fondo_hipertensivo(req: ImpresionClinicaRequest) -> bool:
     """Caso clinico: cruces AV o tortuosidad vascular sugieren retinopatia hipertensiva."""
     return _fondo_contains(req, _KEYWORDS_FONDO_HIPERTENSIVO)
 
 
-def _texto_fondo_hipertensivo(req: ImpresionClinicaRequest) -> str:
-    return (
-        "Los hallazgos vasculares en fondo de ojo son compatibles con retinopatia "
-        "hipertensiva, ameritando correlacion con cifras tensionales sistemicas."
-    )
+_texto_fondo_hipertensivo = (
+    "Los hallazgos vasculares en fondo de ojo son compatibles con retinopatia "
+    "hipertensiva, ameritando correlacion con cifras tensionales sistemicas."
+)
 
 
+@_memoize_cond
 def _cond_fondo_vascular_diabetico(req: ImpresionClinicaRequest) -> bool:
     """Caso clinico: microaneurismas o exudados activan correlacion vascular metabolica."""
     if any((
@@ -447,11 +480,10 @@ def _cond_fondo_vascular_diabetico(req: ImpresionClinicaRequest) -> bool:
     return _fondo_contains(req, _KEYWORDS_VASCULARES_DIABETICOS)
 
 
-def _texto_fondo_vascular_diabetico(req: ImpresionClinicaRequest) -> str:
-    return (
-        "Los hallazgos en fondo de ojo son compatibles con retinopatia de origen "
-        "metabolico o vascular, ameritando correlacion sistemica."
-    )
+_texto_fondo_vascular_diabetico = (
+    "Los hallazgos en fondo de ojo son compatibles con retinopatia de origen "
+    "metabolico o vascular, ameritando correlacion sistemica."
+)
 
 
 def _cond_pupilas_alteradas(req: ImpresionClinicaRequest) -> bool:
@@ -466,10 +498,7 @@ def _cond_pupilas_alteradas(req: ImpresionClinicaRequest) -> bool:
         _KEYWORDS_PUPILAS,
         allow_negation_window=True,
     )
-    if hallazgos:
-        return True
-    texto = _normalize_text(clinica.reflejos_pupilares)
-    return False if any(token in texto for token in _NORMALIDAD_PUPILAS) else False
+    return bool(hallazgos)
 
 
 def _texto_pupilas_alteradas(req: ImpresionClinicaRequest) -> str:
@@ -502,11 +531,10 @@ def _cond_motilidad_alterada(req: ImpresionClinicaRequest) -> bool:
     )
 
 
-def _texto_motilidad_alterada(req: ImpresionClinicaRequest) -> str:
-    return (
-        "Se documenta alteracion de la motilidad ocular, lo que amerita estudio de vias "
-        "motoras y posible interconsulta neurooftalmologica."
-    )
+_texto_motilidad_alterada = (
+    "Se documenta alteracion de la motilidad ocular, lo que amerita estudio de vias "
+    "motoras y posible interconsulta neurooftalmologica."
+)
 
 
 def _cond_campos_visuales_alterados(req: ImpresionClinicaRequest) -> bool:
@@ -526,13 +554,13 @@ def _cond_campos_visuales_alterados(req: ImpresionClinicaRequest) -> bool:
     )
 
 
-def _texto_campos_visuales_alterados(req: ImpresionClinicaRequest) -> str:
-    return (
-        "La confrontacion de campos visuales revela alteracion que amerita perimetria "
-        "automatizada para caracterizacion del defecto."
-    )
+_texto_campos_visuales_alterados = (
+    "La confrontacion de campos visuales revela alteracion que amerita perimetria "
+    "automatizada para caracterizacion del defecto."
+)
 
 
+@_memoize_cond
 def _cond_opacidad_cristaliniana(req: ImpresionClinicaRequest) -> bool:
     """Caso clinico: catarata o pseudofaquia documentadas activan correlacion cristaliniana."""
     clinica = req.clinica
@@ -542,13 +570,13 @@ def _cond_opacidad_cristaliniana(req: ImpresionClinicaRequest) -> bool:
     return _contains_keyword(texto, _KEYWORDS_OPACIDAD_CRISTALINO, allow_negation_window=True)
 
 
-def _texto_opacidad_cristaliniana(req: ImpresionClinicaRequest) -> str:
-    return (
-        "Se documenta alteracion del cristalino, ameritando evaluacion biomicroscopica "
-        "para caracterizacion y estadificacion de la opacidad."
-    )
+_texto_opacidad_cristaliniana = (
+    "Se documenta alteracion del cristalino, ameritando evaluacion biomicroscopica "
+    "para caracterizacion y estadificacion de la opacidad."
+)
 
 
+@_memoize_cond
 def _cond_miopia_magna(req: ImpresionClinicaRequest) -> bool:
     """Caso clinico: equivalente esferico de -6.00D o menor en un ojo activa miopia magna."""
     refraccion = req.refraccion
@@ -652,6 +680,7 @@ def _texto_av_cc_limitada(req: ImpresionClinicaRequest) -> str:
     return "; ".join(partes) + "."
 
 
+@_memoize_cond
 def _cond_ar_rx_espasmo_acomodativo(req: ImpresionClinicaRequest) -> bool:
     """Caso clinico: joven con pantallas y AR mas miope que Rx sugiere espasmo acomodativo."""
     if req.refraccion is None or req.akr is None or req.paciente is None or req.clinica is None:
@@ -671,15 +700,15 @@ def _cond_ar_rx_espasmo_acomodativo(req: ImpresionClinicaRequest) -> bool:
     return False
 
 
-def _texto_ar_rx_espasmo_acomodativo(req: ImpresionClinicaRequest) -> str:
-    return (
-        "El autorrefractometro documenta mayor componente miopico que la refraccion "
-        "subjetiva final en un paciente joven con uso intensivo de pantallas, patron "
-        "compatible con espasmo acomodativo que amerita control posterior y eventual "
-        "refraccion bajo cicloplegia."
-    )
+_texto_ar_rx_espasmo_acomodativo = (
+    "El autorrefractometro documenta mayor componente miopico que la refraccion "
+    "subjetiva final en un paciente joven con uso intensivo de pantallas, patron "
+    "compatible con espasmo acomodativo que amerita control posterior y eventual "
+    "refraccion bajo cicloplegia."
+)
 
 
+@_memoize_cond
 def _cond_ar_rx_cambio_cristalino(req: ImpresionClinicaRequest) -> bool:
     """Caso clinico: mayor de 55 anos con discrepancia esferica amplia entre AR y Rx."""
     if req.refraccion is None or req.akr is None or req.paciente is None:
@@ -697,12 +726,11 @@ def _cond_ar_rx_cambio_cristalino(req: ImpresionClinicaRequest) -> bool:
     return False
 
 
-def _texto_ar_rx_cambio_cristalino(req: ImpresionClinicaRequest) -> str:
-    return (
-        "La discrepancia entre autorrefractometro y refraccion final en un paciente mayor "
-        "de 55 anos puede reflejar cambios en el indice refractivo del cristalino, "
-        "ameritando evaluacion biomicroscopica del segmento anterior."
-    )
+_texto_ar_rx_cambio_cristalino = (
+    "La discrepancia entre autorrefractometro y refraccion final en un paciente mayor "
+    "de 55 anos puede reflejar cambios en el indice refractivo del cristalino, "
+    "ameritando evaluacion biomicroscopica del segmento anterior."
+)
 
 
 def _cond_ar_rx_variabilidad_inespecifica(req: ImpresionClinicaRequest) -> bool:
@@ -723,11 +751,10 @@ def _cond_ar_rx_variabilidad_inespecifica(req: ImpresionClinicaRequest) -> bool:
     return False
 
 
-def _texto_ar_rx_variabilidad_inespecifica(req: ImpresionClinicaRequest) -> str:
-    return (
-        "Se documenta discrepancia entre autorrefractometro y refraccion final, compatible "
-        "con variabilidad refractiva durante la exploracion."
-    )
+_texto_ar_rx_variabilidad_inespecifica = (
+    "Se documenta discrepancia entre autorrefractometro y refraccion final, compatible "
+    "con variabilidad refractiva durante la exploracion."
+)
 
 
 def _cond_ar_detecta_astigmatismo_no_prescrito(req: ImpresionClinicaRequest) -> bool:
@@ -744,12 +771,11 @@ def _cond_ar_detecta_astigmatismo_no_prescrito(req: ImpresionClinicaRequest) -> 
     return False
 
 
-def _texto_ar_detecta_astigmatismo_no_prescrito(req: ImpresionClinicaRequest) -> str:
-    return (
-        "El autorrefractometro detecta un componente astigmatico que no fue incluido en la "
-        "refraccion subjetiva final, lo que puede corresponder a astigmatismo subumbral "
-        "con tolerancia clinica adecuada o variabilidad de la medicion automatizada."
-    )
+_texto_ar_detecta_astigmatismo_no_prescrito = (
+    "El autorrefractometro detecta un componente astigmatico que no fue incluido en la "
+    "refraccion subjetiva final, lo que puede corresponder a astigmatismo subumbral "
+    "con tolerancia clinica adecuada o variabilidad de la medicion automatizada."
+)
 
 
 def _es_eje_oblicuo(eje: int) -> bool:
@@ -811,11 +837,10 @@ def _cond_amsler_alterado(req: ImpresionClinicaRequest) -> bool:
     )
 
 
-def _texto_amsler_alterado(req: ImpresionClinicaRequest) -> str:
-    return (
-        "El test de Amsler revela alteracion compatible con patologia macular funcional "
-        "que amerita OCT macular."
-    )
+_texto_amsler_alterado = (
+    "El test de Amsler revela alteracion compatible con patologia macular funcional "
+    "que amerita OCT macular."
+)
 
 
 def _cond_anexos_patologicos(req: ImpresionClinicaRequest) -> bool:
@@ -882,11 +907,10 @@ def _cond_cover_exoforia_sintomatica(req: ImpresionClinicaRequest) -> bool:
     return "exoforia" in cover and _has_binocular_symptoms(req)
 
 
-def _texto_cover_exoforia_sintomatica(req: ImpresionClinicaRequest) -> str:
-    return (
-        "La exoforia documentada junto con la sintomatologia referida es compatible con "
-        "disfuncion binocular de tipo divergente que amerita evaluacion funcional."
-    )
+_texto_cover_exoforia_sintomatica = (
+    "La exoforia documentada junto con la sintomatologia referida es compatible con "
+    "disfuncion binocular de tipo divergente que amerita evaluacion funcional."
+)
 
 
 def _cond_cover_endoforia_sintomatica(req: ImpresionClinicaRequest) -> bool:
@@ -897,13 +921,13 @@ def _cond_cover_endoforia_sintomatica(req: ImpresionClinicaRequest) -> bool:
     return "endoforia" in cover and "endotropia" not in cover and _has_binocular_symptoms(req)
 
 
-def _texto_cover_endoforia_sintomatica(req: ImpresionClinicaRequest) -> str:
-    return (
-        "La endoforia documentada junto con la sintomatologia referida es compatible con "
-        "exceso de convergencia o disfuncion acomodativa que amerita evaluacion funcional."
-    )
+_texto_cover_endoforia_sintomatica = (
+    "La endoforia documentada junto con la sintomatologia referida es compatible con "
+    "exceso de convergencia o disfuncion acomodativa que amerita evaluacion funcional."
+)
 
 
+@_memoize_cond
 def _cond_insuficiencia_convergencia(req: ImpresionClinicaRequest) -> bool:
     """Caso clinico: PPC alejado, exoforia y sintomas de lectura activan insuficiencia de convergencia."""
     if req.clinica is None or req.paciente is None:
@@ -916,13 +940,12 @@ def _cond_insuficiencia_convergencia(req: ImpresionClinicaRequest) -> bool:
     return _contains_keyword(req.paciente.motivo_consulta, _KEYWORDS_CERCANIA)
 
 
-def _texto_insuficiencia_convergencia(req: ImpresionClinicaRequest) -> str:
-    return (
-        "La combinacion de punto proximo de convergencia alejado, exoforia y sintomatologia "
-        "de vision proxima es compatible con insuficiencia de convergencia, ameritando "
-        "evaluacion binocular completa para confirmar diagnostico y plantear terapia "
-        "visual si procede."
-    )
+_texto_insuficiencia_convergencia = (
+    "La combinacion de punto proximo de convergencia alejado, exoforia y sintomatologia "
+    "de vision proxima es compatible con insuficiencia de convergencia, ameritando "
+    "evaluacion binocular completa para confirmar diagnostico y plantear terapia "
+    "visual si procede."
+)
 
 
 def _cond_cvs_sospecha(req: ImpresionClinicaRequest) -> bool:
@@ -934,12 +957,11 @@ def _cond_cvs_sospecha(req: ImpresionClinicaRequest) -> bool:
     return _contains_keyword(req.paciente.motivo_consulta, _KEYWORDS_CVS)
 
 
-def _texto_cvs_sospecha(req: ImpresionClinicaRequest) -> str:
-    return (
-        "El perfil de uso de pantallas y la sintomatologia referida son compatibles con "
-        "sindrome visual informatico, ameritando recomendaciones ergonomicas y eventual "
-        "correccion optica para vision intermedia."
-    )
+_texto_cvs_sospecha = (
+    "El perfil de uso de pantallas y la sintomatologia referida son compatibles con "
+    "sindrome visual informatico, ameritando recomendaciones ergonomicas y eventual "
+    "correccion optica para vision intermedia."
+)
 
 
 def _cond_endotropia_lente(req: ImpresionClinicaRequest) -> bool:
@@ -950,12 +972,11 @@ def _cond_endotropia_lente(req: ImpresionClinicaRequest) -> bool:
     return "endotropia" in cover and req.tipo_lente is not None
 
 
-def _texto_endotropia_lente(req: ImpresionClinicaRequest) -> str:
-    return (
-        "La endotropia documentada en el cover test amerita evaluacion de la respuesta "
-        "a la correccion optica prescrita, con cover test bajo correccion para clasificar "
-        "el tipo de desviacion."
-    )
+_texto_endotropia_lente = (
+    "La endotropia documentada en el cover test amerita evaluacion de la respuesta "
+    "a la correccion optica prescrita, con cover test bajo correccion para clasificar "
+    "el tipo de desviacion."
+)
 
 
 def _cond_exotropia_lente(req: ImpresionClinicaRequest) -> bool:
@@ -967,12 +988,11 @@ def _cond_exotropia_lente(req: ImpresionClinicaRequest) -> bool:
     return "exotropia" in cover and req.tipo_lente is not None
 
 
-def _texto_exotropia_lente(req: ImpresionClinicaRequest) -> str:
-    return (
-        "La exotropia documentada en el cover test amerita evaluacion binocular completa "
-        "para determinar frecuencia y magnitud de la desviacion, asi como la respuesta "
-        "a la correccion optica prescrita."
-    )
+_texto_exotropia_lente = (
+    "La exotropia documentada en el cover test amerita evaluacion binocular completa "
+    "para determinar frecuencia y magnitud de la desviacion, asi como la respuesta "
+    "a la correccion optica prescrita."
+)
 
 
 def _cond_desviacion_vertical(req: ImpresionClinicaRequest) -> bool:
@@ -1057,13 +1077,20 @@ def _texto_but_limitrofe(req: ImpresionClinicaRequest) -> str:
     )
 
 
+_MULTIFOCAL_TOKENS = ("bifocal", "progresivo", "multifocal")
+
+
+def _es_lente_multifocal(req: ImpresionClinicaRequest) -> bool:
+    tipo = _normalize_text(req.tipo_lente)
+    return any(token in tipo for token in _MULTIFOCAL_TOKENS)
+
+
 def _cond_presbicia_multifocal(req: ImpresionClinicaRequest) -> bool:
     paciente = req.paciente
     refraccion = req.refraccion
     if paciente is None or refraccion is None:
         return False
-    tipo = _normalize_text(req.tipo_lente)
-    es_multifocal = any(token in tipo for token in ("bifocal", "progresivo", "multifocal"))
+    es_multifocal = _es_lente_multifocal(req)
     edad = paciente.edad
     hay_edad = edad is not None and edad >= 40
     hay_add = refraccion.od.add is not None or refraccion.oi.add is not None
@@ -1072,9 +1099,7 @@ def _cond_presbicia_multifocal(req: ImpresionClinicaRequest) -> bool:
 
 def _texto_presbicia_multifocal(req: ImpresionClinicaRequest) -> str:
     edad = req.paciente.edad if req.paciente is not None else None
-    tipo = _normalize_text(req.tipo_lente)
-    es_multifocal = any(token in tipo for token in ("bifocal", "progresivo", "multifocal"))
-    sufijo_lente = " y el lente multifocal indicado" if es_multifocal else ""
+    sufijo_lente = " y el lente multifocal indicado" if _es_lente_multifocal(req) else ""
     if edad is not None:
         return (
             f"El paciente de {edad} anos presenta reduccion fisiologica de la amplitud "
@@ -1095,17 +1120,18 @@ def _cond_adulto_mayor_screening(req: ImpresionClinicaRequest) -> bool:
         return False
     if not (_av_es_limitada(req.refraccion.od.av_cc) or _av_es_limitada(req.refraccion.oi.av_cc)):
         return False
-    exclusoras = (
-        _cond_opacidad_cristaliniana(req),
-        _cond_fondo_glaucomatoso(req),
-        _cond_fondo_macular_dmae(req),
-        _cond_fondo_macular_otros(req),
-        _cond_fondo_vascular_diabetico(req),
-        _cond_fondo_hipertensivo(req),
-        _cond_miopia_magna(req),
-        _cond_papila_patologica(req),
+    return not any(
+        cond(req) for cond in (
+            _cond_opacidad_cristaliniana,
+            _cond_fondo_glaucomatoso,
+            _cond_fondo_macular_dmae,
+            _cond_fondo_macular_otros,
+            _cond_fondo_vascular_diabetico,
+            _cond_fondo_hipertensivo,
+            _cond_miopia_magna,
+            _cond_papila_patologica,
+        )
     )
-    return not any(exclusoras)
 
 
 def _texto_adulto_mayor_screening(req: ImpresionClinicaRequest) -> str:
@@ -1158,11 +1184,15 @@ CORRELACIONES: list[Correlacion] = [
 
 
 def evaluar_correlaciones(req: ImpresionClinicaRequest) -> list[str]:
-    activas = [
-        (correlacion.nombre, correlacion.texto(req))
-        for correlacion in CORRELACIONES
-        if correlacion.condicion(req)
-    ]
+    token = _eval_cache.set({})
+    try:
+        activas = [
+            (correlacion.nombre, correlacion.render(req))
+            for correlacion in CORRELACIONES
+            if correlacion.condicion(req)
+        ]
+    finally:
+        _eval_cache.reset(token)
     if activas:
         logger.debug(
             "Correlaciones activadas [%s]: %s",

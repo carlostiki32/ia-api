@@ -56,31 +56,45 @@ REGLAS DE ESCRITURA:
 """
 
 
-# Prompt base a nivel de modulo — usado para el hash de cache.
-# run_inference() construye el prompt efectivo con effective_max por request.
-SYSTEM_PROMPT = build_system_prompt()
-
 USO_PANTALLAS_MAP = {
     "lt2":    "menos de 2 horas diarias",
     "btw2_6": "entre 2 y 6 horas diarias",
     "gt6":    "mas de 6 horas diarias",
 }
 
+# (atributo, formateador) — orden preservado del prompt original.
+_CLINICA_FIELDS = [
+    ("uso_pantallas",                 lambda v: f"Uso de pantallas: {USO_PANTALLAS_MAP[v]}"),
+    ("anexos_oculares",               lambda v: f"Anexos oculares: {_sanitize(v)}"),
+    ("reflejos_pupilares",            lambda v: f"Reflejos pupilares: {_sanitize(v)}"),
+    ("motilidad_ocular",              lambda v: f"Motilidad ocular: {_sanitize(v)}"),
+    ("confrontacion_campos_visuales", lambda v: f"Confrontacion de campos visuales: {_sanitize(v)}"),
+    ("fondo_de_ojo",                  lambda v: f"Fondo de ojo: {_sanitize(v)}"),
+    ("grid_de_amsler",                lambda v: f"Grid de Amsler: {_sanitize(v)}"),
+    ("ojo_seco_but_seg",              lambda v: f"Ojo seco (BUT): {v} segundos"),
+    ("cover_test",                    lambda v: f"Cover test: {_sanitize(v)}"),
+    ("ppc_cm",                        lambda v: f"PPC: {v} cm"),
+]
+
+
+# (atributo, formateador). Los campos solo presentes en GraduacionOjo (add, av_*)
+# se saltan en AkrOjo via hasattr.
+_OJO_FIELDS = (
+    ("esfera",   lambda v: f"Esf {v:+.2f}"),
+    ("cilindro", lambda v: f"Cil {v:+.2f}"),
+    ("eje",      lambda v: f"Eje {v} grados"),
+    ("add",      lambda v: f"Add {v:+.2f}"),
+    ("av_sc",    lambda v: f"AV s/c {v}"),
+    ("av_cc",    lambda v: f"AV c/c {v}"),
+)
+
 
 def _format_ojo(label: str, ojo) -> str:
-    parts = []
-    if ojo.esfera is not None:
-        parts.append(f"Esf {ojo.esfera:+.2f}")
-    if ojo.cilindro is not None:
-        parts.append(f"Cil {ojo.cilindro:+.2f}")
-    if ojo.eje is not None:
-        parts.append(f"Eje {ojo.eje} grados")
-    if hasattr(ojo, "add") and ojo.add is not None:
-        parts.append(f"Add {ojo.add:+.2f}")
-    if hasattr(ojo, "av_sc") and ojo.av_sc is not None:
-        parts.append(f"AV s/c {ojo.av_sc}")
-    if hasattr(ojo, "av_cc") and ojo.av_cc is not None:
-        parts.append(f"AV c/c {ojo.av_cc}")
+    parts = [
+        formatter(getattr(ojo, attr))
+        for attr, formatter in _OJO_FIELDS
+        if getattr(ojo, attr, None) is not None
+    ]
     if not parts:
         return ""
     return f"{label}: {', '.join(parts)}"
@@ -143,26 +157,10 @@ def build_user_prompt(req: ImpresionClinicaRequest) -> str:
 
     clinica = req.clinica
 
-    if clinica.uso_pantallas is not None:
-        sections.append(f"Uso de pantallas: {USO_PANTALLAS_MAP[clinica.uso_pantallas]}")
-    if clinica.anexos_oculares is not None:
-        sections.append(f"Anexos oculares: {_sanitize(clinica.anexos_oculares)}")
-    if clinica.reflejos_pupilares is not None:
-        sections.append(f"Reflejos pupilares: {_sanitize(clinica.reflejos_pupilares)}")
-    if clinica.motilidad_ocular is not None:
-        sections.append(f"Motilidad ocular: {_sanitize(clinica.motilidad_ocular)}")
-    if clinica.confrontacion_campos_visuales is not None:
-        sections.append(f"Confrontacion de campos visuales: {_sanitize(clinica.confrontacion_campos_visuales)}")
-    if clinica.fondo_de_ojo is not None:
-        sections.append(f"Fondo de ojo: {_sanitize(clinica.fondo_de_ojo)}")
-    if clinica.grid_de_amsler is not None:
-        sections.append(f"Grid de Amsler: {_sanitize(clinica.grid_de_amsler)}")
-    if clinica.ojo_seco_but_seg is not None:
-        sections.append(f"Ojo seco (BUT): {clinica.ojo_seco_but_seg} segundos")
-    if clinica.cover_test is not None:
-        sections.append(f"Cover test: {_sanitize(clinica.cover_test)}")
-    if clinica.ppc_cm is not None:
-        sections.append(f"PPC: {clinica.ppc_cm} cm")
+    for attr, formatter in _CLINICA_FIELDS:
+        value = getattr(clinica, attr)
+        if value is not None:
+            sections.append(formatter(value))
 
     if req.tipo_lente is not None:
         sections.append(f"Diseno de lente prescrito: {req.tipo_lente}")

@@ -28,6 +28,7 @@ class Settings(BaseSettings):
     # Concurrencia / cola
     max_concurrent: int = 1
     queue_wait_timeout: float = 120.0
+    max_queue_size: int = 5             # Requests maximas en espera antes de 503.
 
     # Servidor
     host: str = "0.0.0.0"

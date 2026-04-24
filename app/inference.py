@@ -14,42 +14,51 @@ ABBREVIATIONS = {
     "O.D.":  "__ABBR_OD__",
     "O.I.":  "__ABBR_OI__",
     "A.O.":  "__ABBR_AO__",
-    "Dr.":   "__ABBR_DR__",
-    "Dra.":  "__ABBR_DRA__",
-    "No.":   "__ABBR_NO__",
-    "Av.":   "__ABBR_AV__",
     "Esf.":  "__ABBR_ESF__",
     "Cil.":  "__ABBR_CIL__",
     "Eje.":  "__ABBR_EJE__",
-    "Sr.":   "__ABBR_SR__",
-    "Sra.":  "__ABBR_SRA__",
-    "p. ej.":"__ABBR_PEJ__",
-    "p.ej.": "__ABBR_PEJ2__",
     "D.":    "__ABBR_D__",
-    "mmHg.": "__ABBR_MMHG__",
     "s.c.":  "__ABBR_SC__",
     "c.c.":  "__ABBR_CC__",
-    "seg.":  "__ABBR_SEG__",
-    "cm.":   "__ABBR_CM__",
 }
+_TOKEN_TO_ABBR = {token: abbr for abbr, token in ABBREVIATIONS.items()}
+_ABBR_RE = re.compile(
+    "|".join(re.escape(abbr) for abbr in sorted(ABBREVIATIONS, key=len, reverse=True))
+)
+_TOKEN_RE = re.compile("|".join(re.escape(token) for token in _TOKEN_TO_ABBR))
 
-LIST_BULLET_RE  = re.compile(r"^(?:[-*•])\s+")
-LIST_NUMBER_RE  = re.compile(r"^\d{1,2}\.\s+(?=[A-ZÁÉÍÓÚÑ])")
-MULTISPACE_RE   = re.compile(r"\s+")
-SENTENCE_END_RE = re.compile(r"(?<=[.!?])\s+(?=[A-ZÁÉÍÓÚÑ])")
-THINK_BLOCK_RE  = re.compile(r"<think>.*?</think>", re.DOTALL)
+LIST_BULLET_RE      = re.compile(r"^(?:[-*•])\s+")
+LIST_NUMBER_RE      = re.compile(r"^\d{1,2}\.\s+(?=[A-ZÁÉÍÓÚÑ])")
+MULTISPACE_RE       = re.compile(r"\s+")
+SENTENCE_END_RE     = re.compile(r"(?<=[.!?])\s+(?=[A-ZÁÉÍÓÚÑ])")
+THINK_BLOCK_RE      = re.compile(r"<think>.*?</think>", re.DOTALL)
+THINK_UNCLOSED_RE   = re.compile(r"<think>.*$", re.DOTALL)
+CODEFENCE_OPEN_RE   = re.compile(r"^```\w*\n?")
+CODEFENCE_CLOSE_RE  = re.compile(r"\n?```\s*$")
+
+
+def _build_ollama_options() -> dict:
+    return {
+        "temperature":    settings.ollama_temperature,
+        "num_predict":    settings.ollama_num_predict,
+        "num_ctx":        settings.ollama_num_ctx,
+        "repeat_penalty": settings.ollama_repeat_penalty,
+        "top_p":          settings.ollama_top_p,
+        "top_k":          settings.ollama_top_k,
+        "min_p":          settings.ollama_min_p,
+        "seed":           settings.ollama_seed,
+    }
+
+
+_OLLAMA_OPTIONS = _build_ollama_options()
 
 
 def _protect_abbreviations(text: str) -> str:
-    for abbr, token in ABBREVIATIONS.items():
-        text = text.replace(abbr, token)
-    return text
+    return _ABBR_RE.sub(lambda m: ABBREVIATIONS[m.group(0)], text)
 
 
 def _restore_abbreviations(text: str) -> str:
-    for abbr, token in ABBREVIATIONS.items():
-        text = text.replace(token, abbr)
-    return text
+    return _TOKEN_RE.sub(lambda m: _TOKEN_TO_ABBR[m.group(0)], text)
 
 
 def _split_sentences(text: str) -> list[str]:
@@ -88,13 +97,13 @@ def _postprocess(text: str) -> str:
     # Elimina bloques <think> que Qwen 3.5 puede generar aunque think=False.
     # El segundo sub captura bloques incompletos (truncados por num_predict).
     text = THINK_BLOCK_RE.sub("", text.strip()).strip()
-    text = re.sub(r"<think>.*$", "", text, flags=re.DOTALL).strip()
+    text = THINK_UNCLOSED_RE.sub("", text).strip()
     # Strip razonamiento sin tag de apertura (overthinking silencioso)
     if "</think>" in text:
         text = text[text.rfind("</think>") + len("</think>"):].strip()
 
-    text = re.sub(r"^```\w*\n?", "", text)
-    text = re.sub(r"\n?```\s*$", "", text)
+    text = CODEFENCE_OPEN_RE.sub("", text)
+    text = CODEFENCE_CLOSE_RE.sub("", text)
     text = text.strip("`").strip()
 
     cleaned_lines = []
@@ -183,19 +192,9 @@ async def run_inference(
         ],
         "stream": False,
         "think":  False,
-        "options": {
-            "temperature":    settings.ollama_temperature,
-            "num_predict":    settings.ollama_num_predict,
-            "num_ctx":        settings.ollama_num_ctx,
-            "repeat_penalty": settings.ollama_repeat_penalty,
-            "top_p":          settings.ollama_top_p,
-            "top_k":          settings.ollama_top_k,
-            "min_p":          settings.ollama_min_p,
-            "seed":           settings.ollama_seed,
-        },
+        "options": _OLLAMA_OPTIONS,
     }
 
-    last_error: Exception | None = None
     data: dict = {}
     raw_text = ""
 
@@ -217,24 +216,26 @@ async def run_inference(
             break
 
         except (httpx.ReadTimeout, ValueError) as exc:
-            last_error = exc
-            if attempt == 0:
-                logger.warning("Attempt 1 failed (%s), retrying...", type(exc).__name__)
+            if attempt < settings.ollama_max_retries - 1:
+                logger.warning(
+                    "Attempt %d failed (%s), retrying...",
+                    attempt + 1, type(exc).__name__,
+                )
                 continue
             raise
 
         except httpx.HTTPStatusError as exc:
             # Solo reintentar en errores transitorios del servidor (500, 503)
-            if exc.response.status_code in (500, 503) and attempt == 0:
-                last_error = exc
+            if (
+                exc.response.status_code in (500, 503)
+                and attempt < settings.ollama_max_retries - 1
+            ):
                 logger.warning(
-                    "Attempt 1 failed (HTTP %d), retrying...",
-                    exc.response.status_code,
+                    "Attempt %d failed (HTTP %d), retrying...",
+                    attempt + 1, exc.response.status_code,
                 )
                 continue
             raise
-    else:
-        raise last_error  # type: ignore[misc]
 
     done_reason = data.get("done_reason", "")
     if done_reason == "length":
