@@ -6,6 +6,9 @@ import httpx
 
 from app.config import settings
 from app.prompt_builder import build_system_prompt, build_user_prompt
+from app.providers import nvidia as nvidia_provider
+from app.providers import ollama as ollama_provider
+from app.providers.nvidia import NvidiaUnavailableError
 from app.schemas import ImpresionClinicaRequest
 
 logger = logging.getLogger(__name__)
@@ -63,6 +66,11 @@ def _build_ollama_options() -> dict:
 
 
 _OLLAMA_OPTIONS = _build_ollama_options()
+
+# Nombre del provider que resolvió la última inferencia. Se expone en la
+# respuesta HTTP para facilitar el debug sin necesidad de mirar logs.
+PROVIDER_NVIDIA = "nvidia"
+PROVIDER_OLLAMA = "ollama"
 
 
 def _protect_abbreviations(text: str) -> str:
@@ -197,118 +205,59 @@ def _ensure_follow_up_last(text: str, recommendation: str | None) -> str:
 async def run_inference(
     payload: ImpresionClinicaRequest,
     client: httpx.AsyncClient,
-) -> str:
-    # Calcular effective_max ANTES de construir el prompt
-    # Si hay recomendación, el modelo debe dejar una oración libre para ella
+) -> tuple[str, str]:
+    """
+    Orquesta la inferencia según WEB_INFERENCE.
+
+    Si WEB_INFERENCE=true: intenta NVIDIA primero; ante NvidiaUnavailableError
+    cae a Ollama. Si WEB_INFERENCE=false: va directo a Ollama.
+
+    Devuelve (texto_generado, provider_usado).
+    """
     has_recommendation = bool(payload.clinica.recomendacion_seguimiento)
     effective_max = settings.max_sentences - 1 if has_recommendation else settings.max_sentences
 
     system_prompt = build_system_prompt(effective_max)
     user_prompt = build_user_prompt(payload)
 
-    # Validacion preemptiva: si el prompt estimado + budget de salida
-    # excede el 95% de num_ctx, rechazar antes de llamar a Ollama.
-    # Evita truncamiento silencioso y libera el slot de inferencia.
-    est_input = _estimate_tokens(system_prompt + user_prompt)
-    est_total = est_input + settings.ollama_num_predict
-    ctx_budget = int(settings.ollama_num_ctx * 0.95)
-    if est_total > ctx_budget:
-        raise ValueError(
-            f"{CONTEXT_OVERFLOW_PREFIX} prompt estimado ({est_input} tok) + "
-            f"salida ({settings.ollama_num_predict} tok) excede num_ctx "
-            f"({settings.ollama_num_ctx}). Revisar longitud de campos "
-            "clinicos de texto libre."
-        )
-
-    request_body = {
-        "model": settings.ollama_model,
-        "messages": [
-            {"role": "system", "content": system_prompt},
-            {"role": "user",   "content": user_prompt},
-        ],
-        "stream": False,
-        "think":  False,
-        "options": _OLLAMA_OPTIONS,
-    }
-
-    data: dict = {}
     raw_text = ""
+    provider = PROVIDER_OLLAMA
 
-    for attempt in range(settings.ollama_max_retries):
+    if settings.web_inference:
         try:
-            response = await client.post(
-                f"{settings.ollama_url}/api/chat",
-                json=request_body,
-            )
-            response.raise_for_status()
-            data = response.json()
-            raw_text = data.get("message", {}).get("content", "")
-
-            if not raw_text.strip():
-                raise ValueError(
-                    f"Ollama returned empty response "
-                    f"(done_reason={data.get('done_reason', 'unknown')})"
-                )
-            break
-
-        except (httpx.ReadTimeout, ValueError) as exc:
-            if attempt < settings.ollama_max_retries - 1:
-                logger.warning(
-                    "Attempt %d failed (%s), retrying...",
-                    attempt + 1, type(exc).__name__,
-                )
-                continue
+            raw_text = await nvidia_provider.call(system_prompt, user_prompt)
+            provider = PROVIDER_NVIDIA
+        except NvidiaUnavailableError as exc:
+            logger.warning("NVIDIA unavailable (%s), falling back to Ollama", exc)
+        except Exception as exc:
+            # Errores no recuperables de NVIDIA (400, 401, 403): propagar
+            logger.error("NVIDIA non-recoverable error: %s", exc)
             raise
 
-        except httpx.HTTPStatusError as exc:
-            # Solo reintentar en errores transitorios del servidor (500, 503)
-            if (
-                exc.response.status_code in (500, 503)
-                and attempt < settings.ollama_max_retries - 1
-            ):
-                logger.warning(
-                    "Attempt %d failed (HTTP %d), retrying...",
-                    attempt + 1, exc.response.status_code,
-                )
-                continue
-            raise
-
-    done_reason = data.get("done_reason", "")
-    if done_reason == "length":
-        logger.warning(
-            "Model output truncated by num_predict limit (%d tokens). "
-            "Output length: %d chars. Consider increasing OLLAMA_NUM_PREDICT.",
-            settings.ollama_num_predict,
-            len(raw_text),
-        )
-
-    prompt_eval_count = data.get("prompt_eval_count", 0)
-    ctx_margin = settings.ollama_num_ctx - settings.ollama_num_predict - prompt_eval_count
-    if prompt_eval_count:
-        logger.debug(
-            "Context usage: %d input tokens, %d reserved for output, %d margin "
-            "(num_ctx=%d)",
-            prompt_eval_count,
-            settings.ollama_num_predict,
-            ctx_margin,
-            settings.ollama_num_ctx,
-        )
-        if ctx_margin < 100:
-            logger.warning(
-                "Context margin critically low: %d tokens remaining. "
-                "Input tokens: %d. Consider increasing OLLAMA_NUM_CTX.",
-                ctx_margin,
-                prompt_eval_count,
+    if not raw_text:
+        # Validacion preemptiva de contexto — solo aplica en Ollama.
+        # DeepSeek V3.2 tiene 128K de contexto; el guard no aplica ahi.
+        est_input = _estimate_tokens(system_prompt + user_prompt)
+        est_total = est_input + settings.ollama_num_predict
+        ctx_budget = int(settings.ollama_num_ctx * 0.95)
+        if est_total > ctx_budget:
+            raise ValueError(
+                f"{CONTEXT_OVERFLOW_PREFIX} prompt estimado ({est_input} tok) + "
+                f"salida ({settings.ollama_num_predict} tok) excede num_ctx "
+                f"({settings.ollama_num_ctx}). Revisar longitud de campos "
+                "clinicos de texto libre."
             )
+        raw_text, _ = await ollama_provider.call(system_prompt, user_prompt, client)
+        provider = PROVIDER_OLLAMA
 
     try:
         text = _postprocess(raw_text)
     except ValueError:
         logger.error(
-            "Model output empty after postprocessing. Raw length: %d chars, done_reason: '%s'",
-            len(raw_text),
-            done_reason,
+            "Model output empty after postprocessing (provider=%s). Raw length: %d chars",
+            provider, len(raw_text),
         )
         raise
 
-    return _ensure_follow_up_last(text, payload.clinica.recomendacion_seguimiento)
+    result = _ensure_follow_up_last(text, payload.clinica.recomendacion_seguimiento)
+    return result, provider

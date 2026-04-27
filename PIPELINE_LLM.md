@@ -7,6 +7,8 @@ Este documento describe el funcionamiento real del pipeline LLM de la API clinic
 - `app/cache.py`
 - `app/prompt_builder.py`
 - `app/inference.py`
+- `app/providers/nvidia.py`
+- `app/providers/ollama.py`
 - `app/correlaciones.py`
 - `app/schemas.py`
 
@@ -24,7 +26,7 @@ El objetivo del sistema es transformar un payload estructurado de refraccion y h
 6. Capa determinista de correlaciones
 7. Correlaciones activas actuales
 8. Construccion del prompt
-9. Inferencia con Ollama
+9. Inferencia — proveedores y fallback
 10. Postprocesamiento del output
 11. Recomendacion de seguimiento
 12. Cache de inferencia
@@ -45,7 +47,16 @@ Esto separa claramente:
 - la decision clinica reproducible de si una correlacion aplica o no;
 - la redaccion natural del informe final.
 
-El modelo actual es `qwen3.5:9b` via Ollama, en modo `think: false`.
+### Proveedores de inferencia
+
+El sistema soporta dos proveedores configurables via `WEB_INFERENCE` en `.env`:
+
+| `WEB_INFERENCE` | Comportamiento |
+|---|---|
+| `false` (default) | Inferencia local con Ollama (`qwen3.5:9b`) |
+| `true` | NVIDIA NIM como principal (`deepseek-ai/deepseek-v3.2`), Ollama como fallback automatico |
+
+El fallback a Ollama se activa ante: timeout de NVIDIA, error de conexion, rate limit (429) o error de servidor (5xx). Los errores de configuracion (401/403) o prompt invalido (400) no activan fallback.
 
 ---
 
@@ -73,7 +84,17 @@ run_inference(req, httpx_client)
   |    |- agrega bloque "Correlaciones clinicas aplicables" si hay activaciones
   |
   v
-POST /api/chat a Ollama
+  WEB_INFERENCE=true?
+  |
+  |- SI --> providers/nvidia.call(system, user)
+  |           |- OK: raw_text, provider="nvidia"
+  |           |- NvidiaUnavailableError: fallback a Ollama
+  |           |- Error no recuperable (400/401/403): propagar
+  |
+  |- NO (o fallback) --> providers/ollama.call(system, user, client)
+  |                        |- validacion preemptiva de contexto (num_ctx)
+  |                        |- POST /api/chat a Ollama
+  |                        |- provider="ollama"
   |
   v
 _postprocess(raw_text)
@@ -92,7 +113,7 @@ _ensure_follow_up_last(text, recomendacion)
 Cache store
   |
   v
-Respuesta JSON
+Respuesta JSON  { status, impresion_clinica, provider, cached? }
 ```
 
 ---
@@ -131,7 +152,7 @@ El sistema usa:
 
 Si la cola ya esta llena, el endpoint responde `503`.
 
-Si la inferencia completa supera `settings.ollama_timeout`, responde `504`.
+Si la inferencia completa supera el timeout total, responde `504`. Con `WEB_INFERENCE=true` el timeout cubre ambos proveedores en cadena (`nvidia_timeout + ollama_timeout + 10s`); con `WEB_INFERENCE=false` es simplemente `ollama_timeout`.
 
 ### Warmup al arrancar
 
@@ -1250,19 +1271,48 @@ Campos numericos no se sanitizan porque ya estan validados por schema.
 
 ---
 
-## 9. Inferencia con Ollama
+## 9. Inferencia — proveedores y fallback
 
-La funcion central es `run_inference(payload, client)`.
+La funcion central es `run_inference(payload, client)` en `app/inference.py`. Delega la llamada real al proveedor activo.
 
-### Modelo y backend
+### Logica de seleccion de proveedor
 
-- Modelo: `qwen3.5:9b`
-- Backend: Ollama local
-- Endpoint: `POST /api/chat`
-- `stream = False`
-- `think = False`
+```python
+if WEB_INFERENCE:
+    try:
+        raw_text = await nvidia.call(system, user)   # proveedor principal
+        provider = "nvidia"
+    except NvidiaUnavailableError:
+        raw_text = await ollama.call(system, user, client)  # fallback
+        provider = "ollama"
+else:
+    raw_text = await ollama.call(system, user, client)
+    provider = "ollama"
+```
 
-### Parametros actuales
+### Provider NVIDIA NIM (`app/providers/nvidia.py`)
+
+- SDK: `openai` con `base_url=https://integrate.api.nvidia.com/v1`
+- Modelo: `NVIDIA_MODEL` (default: `deepseek-ai/deepseek-v3.2`)
+- Stream: `False`
+- Thinking mode: controlado por `NVIDIA_THINKING` via `chat_template_kwargs`
+
+| Parametro | Valor default |
+|---|---|
+| `temperature` | `0.7` |
+| `top_p` | `0.95` |
+| `max_tokens` | `1024` |
+| `nvidia_timeout` | `60.0s` |
+| `nvidia_max_retries` | `2` |
+
+Errores que activan fallback a Ollama: timeout, connection error, HTTP 429/500/502/503/504.
+Errores que NO activan fallback: HTTP 400 (prompt invalido), 401/403 (credenciales incorrectas).
+
+### Provider Ollama (`app/providers/ollama.py`)
+
+- Endpoint: `POST {OLLAMA_URL}/api/chat`
+- Modelo: `OLLAMA_MODEL` (default: `qwen3.5:9b`)
+- `stream = False`, `think = False`
 
 | Parametro | Valor |
 |---|---|
@@ -1271,23 +1321,25 @@ La funcion central es `run_inference(payload, client)`.
 | `top_k` | `20` |
 | `min_p` | `0.0` |
 | `repeat_penalty` | `1.0` |
-| `num_predict` | `600` |
-| `num_ctx` | `2048` |
+| `num_predict` | `1024` |
+| `num_ctx` | `4096` |
 | `seed` | `42` |
 | `ollama_max_retries` | `2` |
 
-### Reintentos
+Se reintenta ante: `httpx.ReadTimeout`, `ValueError` por respuesta vacia, HTTP 500/503.
 
-Se reintenta una vez mas cuando falla el primer intento por:
+### Validacion preemptiva de contexto (solo Ollama)
 
-- `httpx.ReadTimeout`
-- `ValueError` por respuesta vacia
-- `HTTP 500`
-- `HTTP 503`
+Antes de llamar a Ollama se verifica:
 
-No se reintentan otros errores HTTP.
+```python
+est_input + num_predict <= num_ctx * 0.95
+```
 
-### Monitoreo de contexto
+Si se excede, se lanza `ValueError` con prefijo `context_overflow:` → `413` en el cliente.
+Esta validacion no aplica en NVIDIA NIM (DeepSeek V3.2 tiene contexto de 128K tokens).
+
+### Monitoreo de contexto (Ollama)
 
 Despues de inferir se calcula:
 
@@ -1372,15 +1424,13 @@ La clave SHA-256 se construye con:
 
 - `payload.model_dump(mode="json")`
 - excluyendo `receta_id`
-- `settings.ollama_model`
-- hash corto de `SYSTEM_PROMPT`
+- modelo activo: `nvidia_model` si `WEB_INFERENCE=true`, `ollama_model` si `false`
 - flag booleano `__has_recommendation`
 
 Detalles importantes:
 
 - `receta_id` no afecta el cache;
-- si cambia el modelo, cambia la clave;
-- si cambia el system prompt base, cambia la clave;
+- si cambia el modelo o el proveedor activo, cambia la clave (evita servir respuestas de Qwen como si fueran de DeepSeek);
 - si el caso tiene o no recomendacion, cambia la clave.
 
 ### Politica de eviction
@@ -1396,7 +1446,8 @@ Si el cache esta lleno y entra una nueva clave, se elimina la entrada mas antigu
 ```json
 {
   "status": "ok",
-  "impresion_clinica": "El paciente ..."
+  "impresion_clinica": "El paciente ...",
+  "provider": "nvidia"
 }
 ```
 
@@ -1406,9 +1457,12 @@ Si el cache esta lleno y entra una nueva clave, se elimina la entrada mas antigu
 {
   "status": "ok",
   "impresion_clinica": "El paciente ...",
+  "provider": "nvidia",
   "cached": true
 }
 ```
+
+El campo `provider` indica que proveedor genero la respuesta: `"nvidia"` o `"ollama"`. Util para monitoreo y debug sin necesidad de revisar logs del servidor.
 
 ### Propiedades del texto final
 
@@ -1452,3 +1506,10 @@ Debes revisar al menos:
 - `app/prompt_builder.py`
 - `app/correlaciones.py`
 - `app/cache.py` si cambian condiciones que deban invalidar cache
+
+### Si cambias el proveedor de inferencia
+
+- Los parametros de sampling de Ollama estan en `app/providers/ollama.py`
+- Los parametros de NVIDIA estan en `app/providers/nvidia.py` y `app/config.py`
+- La logica de fallback y seleccion esta en `app/inference.py` (`run_inference`)
+- El timeout total de `asyncio.wait_for` se calcula en `app/main.py` (`_INFERENCE_TIMEOUT`)

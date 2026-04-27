@@ -52,6 +52,18 @@ class Settings(BaseSettings):
     cache_ttl_seconds: int = 86400
     cache_max_size: int = 500
 
+    # Web inference (NVIDIA NIM)
+    web_inference: bool = False
+    nvidia_api_key: str = ""
+    nvidia_base_url: str = "https://integrate.api.nvidia.com/v1"
+    nvidia_model: str = "deepseek-ai/deepseek-v3.2"
+    nvidia_timeout: float = 60.0
+    nvidia_max_tokens: int = 1024
+    nvidia_temperature: float = 0.7
+    nvidia_top_p: float = 0.95
+    nvidia_thinking: bool = False          # chat_template_kwargs thinking mode
+    nvidia_max_retries: int = 2
+
     # Health check
     health_check_timeout: float = 5.0
 

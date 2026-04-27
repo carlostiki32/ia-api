@@ -18,6 +18,8 @@ Ese script:
 - activa el entorno virtual aislado
 - inicia la API con Uvicorn
 
+> Si `WEB_INFERENCE=true`, la API usara NVIDIA NIM como proveedor principal y Ollama como fallback automatico. Ollama sigue siendo necesario incluso con `WEB_INFERENCE=true`.
+
 ## 1. Requisitos del servidor
 
 Minimos:
@@ -141,6 +143,7 @@ Las dependencias del proyecto son:
 - `httpx` - cliente HTTP async para comunicarse con Ollama
 - `pydantic` / `pydantic-settings` - validacion y configuracion
 - `python-dotenv` - carga de variables de entorno
+- `openai` - SDK para llamar a NVIDIA NIM (usado cuando `WEB_INFERENCE=true`)
 
 Si despues cierras la terminal, vuelve a activarlo con:
 
@@ -170,8 +173,8 @@ OLLAMA_URL=http://localhost:11434
 OLLAMA_MODEL=qwen3.5:9b
 OLLAMA_TIMEOUT=120.0
 OLLAMA_TEMPERATURE=0.7
-OLLAMA_NUM_PREDICT=600
-OLLAMA_NUM_CTX=2048
+OLLAMA_NUM_PREDICT=1024
+OLLAMA_NUM_CTX=4096
 OLLAMA_REPEAT_PENALTY=1.0
 OLLAMA_TOP_P=0.8
 OLLAMA_TOP_K=20
@@ -180,6 +183,7 @@ OLLAMA_SEED=42
 OLLAMA_MAX_RETRIES=2
 MAX_CONCURRENT=1
 QUEUE_WAIT_TIMEOUT=120.0
+MAX_QUEUE_SIZE=5
 HOST=0.0.0.0
 PORT=8888
 API_KEY=cambia-este-token-por-uno-seguro
@@ -188,21 +192,42 @@ CACHE_TTL_SECONDS=86400
 CACHE_MAX_SIZE=500
 HEALTH_CHECK_TIMEOUT=5.0
 LOG_LEVEL=INFO
+
+# Web inference (NVIDIA NIM) — dejar en false para usar solo Ollama local
+WEB_INFERENCE=false
+NVIDIA_API_KEY=
+NVIDIA_BASE_URL=https://integrate.api.nvidia.com/v1
+NVIDIA_MODEL=deepseek-ai/deepseek-v3.2
+NVIDIA_TIMEOUT=60.0
+NVIDIA_MAX_TOKENS=1024
+NVIDIA_TEMPERATURE=0.7
+NVIDIA_TOP_P=0.95
+NVIDIA_THINKING=false
+NVIDIA_MAX_RETRIES=2
 ```
 
-Sobre las variables:
+Sobre las variables de Ollama:
 
 - `OLLAMA_MODEL=qwen3.5:9b` es el modelo default del proyecto. Funciona bien en GPUs con 8 GB de VRAM como la RTX 3070 Ti
-- `OLLAMA_NUM_PREDICT=600` limita la cantidad de tokens que genera el modelo por respuesta. Con `MAX_SENTENCES=10` y texto clinico denso en espanol, 400 tokens es insuficiente; usa 600
+- `OLLAMA_NUM_PREDICT=1024` limita la cantidad de tokens que genera el modelo por respuesta. Cubre casos con multiples correlaciones activas y recomendacion de seguimiento sin truncamiento
 - `OLLAMA_TEMPERATURE=0.7` es el valor recomendado por la documentacion oficial de Qwen3.5 para modo non-thinking. Valores bajos como 0.1 producen greedy decoding, que el modelo desaconseja explicitamente
-- `OLLAMA_NUM_CTX=2048` limita la ventana de contexto del modelo. El consumo real maximo es ~1700 tokens (system prompt + datos + respuesta); 2048 ahorra ~256MB de VRAM en KV cache comparado con el default de 4096
+- `OLLAMA_NUM_CTX=4096` define la ventana de contexto. Cubre system prompt (~300 tok) + user prompt peak (~1200 tok) + correlaciones (~400 tok) + salida (1024 tok) con margen. El KV extra sobre 2048 es ~80MB en Q4_K_M, absorbible en la RTX 3070 Ti
 - `OLLAMA_REPEAT_PENALTY=1.0` desactiva la penalizacion de repeticion. La terminologia clinica (OD/OI, agudeza visual) requiere repeticion exacta de terminos; con temperature=0.7 no hay riesgo de bucles de repeticion
 - `OLLAMA_TOP_P=0.8`, `OLLAMA_TOP_K=20` y `OLLAMA_MIN_P=0.0` son los parametros de sampling recomendados por la documentacion oficial de Qwen3.5 para modo non-thinking
 - `OLLAMA_SEED=42` fija la semilla para reproducibilidad. Cambialo o usa -1 si necesitas variabilidad entre respuestas
 - `OLLAMA_MAX_RETRIES=2` cantidad de intentos ante errores transitorios de Ollama (timeout o error 5xx)
 - `MAX_CONCURRENT=1` es el valor correcto para una GPU dedicada. Solo se procesa una inferencia a la vez; las demas esperan en cola
+- `MAX_QUEUE_SIZE=5` maximo de peticiones en espera antes de responder `503`
 - `QUEUE_WAIT_TIMEOUT` define cuanto tiempo puede esperar una peticion en la cola antes de recibir `503`
-- `CACHE_TTL_SECONDS=86400` y `CACHE_MAX_SIZE=500` controlan el cache en memoria (24 horas, 500 entradas). Si los omites, `config.py` usa esos mismos defaults
+- `CACHE_TTL_SECONDS=86400` y `CACHE_MAX_SIZE=500` controlan el cache en memoria (24 horas, 500 entradas)
+
+Sobre las variables de NVIDIA NIM:
+
+- `WEB_INFERENCE=false` desactiva el proveedor web. Ponlo en `true` para usar NVIDIA NIM como proveedor principal con Ollama como fallback automatico
+- `NVIDIA_API_KEY` es la clave de API de NVIDIA NIM. Requerida cuando `WEB_INFERENCE=true`. Sin clave, el sistema ignora NVIDIA y va directo a Ollama
+- `NVIDIA_MODEL=deepseek-ai/deepseek-v3.2` es el modelo en NVIDIA NIM. Verificar disponibilidad en el panel de NVIDIA
+- `NVIDIA_TIMEOUT=60.0` timeout en segundos para las llamadas a NVIDIA. Si se agota, activa el fallback a Ollama
+- `NVIDIA_THINKING=false` desactiva el modo de razonamiento de DeepSeek. Activarlo (`true`) puede mejorar calidad pero aumenta latencia y consumo de tokens
 
 Genera un token seguro para `API_KEY`:
 
@@ -271,15 +296,35 @@ En otra terminal:
 curl http://localhost:8888/health
 ```
 
-Respuesta esperada:
+Respuesta esperada (con `WEB_INFERENCE=false`):
 
 ```json
 {
   "status": "ok",
+  "web_inference": false,
+  "nvidia": { "enabled": false },
+  "ollama": "ok",
   "model": "qwen3.5:9b",
   "model_available": true,
-  "model_loaded": true,
-  "ollama": "ok"
+  "model_loaded": true
+}
+```
+
+Respuesta esperada (con `WEB_INFERENCE=true` y API key configurada):
+
+```json
+{
+  "status": "ok",
+  "web_inference": true,
+  "nvidia": {
+    "enabled": true,
+    "model": "deepseek-ai/deepseek-v3.2",
+    "api_key_set": true
+  },
+  "ollama": "ok",
+  "model": "qwen3.5:9b",
+  "model_available": true,
+  "model_loaded": true
 }
 ```
 
@@ -434,16 +479,22 @@ El `Authorization: Bearer ...` no coincide con `API_KEY` del `.env`.
 
 La GPU esta ocupada y la peticion se quedo esperando en cola mas tiempo que `QUEUE_WAIT_TIMEOUT`.
 
-### `504 Ollama no respondio a tiempo`
+### `504 La inferencia no respondio a tiempo`
 
-El modelo esta tardando demasiado.
+El modelo (NVIDIA o Ollama) tardo demasiado.
 
-Revisa:
+Si `WEB_INFERENCE=false`:
 
-- que Ollama este vivo
-- que el modelo correcto este descargado (`ollama list` debe mostrar `qwen3.5:9b`)
-- que la GPU tenga memoria suficiente (`nvidia-smi`)
-- que `OLLAMA_TIMEOUT` sea razonable para tu equipo
+- verifica que Ollama este vivo
+- verifica que el modelo este descargado (`ollama list` debe mostrar `qwen3.5:9b`)
+- verifica que la GPU tenga memoria suficiente (`nvidia-smi`)
+- ajusta `OLLAMA_TIMEOUT` segun el tiempo real de tu modelo
+
+Si `WEB_INFERENCE=true`:
+
+- el timeout cubre NVIDIA + Ollama en cadena; es normal que sea mas largo
+- si NVIDIA falla consistentemente, verifica conectividad y que `NVIDIA_API_KEY` sea valida
+- revisa los logs del servidor para saber cual proveedor respondio o fallo
 
 ### `start_linux.sh` dice que no encuentra el entorno virtual
 
@@ -477,6 +528,16 @@ Si esta API va a vivir en una PC o servidor casero con GPU (como una RTX 3070 Ti
 - `qwen3.5:9b` cabe holgadamente en 8 GB de VRAM
 
 Eso protege la VRAM y evita errores por OOM cuando dos inferencias se disparan al mismo tiempo.
+
+### Cuando usar `WEB_INFERENCE=true`
+
+Activar NVIDIA NIM como proveedor principal tiene sentido cuando:
+
+- el servidor local tiene poca VRAM o el modelo local es lento
+- se necesita mayor calidad de respuesta (DeepSeek V3 es mas capaz que Qwen3.5 9B)
+- se acepta la latencia de red y el costo por token de la API de NVIDIA
+
+Con `WEB_INFERENCE=true` Ollama sigue siendo el fallback: si NVIDIA no responde (timeout, rate limit, error 5xx), la peticion se reencamina automaticamente al modelo local sin que el cliente note diferencia. La respuesta siempre incluye el campo `"provider": "nvidia"` o `"provider": "ollama"` para saber cual respondio.
 
 ## 14. Cache de respuestas
 

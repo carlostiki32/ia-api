@@ -16,6 +16,15 @@ from app.config import settings
 from app.inference import CONTEXT_OVERFLOW_PREFIX, run_inference
 from app.schemas import ImpresionClinicaRequest
 
+# El timeout de inferencia para asyncio.wait_for debe cubrir ambos proveedores
+# cuando web_inference=True: NVIDIA puede ser lento en cold starts, y si falla
+# aún queda el path de Ollama. Se usa el máximo de los dos con un margen.
+_INFERENCE_TIMEOUT = (
+    settings.nvidia_timeout + settings.ollama_timeout + 10.0
+    if settings.web_inference
+    else settings.ollama_timeout
+)
+
 logger = logging.getLogger(__name__)
 
 _inference_semaphore = asyncio.Semaphore(settings.max_concurrent)
@@ -151,20 +160,22 @@ async def crear_impresion_clinica(
 
     start_time = time.perf_counter()
     try:
-        result = await asyncio.wait_for(
+        result, provider = await asyncio.wait_for(
             run_inference(req, client),
-            timeout=settings.ollama_timeout,
+            timeout=_INFERENCE_TIMEOUT,
         )
         elapsed = time.perf_counter() - start_time
-        logger.info("Inference completed [%s] in %.1fs", sid, elapsed)
+        logger.info("Inference completed [%s] via %s in %.1fs", sid, provider, elapsed)
         inference_cache.put(req, result, key=cache_key)
-        return {"status": "ok", "impresion_clinica": result}
+        return {"status": "ok", "impresion_clinica": result, "provider": provider}
 
     except asyncio.TimeoutError:
-        raise HTTPException(
-            status_code=504,
-            detail="Ollama no respondio a tiempo. Intente de nuevo.",
+        detail = (
+            "La inferencia no respondio a tiempo (NVIDIA + Ollama). Intente de nuevo."
+            if settings.web_inference
+            else "Ollama no respondio a tiempo. Intente de nuevo."
         )
+        raise HTTPException(status_code=504, detail=detail)
     except ValueError as exc:
         detail = str(exc)
         if detail.startswith(CONTEXT_OVERFLOW_PREFIX):
@@ -221,10 +232,24 @@ async def health(client: Annotated[httpx.AsyncClient, Depends(get_http_client)])
         except Exception:
             pass
 
+    nvidia_info: dict = {}
+    if settings.web_inference:
+        nvidia_info = {
+            "enabled": True,
+            "model": settings.nvidia_model,
+            "api_key_set": bool(settings.nvidia_api_key),
+        }
+    else:
+        nvidia_info = {"enabled": False}
+
+    overall_ok = ollama_status == "ok" or (settings.web_inference and bool(settings.nvidia_api_key))
+
     return {
-        "status": "ok" if ollama_status == "ok" else "degraded",
+        "status": "ok" if overall_ok else "degraded",
+        "web_inference": settings.web_inference,
+        "nvidia": nvidia_info,
+        "ollama": ollama_status,
         "model": settings.ollama_model,
         "model_available": model_available,
         "model_loaded": model_loaded,
-        "ollama": ollama_status,
     }
