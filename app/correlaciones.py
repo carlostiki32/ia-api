@@ -595,9 +595,17 @@ def _texto_miopia_magna(req: ImpresionClinicaRequest) -> str:
         ee = _equivalente_esferico(ojo.esfera, ojo.cilindro)
         if ee is not None and ee <= -6.00:
             ojos.append((label, ee))
+    muy_alta = any(ee <= -8.00 for _, ee in ojos)
+    severidad = "muy alta" if muy_alta else "alta"
+    riesgo = (
+        "riesgo significativamente elevado de patologia macular degenerativa, "
+        "desprendimiento de retina y glaucoma"
+        if muy_alta else
+        "mayor riesgo de patologia retiniana periferica y macular"
+    )
     return (
-        f"Se documenta miopia magna en {_format_eyes_with_values(ojos, 'EE')}, lo que "
-        "conlleva mayor riesgo de patologia retiniana periferica y macular."
+        f"Se documenta miopia de magnitud {severidad} en {_format_eyes_with_values(ojos, 'EE')}, "
+        f"lo que conlleva {riesgo}."
     )
 
 
