@@ -5,7 +5,7 @@ from difflib import SequenceMatcher
 import httpx
 
 from app.config import settings
-from app.prompt_builder import build_system_prompt, build_user_prompt
+from app.prompt_builder import build_system_prompt, build_user_prompt, clean_impresion
 from app.providers import nvidia as nvidia_provider
 from app.providers import ollama as ollama_provider
 from app.providers.nvidia import NvidiaUnavailableError
@@ -220,6 +220,30 @@ async def run_inference(
     system_prompt = build_system_prompt(effective_max)
     user_prompt = build_user_prompt(payload)
 
+    # Logging detallado del prompt renderizado antes de enviar a inferencia
+    logger.debug(
+        "\n"
+        "╔═══════════════════════════════════════════════════════════════════════╗\n"
+        "║          PROMPT RENDERIZADO ANTES DE INFERENCIA                      ║\n"
+        "╚═══════════════════════════════════════════════════════════════════════╝\n"
+        "\n📋 SYSTEM PROMPT (%d caracteres, ~%d tokens):\n"
+        "────────────────────────────────────────────────────────────────────────\n"
+        "%s\n"
+        "────────────────────────────────────────────────────────────────────────\n"
+        "\n📝 USER PROMPT (%d caracteres, ~%d tokens):\n"
+        "────────────────────────────────────────────────────────────────────────\n"
+        "%s\n"
+        "────────────────────────────────────────────────────────────────────────\n"
+        "\n⚙️  TOTALES: ~%d tokens estimados\n",
+        len(system_prompt),
+        _estimate_tokens(system_prompt),
+        system_prompt,
+        len(user_prompt),
+        _estimate_tokens(user_prompt),
+        user_prompt,
+        _estimate_tokens(system_prompt) + _estimate_tokens(user_prompt),
+    )
+
     raw_text = ""
     provider = PROVIDER_OLLAMA
 
@@ -258,6 +282,8 @@ async def run_inference(
             provider, len(raw_text),
         )
         raise
+
+    text = clean_impresion(text)  # ← aquí, después de postprocess y antes de follow-up
 
     result = _ensure_follow_up_last(text, payload.clinica.recomendacion_seguimiento)
     return result, provider

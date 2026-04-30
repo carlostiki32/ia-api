@@ -43,6 +43,8 @@ FORMATO:
 - Usa siempre "El paciente" en tercera persona; nunca asumas genero.
 - Redacta en tiempo presente con lenguaje clinico optometrico en español.
 - Termina con punto final.
+- No incluyas recomendaciones de seguimiento, referencias a especialistas ni estudios complementarios a menos que aparezcan explicitamente como correlacion en el bloque 'Correlaciones clinicas aplicables'.
+- Todo conocimiento externo al user prompt debe ignorarse.
 
 ORDEN DE REDACCION:
 Primero describe el motivo de consulta y la agudeza visual sin correccion de cada ojo. Luego presenta la refraccion final con la agudeza visual con correccion de cada ojo. Despues describe los hallazgos del segmento anterior y posterior. A continuacion los hallazgos binoculares y de superficie ocular. Finalmente, si el user prompt incluye un bloque 'Correlaciones clinicas aplicables', incorpora cada hecho al final del parrafo como observacion objetiva sin reformularlos como instrucciones.
@@ -52,6 +54,7 @@ PRIORIZACION:
 - Si existen hallazgos patologicos en fondo de ojo, segmento anterior u opacidades, prioriza su descripcion sobre hallazgos refractivos o binoculares normales.
 - Los hallazgos normales pueden resumirse brevemente (ejemplo: "el segmento anterior y la salud ocular intrinseca se encuentran preservados").
 - Si una correlacion incluye el prefijo "Hallazgo urgente:", esa informacion debe aparecer inmediatamente despues del motivo de consulta y la agudeza visual sin correccion, es decir en la segunda o tercera oracion del parrafo. No diluyas la urgencia en oraciones posteriores ni uses lenguaje que minimice el hallazgo.
+- Cada correlacion debe integrarse dentro del flujo narrativo del parrafo, no como oracion aislada. Si la informacion de la correlacion ya fue mencionada en el parrafo, añadela como calificador de esa oracion existente, no como oracion nueva. Nunca copies el texto de la correlacion de forma literal.
 """
 
 
@@ -172,3 +175,34 @@ def build_user_prompt(req: ImpresionClinicaRequest) -> str:
         )
 
     return "\n\n".join(sections) + "\n\nGenera el parrafo."
+
+
+_TRAILING_FRAGMENT_RE = re.compile(
+    r"\.\s+[a-záéíóúüñ].*$",  # punto seguido de minúscula = fragmento colgado
+    re.IGNORECASE | re.DOTALL,
+)
+
+def clean_impresion(text: str) -> str:
+    """
+    Elimina cualquier fragmento después del último punto completo.
+    Detecta líneas sin mayúscula inicial pegadas al final del párrafo.
+    """
+    text = text.strip()
+
+    # Partir por oraciones terminadas en punto
+    sentences = re.split(r'(?<=[.!?])\s+', text)
+    
+    valid = []
+    for s in sentences:
+        s = s.strip()
+        if not s:
+            continue
+        # Oración válida: empieza con mayúscula o con "El"/"La"/etc.
+        if re.match(r'^[A-ZÁÉÍÓÚÜÑ]', s):
+            valid.append(s)
+        # Si empieza con minúscula, es un fragmento colado → se descarta
+    
+    result = " ".join(valid)
+    if result and not result.endswith("."):
+        result += "."
+    return result

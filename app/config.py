@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -75,7 +76,30 @@ class Settings(BaseSettings):
 
 settings = Settings()
 
-logging.basicConfig(
-    level=getattr(logging, settings.log_level.upper(), logging.INFO),
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+# Crear directorio de logs si no existe
+_LOG_DIR = Path("logs")
+_LOG_DIR.mkdir(exist_ok=True)
+_LOG_FILE = _LOG_DIR / "inference.log"
+
+# Configurar logging con consola + archivo
+_log_level = getattr(logging, settings.log_level.upper(), logging.INFO)
+_formatter = logging.Formatter(
+    "%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
 )
+
+# Handler para consola
+_console_handler = logging.StreamHandler()
+_console_handler.setFormatter(_formatter)
+
+# Handler para archivo
+_file_handler = logging.FileHandler(_LOG_FILE, encoding="utf-8")
+_file_handler.setFormatter(_formatter)
+
+# Configurar logger raíz
+_root_logger = logging.getLogger()
+_root_logger.setLevel(_log_level)
+_root_logger.addHandler(_console_handler)
+_root_logger.addHandler(_file_handler)
+
+logging.info(f"Logging iniciado — Archivo: {_LOG_FILE.resolve()}")
