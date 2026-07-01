@@ -110,6 +110,39 @@ def test_ar_detecta_astigmatismo_no_prescrito():
     assert "ar_detecta_astigmatismo_no_prescrito" in names
 
 
+def test_ar_detecta_astigmatismo_no_prescrito_requiere_soporte_queratometrico_si_existe():
+    req = _make_request(
+        refraccion=Refraccion(od=GraduacionOjo(cilindro=-0.25)),
+        akr=AkrSnapshot(
+            od=AkrOjo(
+                cilindro=-1.00,
+                k_cilindro=-0.25,
+                k_cilindro_eje=180,
+            )
+        ),
+    )
+
+    assert "ar_detecta_astigmatismo_no_prescrito" not in _active_names(req)
+
+
+def test_ar_detecta_astigmatismo_no_prescrito_usa_soporte_queratometrico():
+    req = _make_request(
+        refraccion=Refraccion(od=GraduacionOjo(cilindro=-0.25)),
+        akr=AkrSnapshot(
+            od=AkrOjo(
+                cilindro=-1.00,
+                k_cilindro=-1.25,
+                k_cilindro_eje=180,
+            )
+        ),
+    )
+
+    texts = corr.evaluar_correlaciones(req)
+
+    assert "ar_detecta_astigmatismo_no_prescrito" in _active_names(req)
+    assert any("cilindro corneal 1.25D" in text for text in texts)
+
+
 def test_insuficiencia_convergencia_suprime_ppc_y_cover_exoforia():
     req = _make_request(
         paciente=ContextoPaciente(motivo_consulta="cefalea frontal y fatiga con lectura"),
@@ -174,6 +207,18 @@ def test_hipermetropia_alta_adapta_texto_en_paciente_joven():
     assert "demanda acomodativa significativa" in result[0]
 
 
+def test_hipermetropia_alta_menciona_queratometria_plana():
+    req = _make_request(
+        paciente=ContextoPaciente(edad=45),
+        refraccion=Refraccion(od=GraduacionOjo(esfera=+5.50)),
+        akr=AkrSnapshot(od=AkrOjo(k_promedio_d=40.00)),
+    )
+
+    result = corr.evaluar_correlaciones(req)
+
+    assert any("curvatura corneal plana" in text for text in result)
+
+
 def test_exotropia_lente_activa():
     req = _make_request(
         clinica=DatosClinica(cover_test="OD: Exo y Tropia | OI: Orto"),
@@ -195,6 +240,66 @@ def test_desviacion_vertical_activa():
 
     assert "desviacion_vertical" in names
     assert any("hiperforia" in text for text in texts)
+
+
+def test_astig_oblicuo_no_activa_solo_por_queratometria():
+    """La queratometria por si sola (sin cilindro refractivo oblicuo relevante) no
+    debe disparar astig_oblicuo: ver afinacion_correlaciones_queratometria.md 3.4."""
+    req = _make_request(
+        akr=AkrSnapshot(
+            od=AkrOjo(
+                k1_d=42.00,
+                k1_eje=45,
+                k2_d=45.00,
+                k2_eje=135,
+                k_cilindro=-3.00,
+                k_cilindro_eje=45,
+            )
+        )
+    )
+
+    assert "astig_oblicuo" not in _active_names(req)
+
+
+def test_astig_oblicuo_confirmado_por_queratometria():
+    req = _make_request(
+        refraccion=Refraccion(od=GraduacionOjo(cilindro=-2.50, eje=45)),
+        akr=AkrSnapshot(
+            od=AkrOjo(
+                k1_d=42.00,
+                k1_eje=45,
+                k2_d=45.00,
+                k2_eje=135,
+                k_cilindro=-3.00,
+                k_cilindro_eje=45,
+            )
+        ),
+    )
+
+    names = _active_names(req)
+    texts = corr.evaluar_correlaciones(req)
+
+    assert "astig_oblicuo" in names
+    assert any("astigmatismo elevado con eje oblicuo confirmado por queratometria" in text for text in texts)
+
+
+def test_cambio_cristalino_no_activa_si_queratometria_sugiere_irregularidad_corneal():
+    req = _make_request(
+        paciente=ContextoPaciente(edad=67),
+        refraccion=Refraccion(od=GraduacionOjo(esfera=+1.00)),
+        akr=AkrSnapshot(
+            od=AkrOjo(
+                esfera=-0.50,
+                k2_d=49.00,
+                k_cilindro=-2.00,
+            )
+        ),
+    )
+
+    names = _active_names(req)
+
+    assert "ar_rx_cambio_cristalino" not in names
+    assert "ar_rx_variabilidad_inespecifica" in names
 
 
 def test_adulto_mayor_screening_se_suprime_si_ya_hay_patologia_especifica():

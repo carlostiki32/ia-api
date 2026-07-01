@@ -173,7 +173,7 @@ El tipo raiz es `ImpresionClinicaRequest`.
 | `receta_id` | `str` | Identificador del caso. Se usa para logging seguro, no para el cache. Puede ser `"nueva"` cuando la receta aun no se guardo. |
 | `paciente` | `ContextoPaciente` | Edad (calculada en SaaS), ocupacion y motivo de consulta. |
 | `refraccion` | `Refraccion` | Refraccion final prescrita en OD y OI. |
-| `akr` | `AkrSnapshot` | Medicion del autorrefractometro en OD y OI. |
+| `akr` | `AkrSnapshot` | Medicion del autorrefractometro en OD y OI, metadata de la sesion (PD, VD, indice queratometrico) y, desde 2026-07, los valores de queratometria (K1, K2, K promedio, cilindro corneal) capturados en el mismo ticket. |
 | `clinica` | `DatosClinica` | Hallazgos de examen clinico. |
 | `tipo_lente` | `str \| None` | Diseno de lente prescrito. |
 
@@ -200,15 +200,39 @@ Se usa en `refraccion.od` y `refraccion.oi`.
 | `av_sc` | `str \| None` | Valores Snellen cerrados: `20/10`, `20/15`, `20/20`, `20/25`, `20/30`, `20/40`, `20/50`, `20/60`, `20/70`, `20/80`, `20/100`, `20/120`, `20/160`, `20/200`, `20/400`, `20/600` |
 | `av_cc` | `str \| None` | Mismos valores que `av_sc` |
 
+### AkrSnapshot — metadata de sesion
+
+Ademas de `od` y `oi`, el snapshot incluye metadata comun a la sesion de medicion:
+
+| Campo | Tipo | Restriccion real del SaaS |
+|---|---|---|
+| `ticket_id` | `int \| None` | Referencia al ticket de autorrefractometro/queratometro origen. `nullable\|integer\|exists:akr_tickets,id` |
+| `taken_at` | `str \| None` | Fecha/hora de la medicion. `nullable\|date` |
+| `pd` | `float \| None` | Distancia interpupilar. `nullable\|numeric`, sin rango declarado |
+| `vd` | `float \| None` | Distancia al vertice. `nullable\|numeric\|between:0,30` |
+| `ker_index` | `float \| None` | Indice queratometrico usado por el equipo para convertir mm↔D. `nullable\|numeric\|between:1.3,1.4` |
+
 ### AkrOjo
 
-Se usa en `akr.od` y `akr.oi`. Es un snapshot del autorrefractometro; **no** incluye `add`, `av_sc` ni `av_cc`, ni `pd` (el SaaS no lo envia).
+Se usa en `akr.od` y `akr.oi`. Es un snapshot del autorrefractometro; **no** incluye `add`, `av_sc` ni `av_cc`. `pd` existe pero a nivel de sesion (`akr.pd`), no por ojo.
 
-| Campo | Tipo |
-|---|---|
-| `esfera` | `float \| None` |
-| `cilindro` | `float \| None` |
-| `eje` | `int \| None` |
+Desde 2026-07 el SaaS captura tambien la prueba de queratometria en el mismo ticket AKR (dato nuevo, antes no se enviaba):
+
+| Campo | Tipo | Restriccion real del SaaS |
+|---|---|---|
+| `esfera` | `float \| None` | |
+| `cilindro` | `float \| None` | |
+| `eje` | `int \| None` | |
+| `k1_d` | `float \| None` | Meridiano plano (K1) en dioptrias. `nullable\|numeric` (SaaS no acota rango; Pydantic si: `25..80`) |
+| `k1_mm` | `float \| None` | K1 en radio de curvatura. `nullable\|numeric\|between:4,12` |
+| `k1_eje` | `int \| None` | Eje de K1. `nullable\|integer\|between:0,180` |
+| `k2_d` | `float \| None` | Meridiano curvo (K2) en dioptrias. `nullable\|numeric` (Pydantic acota `25..80`) |
+| `k2_mm` | `float \| None` | K2 en radio de curvatura. `nullable\|numeric\|between:4,12` |
+| `k2_eje` | `int \| None` | Eje de K2. `nullable\|integer\|between:0,180` |
+| `k_promedio_d` | `float \| None` | K promedio en dioptrias. `nullable\|numeric\|between:25,80` |
+| `k_promedio_mm` | `float \| None` | K promedio en radio de curvatura. `nullable\|numeric\|between:4,12` |
+| `k_cilindro` | `float \| None` | Cilindro corneal (K2 - K1 con signo). `nullable\|numeric` (Pydantic acota `-20..20`) |
+| `k_cilindro_eje` | `int \| None` | Eje del cilindro corneal. `nullable\|integer\|between:0,180` |
 
 ### DatosClinica
 
@@ -246,9 +270,10 @@ El ia-api nunca debe asumir ni procesar ninguno de estos:
 Al auditar ambos repositorios el `2026-04-23`, se confirmo lo siguiente:
 
 - El payload real que sale del SaaS **si** coincide en estructura con este documento.
-- `ia-api` sigue siendo mas permisiva que la receta en varios puntos: hoy Pydantic no restringe `tipo_lente` a enum cerrado, no limita `eje` a `0..180`, no valida el catalogo Snellen de `av_sc` / `av_cc` y no declara `extra="forbid"` en los modelos de entrada.
+- `ia-api` sigue siendo mas permisiva que la receta en varios puntos: hoy Pydantic no restringe `tipo_lente` a enum cerrado, no limita `eje` (de `refraccion`) a `0..180`, no valida el catalogo Snellen de `av_sc` / `av_cc` y no declara `extra="forbid"` en los modelos de entrada.
 - Eso significa que una llamada directa a `ia-api` podria mandar valores fuera del contrato real de la receta, aunque el SaaS no los emita normalmente.
 - Las pruebas y ejemplos de `ia-api` deben preferir siempre valores que la UI real del SaaS si puede producir. En particular, `cover_test` debe modelarse como `"OD: {tipo}[ y {sub}] | OI: {tipo}[ y {sub}]"`, no como strings sinteticos tipo `"ortoforia"` o `"exoforia en VP"`.
+- Para queratometria, `ia-api` es en cambio **mas estricta** que el SaaS: Pydantic acota `k1_d`/`k2_d`/`k_promedio_d` a `25..80` D y `k_cilindro` a `-20..20` D, rangos que `RecetaValidationRules` no impone explicitamente en `k1_d`/`k2_d`/`k_cilindro` (solo los valida como `numeric`). En la practica esto no deberia rechazar mediciones reales (fuera de ese rango no hay corneas humanas viables), pero si el SaaS llegara a aceptar una entrada manual fuera de rango, `ia-api` respondera `422` en vez de silenciarlo.
 
 ---
 
@@ -329,6 +354,12 @@ esfera + (cilindro or 0.0) / 2.0
 ```
 
 Se usa para anisometropia, miopia magna e hipermetropia alta.
+
+#### Helpers de queratometria
+
+Desde la integracion de datos de queratometria (`akr.od`/`akr.oi.k1_d`, `k2_d`, `k_promedio_d`, `k_cilindro`, `k_cilindro_eje`), el modulo agrega helpers para leer y clasificar esos valores: `_k_values`, `_has_keratometry`, `_k_max`, `_corneal_cyl_abs`, `_keratometry_axis`, `_keratometry_supports_astigmatism`, `_keratometry_axis_matches` y `_keratometry_suggests_corneal_irregularity` (curvatura corneal ≥ 47.20D como umbral de sospecha, ≥ 48.70D o cilindro corneal ≥ 4.00D como umbral de ectasia/irregularidad franca). Estos helpers ya alimentan varias correlaciones existentes (ver seccion 7) como dato adicional, no como disparador independiente.
+
+**Estado:** esta es una primera integracion. La revision clinica completa de que tan bien cada una de las 36 correlaciones deberia usar queratometria vive en [afinacion_correlaciones_queratometria.md](afinacion_correlaciones_queratometria.md) y su aplicacion definitiva en [AUDITORIA_CORRELACIONES.md](AUDITORIA_CORRELACIONES.md).
 
 ### Matching de texto libre
 
@@ -1211,16 +1242,19 @@ Posibles componentes:
 - `AV s/c`
 - `AV c/c`
 
-#### Correlacion AKR vs refraccion final
+#### Correlacion AKR/queratometria vs refraccion final
 
-Este bloque aparece si existe al menos un valor no nulo en `akr.od` o `akr.oi`.
+Este bloque aparece si existe al menos un valor no nulo en la metadata de `akr` (`ticket_id`, `pd`, `vd`, `ker_index`) o en `akr.od`/`akr.oi` (incluyendo los campos de queratometria).
 
-Para cada ojo, si hay datos, incluye:
+Orden por linea, si hay datos:
 
-- `AKR OD: ...`
-- `Rx final OD: ...`
-- `AKR OI: ...`
-- `Rx final OI: ...`
+- `AKR metadata: PD ..., VD ..., Indice queratometrico ...` (solo si alguno de esos tres esta presente)
+- `AKR OD: ...` / `Rx final OD: ...`
+- `Queratometria OD: K1 ..., K2 ..., K promedio ..., Cil corneal ...`
+- `AKR OI: ...` / `Rx final OI: ...`
+- `Queratometria OI: ...`
+
+A diferencia de `AKR OD/OI` y `Rx final OD/OI` (que solo aparecen juntos), la linea `Queratometria {OD|OI}` se agrega de forma independiente por ojo si ese ojo tiene algun valor de K.
 
 #### Hallazgos clinicos sueltos
 
@@ -1430,6 +1464,7 @@ La clave SHA-256 se construye con:
 Detalles importantes:
 
 - `receta_id` no afecta el cache;
+- como la clave usa `payload.model_dump(mode="json")` completo, cualquier campo nuevo del schema (incluyendo los de queratometria) participa automaticamente en la clave sin cambios en `cache.py`;
 - si cambia el modelo o el proveedor activo, cambia la clave (evita servir respuestas de Qwen como si fueran de DeepSeek);
 - si el caso tiene o no recomendacion, cambia la clave.
 

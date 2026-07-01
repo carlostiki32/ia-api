@@ -28,6 +28,16 @@ class AkrOjo(BaseModel):
     esfera: float | None = None
     cilindro: float | None = None
     eje: int | None = None
+    k1_d: float | None = Field(None, ge=25, le=80)
+    k1_mm: float | None = Field(None, ge=4, le=12)
+    k1_eje: int | None = Field(None, ge=0, le=180)
+    k2_d: float | None = Field(None, ge=25, le=80)
+    k2_mm: float | None = Field(None, ge=4, le=12)
+    k2_eje: int | None = Field(None, ge=0, le=180)
+    k_promedio_d: float | None = Field(None, ge=25, le=80)
+    k_promedio_mm: float | None = Field(None, ge=4, le=12)
+    k_cilindro: float | None = Field(None, ge=-20, le=20)
+    k_cilindro_eje: int | None = Field(None, ge=0, le=180)
 
 
 class Refraccion(BaseModel):
@@ -36,6 +46,11 @@ class Refraccion(BaseModel):
 
 
 class AkrSnapshot(BaseModel):
+    ticket_id: int | None = None
+    taken_at: str | None = None
+    pd: float | None = None
+    vd: float | None = Field(None, ge=0, le=30)
+    ker_index: float | None = Field(None, ge=1.3, le=1.4)
     od: AkrOjo = Field(default_factory=AkrOjo)
     oi: AkrOjo = Field(default_factory=AkrOjo)
 

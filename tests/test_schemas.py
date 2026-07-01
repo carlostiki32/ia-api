@@ -34,6 +34,36 @@ def test_graduacion_ojo_with_values():
 def test_akr_ojo_defaults():
     ojo = AkrOjo()
     assert ojo.esfera is None
+    assert ojo.k1_d is None
+
+
+def test_akr_ojo_accepts_keratometry_values():
+    ojo = AkrOjo(
+        esfera=-1.25,
+        cilindro=-0.75,
+        eje=180,
+        k1_d=41.25,
+        k1_mm=8.18,
+        k1_eje=180,
+        k2_d=43.75,
+        k2_mm=7.71,
+        k2_eje=90,
+        k_promedio_d=42.50,
+        k_promedio_mm=7.94,
+        k_cilindro=-2.50,
+        k_cilindro_eje=180,
+    )
+
+    assert ojo.k1_d == 41.25
+    assert ojo.k2_eje == 90
+    assert ojo.k_cilindro == -2.50
+
+
+def test_akr_ojo_rejects_out_of_range_keratometry():
+    with pytest.raises(ValidationError):
+        AkrOjo(k1_d=81)
+    with pytest.raises(ValidationError):
+        AkrOjo(k_cilindro_eje=181)
 
 
 def test_datos_clinica_uso_pantallas_valid():

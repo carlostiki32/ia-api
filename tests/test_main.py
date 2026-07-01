@@ -31,6 +31,21 @@ def test_has_clinical_data_accepts_zero_refraction_values():
     assert has_clinical_data(req) is True
 
 
+def test_has_clinical_data_accepts_akr_keratometry_values():
+    req = ImpresionClinicaRequest(
+        receta_id="test-ker",
+        akr={
+            "od": {
+                "k1_d": 41.25,
+                "k2_d": 43.75,
+                "k_cilindro": -2.50,
+            }
+        },
+    )
+
+    assert has_clinical_data(req) is True
+
+
 def test_has_clinical_data_rejects_context_without_clinical_fields():
     req = ImpresionClinicaRequest(
         receta_id="test-context-only",
@@ -74,7 +89,7 @@ def test_endpoint_returns_inference_result(monkeypatch):
     async def fake_run_inference(req, client):
         assert req.receta_id == "test-001"
         assert client is main.app.state.http_client
-        return "Texto generado."
+        return "Texto generado.", "ollama"
 
     monkeypatch.setattr(main, "run_inference", fake_run_inference)
 
@@ -89,6 +104,6 @@ def test_endpoint_returns_inference_result(monkeypatch):
     assert response.json() == {
         "status": "ok",
         "impresion_clinica": "Texto generado.",
+        "provider": "ollama",
     }
-
 

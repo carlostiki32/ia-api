@@ -90,6 +90,12 @@ _OJO_FIELDS = (
     ("av_cc",    lambda v: f"AV c/c {v}"),
 )
 
+_AKR_META_FIELDS = (
+    ("pd",        lambda v: f"PD {v:.2f} mm"),
+    ("vd",        lambda v: f"VD {v:.2f} mm"),
+    ("ker_index", lambda v: f"Indice queratometrico {v:.4f}"),
+)
+
 
 def _format_ojo(label: str, ojo) -> str:
     parts = [
@@ -102,25 +108,98 @@ def _format_ojo(label: str, ojo) -> str:
     return f"{label}: {', '.join(parts)}"
 
 
+def _format_k_pair(name: str, diopters: float | None, mm: float | None, axis: int | None) -> str:
+    parts = []
+    if diopters is not None:
+        parts.append(f"{diopters:.2f}D")
+    if mm is not None:
+        parts.append(f"{mm:.2f}mm")
+    value = "/".join(parts)
+    if axis is not None:
+        value = f"{value} @ {axis} grados" if value else f"@ {axis} grados"
+    if not value:
+        return ""
+    return f"{name} {value}"
+
+
+def _format_keratometry_eye(label: str, ojo) -> str:
+    parts = [
+        _format_k_pair("K1", ojo.k1_d, ojo.k1_mm, ojo.k1_eje),
+        _format_k_pair("K2", ojo.k2_d, ojo.k2_mm, ojo.k2_eje),
+        _format_k_pair("K promedio", ojo.k_promedio_d, ojo.k_promedio_mm, None),
+    ]
+    if ojo.k_cilindro is not None:
+        cyl = f"Cil corneal {ojo.k_cilindro:+.2f}D"
+        if ojo.k_cilindro_eje is not None:
+            cyl += f" x {ojo.k_cilindro_eje} grados"
+        parts.append(cyl)
+    parts = [part for part in parts if part]
+    if not parts:
+        return ""
+    return f"Queratometria {label}: {', '.join(parts)}"
+
+
+def _format_akr_metadata(req: ImpresionClinicaRequest) -> str:
+    parts = [
+        formatter(getattr(req.akr, attr))
+        for attr, formatter in _AKR_META_FIELDS
+        if getattr(req.akr, attr, None) is not None
+    ]
+    if not parts:
+        return ""
+    return "AKR metadata: " + ", ".join(parts)
+
+
 def _format_akr_comparison(req: ImpresionClinicaRequest) -> str:
     akr = req.akr
     all_null = all(
         value is None
-        for ojo in [akr.od, akr.oi]
-        for value in [ojo.esfera, ojo.cilindro, ojo.eje]
+        for value in [
+            akr.ticket_id,
+            akr.pd,
+            akr.vd,
+            akr.ker_index,
+            *[
+                getattr(ojo, attr)
+                for ojo in [akr.od, akr.oi]
+                for attr in (
+                    "esfera",
+                    "cilindro",
+                    "eje",
+                    "k1_d",
+                    "k1_mm",
+                    "k1_eje",
+                    "k2_d",
+                    "k2_mm",
+                    "k2_eje",
+                    "k_promedio_d",
+                    "k_promedio_mm",
+                    "k_cilindro",
+                    "k_cilindro_eje",
+                )
+            ],
+        ]
     )
     if all_null:
         return ""
 
     lines = []
+    metadata = _format_akr_metadata(req)
+    if metadata:
+        lines.append(metadata)
+
     for side, label in [("od", "OD"), ("oi", "OI")]:
         akr_eye = getattr(req.akr, side)
         ref_eye = getattr(req.refraccion, side)
         akr_text = _format_ojo(f"AKR {label}", akr_eye)
         ref_text = _format_ojo(f"Rx final {label}", ref_eye)
-        if akr_text and ref_text:
+        ker_text = _format_keratometry_eye(label, akr_eye)
+        if akr_text:
             lines.append(akr_text)
+        if ref_text:
             lines.append(ref_text)
+        if ker_text:
+            lines.append(ker_text)
 
     return "\n".join(lines)
 
@@ -152,8 +231,9 @@ def build_user_prompt(req: ImpresionClinicaRequest) -> str:
     akr_comparison = _format_akr_comparison(req)
     if akr_comparison:
         sections.append(
-            "Correlacion AKR vs refraccion final "
-            "(la diferencia indica el ajuste del examen subjetivo):\n"
+            "Correlacion AKR/queratometria vs refraccion final "
+            "(la diferencia indica el ajuste del examen subjetivo; la queratometria "
+            "describe curvatura y astigmatismo corneal):\n"
             f"{akr_comparison}"
         )
 

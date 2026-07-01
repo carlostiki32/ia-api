@@ -79,6 +79,38 @@ def test_akr_comparison_included():
     assert "ajuste del examen subjetivo" in prompt
 
 
+def test_akr_keratometry_included():
+    req = _make_request(
+        akr=AkrSnapshot(
+            pd=62.0,
+            vd=12.0,
+            ker_index=1.3375,
+            od=AkrOjo(
+                k1_d=41.25,
+                k1_mm=8.18,
+                k1_eje=180,
+                k2_d=43.75,
+                k2_mm=7.71,
+                k2_eje=90,
+                k_promedio_d=42.50,
+                k_promedio_mm=7.94,
+                k_cilindro=-2.50,
+                k_cilindro_eje=180,
+            ),
+        ),
+    )
+
+    prompt = build_user_prompt(req)
+
+    assert "Correlacion AKR/queratometria" in prompt
+    assert "PD 62.00 mm" in prompt
+    assert "VD 12.00 mm" in prompt
+    assert "Indice queratometrico 1.3375" in prompt
+    assert "Queratometria OD" in prompt
+    assert "K1 41.25D/8.18mm @ 180 grados" in prompt
+    assert "Cil corneal -2.50D x 180 grados" in prompt
+
+
 def test_clinical_fields_included():
     req = _make_request(
         clinica=DatosClinica(

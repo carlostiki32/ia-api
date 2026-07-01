@@ -21,4 +21,8 @@ def _has_any_value(value: object) -> bool:
 
 def has_clinical_data(req: ImpresionClinicaRequest) -> bool:
     """Check that at least some refraction or clinical data is present."""
-    return _has_any_value(req.refraccion) or _has_any_value(req.clinica)
+    return (
+        _has_any_value(req.refraccion)
+        or _has_any_value(req.akr)
+        or _has_any_value(req.clinica)
+    )

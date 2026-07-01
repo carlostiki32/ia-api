@@ -67,7 +67,6 @@ _KEYWORDS_BINOCULAR = (
     "diplopia", "vision doble",
     "cefalea", "dolor de cabeza",
     "astenopia", "fatiga visual", "vista cansada",
-    "mareo", "vertigo",
     "ardor con lectura", "lagrimeo con lectura",
     "perdida del renglon", "salto de letras",
     "vision borrosa intermitente",
@@ -77,11 +76,12 @@ _KEYWORDS_CERCANIA = (
 )
 _KEYWORDS_CVS = (
     "ardor ocular", "sequedad ocular",
-    "vision borrosa intermitente", "dolor ocular",
-    "ardor", "sequedad",
+    "vision borrosa intermitente", "vision borrosa", "dolor ocular",
+    "ardor", "sequedad", "cefalea", "picazon", "prurito", "lagrimeo",
 )
 _KEYWORDS_ANEXOS = {
     "blefaritis": "blefaritis",
+    "meibomitis": "disfuncion de glandulas de meibomio",
     "chalazion": "chalazion",
     "orzuelo": "orzuelo",
     "pterigion": "pterigion",
@@ -98,6 +98,8 @@ _KEYWORDS_ANEXOS = {
     "ectropion": "ectropion",
     "entropion": "entropion",
     "ptosis": "ptosis palpebral",
+    "dermatochalasis": "dermatochalasis",
+    "lagoftalmos": "lagoftalmos",
 }
 _KEYWORDS_OPACIDAD_CRISTALINO = (
     "catarata",
@@ -105,6 +107,7 @@ _KEYWORDS_OPACIDAD_CRISTALINO = (
     "opacidad cristaliniana",
     "opacidad del cristalino",
     "facoesclerosis",
+    "esclerosis nuclear",
     "pseudofaquia",
     "pseudofaco",
     "pseudofaquico",
@@ -131,7 +134,7 @@ _KEYWORDS_MOTILIDAD = (
 )
 _KEYWORDS_CAMPOS_POSITIVOS = (
     "escotoma", "defecto", "hemianopsia", "cuadrantopsia",
-    "constriccion", "alteracion", "no responde",
+    "constriccion", "restriccion", "campo reducido", "alteracion", "no responde",
 )
 _KEYWORDS_CAMPOS_NEGATIVOS = ("sin defect", "sin alteracion", "normal", "integro")
 _KEYWORDS_AMSLER_POSITIVOS = (
@@ -142,19 +145,19 @@ _KEYWORDS_AMSLER_NEGATIVOS = ("sin distorsion", "sin alteracion", "normal", "neg
 _KEYWORDS_VASCULARES_DIABETICOS = (
     "microaneurisma", "microaneurismas",
     "exudado",
-    "hemorragia retiniana", "hemorragia en llama", "hemorragia intraretin",
+    "hemorragia retiniana", "hemorragia intraretin",
     "hemorragia en mancha", "hemorragia puntiforme",
     "neovas", "rubeosis",
 )
 _KEYWORDS_FONDO_GLAUCOMATOSO = (
-    "c/d 0.6", "c/d 0.7", "c/d 0.8", "c/d 0.9",
-    "cup/disc 0.6", "cup/disc 0.7", "cup/disc 0.8", "cup/disc 0.9",
+    "c/d 0.5", "c/d 0.6", "c/d 0.7", "c/d 0.8", "c/d 0.9",
+    "cup/disc 0.5", "cup/disc 0.6", "cup/disc 0.7", "cup/disc 0.8", "cup/disc 0.9",
     "excavacion", "papila asimetrica", "asimetria c/d", "muesca", "notch",
     "hemorragia peripapilar", "rima neural adelgazada",
 )
 _KEYWORDS_FONDO_DMAE = (
     "drusas", "drusen", "alteracion pigmentaria", "alteracion del epr",
-    "atrofia geografica", "membrana neovascular", "mnvc", "cnv",
+    "atrofia geografica", "membrana neovascular", "mnvc", "cnv", "mev",
     "epiteliopatia", "dmae", "degeneracion macular",
 )
 _KEYWORDS_PAPILA_NO_GLAUCOMA = (
@@ -167,28 +170,40 @@ _KEYWORDS_PAPILA_NO_GLAUCOMA = (
 _KEYWORDS_FONDO_MACULAR_OTROS = (
     "edema macular", "membrana epirretiniana", "mer", "pucker",
     "agujero macular", "quiste macular", "coroidopatia serosa",
+    "corioretinopatia serosa", "crsc",
 )
 _KEYWORDS_FONDO_PERIFERICO = (
-    "desgarro", "agujero retiniano", "lattice", "degeneracion reticular",
+    "desgarro", "agujero retiniano", "agujero atrofico", "agujero operculado",
+    "lattice", "degeneracion reticular", "degeneracion en empalizada", "palizada",
     "blanco con presion", "desprendimiento", "schisis", "retinosquisis",
 )
 _KEYWORDS_FONDO_HIPERTENSIVO = (
     "tortuosidad vascular", "tortuosidad", "cruces arteriovenosos", "cruces av",
     "signo de gunn", "estrechamiento arterial", "hilos de cobre",
     "hilos de plata", "algodonoso", "cotton wool", "salus",
-    "ingurgitacion venosa",
+    "ingurgitacion venosa", "hemorragia en llama",
 )
 _KEYWORDS_DESVIACION_VERTICAL = ("hiperforia", "hipoforia", "hipertropia", "hipotropia")
 _KEYWORDS_FONDO_PERIFERICO_MAP = {
     "desgarro": "desgarro retiniano",
     "agujero retiniano": "agujero retiniano",
+    "agujero atrofico": "agujero atrofico",
+    "agujero operculado": "agujero operculado",
     "lattice": "degeneracion lattice",
     "degeneracion reticular": "degeneracion reticular",
+    "degeneracion en empalizada": "degeneracion lattice",
+    "palizada": "degeneracion lattice",
     "blanco con presion": "blanco con presion",
     "desprendimiento": "desprendimiento de retina",
     "schisis": "schisis periferica",
     "retinosquisis": "retinosquisis",
 }
+
+_K_SOSPECHOSA_D = 47.20
+_K_ECTASIA_D = 48.70
+_CIL_CORNEAL_RELEVANTE_D = 0.75
+_CIL_CORNEAL_MUY_ALTO_D = 4.00
+_DIF_EJE_RELEVANTE_GRADOS = 20
 
 
 _WHITESPACE_RE = re.compile(r"\s+")
@@ -340,6 +355,126 @@ def _equivalente_esferico(esf: float | None, cil: float | None) -> float | None:
     return esf + (cil or 0.0) / 2.0
 
 
+def _ojo_akr(req: ImpresionClinicaRequest, side: str):
+    akr = req.akr
+    if akr is None:
+        return None
+    return getattr(akr, side)
+
+
+def _k_values(ojo) -> list[float]:
+    if ojo is None:
+        return []
+    return [
+        value
+        for value in (ojo.k1_d, ojo.k2_d, ojo.k_promedio_d)
+        if value is not None
+    ]
+
+
+def _has_keratometry(ojo) -> bool:
+    if ojo is None:
+        return False
+    return bool(_k_values(ojo)) or ojo.k_cilindro is not None
+
+
+def _k_max(ojo) -> float | None:
+    values = _k_values(ojo)
+    return max(values) if values else None
+
+
+def _corneal_cyl_abs(ojo) -> float | None:
+    if ojo is None or ojo.k_cilindro is None:
+        return None
+    return abs(ojo.k_cilindro)
+
+
+def _axis_distance(a: int | None, b: int | None) -> int | None:
+    if a is None or b is None:
+        return None
+    diff = abs((a % 180) - (b % 180))
+    return min(diff, 180 - diff)
+
+
+def _keratometry_axis(ojo) -> int | None:
+    if ojo is None:
+        return None
+    return ojo.k_cilindro_eje if ojo.k_cilindro_eje is not None else ojo.k1_eje
+
+
+def _keratometry_supports_astigmatism(ojo, min_cyl: float = _CIL_CORNEAL_RELEVANTE_D) -> bool:
+    cyl = _corneal_cyl_abs(ojo)
+    return cyl is not None and cyl >= min_cyl
+
+
+def _keratometry_axis_matches(ojo, eje: int | None) -> bool:
+    distance = _axis_distance(_keratometry_axis(ojo), eje)
+    return distance is not None and distance <= _DIF_EJE_RELEVANTE_GRADOS
+
+
+def _keratometry_suggests_corneal_irregularity(ojo) -> bool:
+    if ojo is None:
+        return False
+    kmax = _k_max(ojo)
+    cyl = _corneal_cyl_abs(ojo)
+    if kmax is not None and kmax >= _K_ECTASIA_D:
+        return True
+    if kmax is not None and kmax >= _K_SOSPECHOSA_D and (cyl is None or cyl >= 1.50):
+        return True
+    return cyl is not None and cyl >= _CIL_CORNEAL_MUY_ALTO_D
+
+
+def _req_has_corneal_irregularity(req: ImpresionClinicaRequest) -> bool:
+    return any(
+        _keratometry_suggests_corneal_irregularity(_ojo_akr(req, side))
+        for side in ("od", "oi")
+    )
+
+
+_K_PLANA_D = 41.00
+
+
+def _flat_keratometry_parts(req: ImpresionClinicaRequest) -> list[str]:
+    parts = []
+    for label, side in [("OD", "od"), ("OI", "oi")]:
+        ojo = _ojo_akr(req, side)
+        if ojo is None or ojo.k_promedio_d is None or ojo.k_promedio_d >= _K_PLANA_D:
+            continue
+        parts.append(f"{label} (K promedio {ojo.k_promedio_d:.2f}D)")
+    return parts
+
+
+def _format_flat_keratometry(req: ImpresionClinicaRequest) -> str:
+    parts = _flat_keratometry_parts(req)
+    if not parts:
+        return ""
+    return _join_hallazgos(parts)
+
+
+def _corneal_irregularity_parts(req: ImpresionClinicaRequest) -> list[str]:
+    parts = []
+    for label, side in [("OD", "od"), ("OI", "oi")]:
+        ojo = _ojo_akr(req, side)
+        if not _keratometry_suggests_corneal_irregularity(ojo):
+            continue
+        details = []
+        kmax = _k_max(ojo)
+        cyl = _corneal_cyl_abs(ojo)
+        if kmax is not None:
+            details.append(f"Kmax {kmax:.2f}D")
+        if cyl is not None:
+            details.append(f"cilindro corneal {cyl:.2f}D")
+        parts.append(f"{label} ({', '.join(details)})")
+    return parts
+
+
+def _format_corneal_irregularity(req: ImpresionClinicaRequest) -> str:
+    parts = _corneal_irregularity_parts(req)
+    if not parts:
+        return ""
+    return _join_hallazgos(parts)
+
+
 def _format_eyes_with_values(values: list[tuple[str, float]], label: str) -> str:
     partes = [f"{ojo} ({label} {valor:+.2f}D)" for ojo, valor in values]
     return _join_hallazgos(partes)
@@ -364,7 +499,10 @@ def _texto_fondo_periferico_riesgo(req: ImpresionClinicaRequest) -> str:
         allow_negation_window=True,
     )
     hallazgo = _join_hallazgos(hallazgos) if hallazgos else "hallazgo periferico de riesgo"
-    return f"Hallazgo urgente: en la retina periferica se documenta {hallazgo}."
+    return (
+        f"Hallazgo urgente: en la retina periferica se documenta {hallazgo}, que amerita "
+        "valoracion retinologica urgente y posible tratamiento profilactico."
+    )
 
 
 @_memoize_cond
@@ -373,7 +511,10 @@ def _cond_glaucoma_asimetrico(req: ImpresionClinicaRequest) -> bool:
     if req.clinica is None:
         return False
     txt_pupilas = _normalize_text(req.clinica.reflejos_pupilares)
-    hay_dpar = any(k in txt_pupilas for k in ("dpar", "marcus gunn"))
+    hay_dpar = any(
+        _keyword_matches(txt_pupilas, k, allow_negation_window=True)
+        for k in ("dpar", "marcus gunn")
+    )
     if not hay_dpar:
         return False
     return _fondo_contains(req, _KEYWORDS_FONDO_GLAUCOMATOSO)
@@ -382,7 +523,7 @@ def _cond_glaucoma_asimetrico(req: ImpresionClinicaRequest) -> bool:
 _texto_glaucoma_asimetrico = (
     "Hallazgo urgente: se documenta excavacion papilar aumentada con defecto pupilar "
     "aferente relativo, lo que indica compromiso asimetrico del nervio optico con "
-    "repercusion funcional confirmada."
+    "probable repercusion funcional, ameritando valoracion oftalmologica priorizada."
 )
 
 
@@ -396,7 +537,8 @@ def _cond_fondo_glaucomatoso(req: ImpresionClinicaRequest) -> bool:
 
 _texto_fondo_glaucomatoso = (
     "Se documentan hallazgos papilares con excavacion aumentada y/o alteracion "
-    "del anillo neurorretiniano."
+    "del anillo neurorretiniano, ameritando valoracion oftalmologica con "
+    "tonometria y perimetria para descarte de glaucoma."
 )
 
 
@@ -414,11 +556,13 @@ def _texto_papila_patologica(req: ImpresionClinicaRequest) -> str:
     )
     if es_emergencia:
         return (
-            "Hallazgo urgente: se documenta alteracion del nervio optico con bordes "
-            "papilares difusos."
+            "Hallazgo urgente: los hallazgos del nervio optico documentados son compatibles "
+            "con edema de papila, lo que amerita evaluacion neurooftalmologica urgente para "
+            "descarte de hipertension intracraneal."
         )
     return (
-        "Se documenta alteracion del nervio optico no asociada a excavacion glaucomatosa."
+        "Se documenta alteracion del nervio optico no asociada a excavacion glaucomatosa, "
+        "ameritando valoracion neurooftalmologica para caracterizacion etiologica."
     )
 
 
@@ -429,7 +573,8 @@ def _cond_fondo_macular_dmae(req: ImpresionClinicaRequest) -> bool:
 
 
 _texto_fondo_macular_dmae = (
-    "Se documentan hallazgos maculares degenerativos en fondo de ojo."
+    "Se documentan hallazgos maculares degenerativos en fondo de ojo, ameritando "
+    "OCT macular para caracterizacion y monitorizacion."
 )
 
 
@@ -440,7 +585,8 @@ def _cond_fondo_macular_otros(req: ImpresionClinicaRequest) -> bool:
 
 
 _texto_fondo_macular_otros = (
-    "En la region macular se documenta alteracion estructural."
+    "En la region macular se documenta alteracion estructural que amerita OCT y "
+    "valoracion retinologica."
 )
 
 
@@ -452,19 +598,25 @@ def _cond_fondo_hipertensivo(req: ImpresionClinicaRequest) -> bool:
 
 _texto_fondo_hipertensivo = (
     "Se documentan hallazgos vasculares en fondo de ojo con alteraciones "
-    "arteriovenosas."
+    "arteriovenosas, ameritando correlacion con cifras tensionales sistemicas."
 )
 
 
 @_memoize_cond
 def _cond_fondo_vascular_diabetico(req: ImpresionClinicaRequest) -> bool:
-    """Caso clinico: microaneurismas o exudados activan correlacion vascular metabolica."""
+    """Caso clinico: microaneurismas o exudados activan correlacion vascular metabolica.
+
+    No se suprime contra `fondo_hipertensivo`: retinopatia diabetica e hipertensiva
+    coexisten con frecuencia clinica (comorbilidad DM2 + HTA) y usan hallazgos
+    vasculares distintos que ambos merecen mencionarse, a diferencia de las demas
+    correlaciones de fondo (glaucomatosa, macular, periferica) que describen procesos
+    anatomicamente distintos y donde la supresion evita solo redundancia narrativa.
+    """
     if any((
         _cond_fondo_periferico_riesgo(req),
         _cond_fondo_glaucomatoso(req),
         _cond_fondo_macular_dmae(req),
         _cond_fondo_macular_otros(req),
-        _cond_fondo_hipertensivo(req),
     )):
         return False
     return _fondo_contains(req, _KEYWORDS_VASCULARES_DIABETICOS)
@@ -472,36 +624,49 @@ def _cond_fondo_vascular_diabetico(req: ImpresionClinicaRequest) -> bool:
 
 _texto_fondo_vascular_diabetico = (
     "Se documentan hallazgos vasculares en fondo de ojo con presencia de "
-    "alteraciones microvasculares."
+    "alteraciones microvasculares, ameritando correlacion sistemica (control "
+    "glucemico) y valoracion retinologica."
 )
+
+
+_KEYWORDS_ANISOCORIA_BENIGNA = ("anisocoria fisiologica", "anisocoria benigna", "anisocoria simple")
+
+
+def _pupilas_hallazgos(clinica) -> list[str]:
+    """Extrae hallazgos pupilares, descartando anisocoria explicitamente calificada
+    de fisiologica/benigna/simple (hallazgo prevalente y benigno, ~15-30% de la
+    poblacion). La ventana de negacion estandar no cubre este caso porque el
+    calificador va DESPUES del sustantivo ("anisocoria fisiologica"), no antes."""
+    if clinica is None:
+        return []
+    hallazgos = _extract_normalized_findings(
+        clinica.reflejos_pupilares,
+        _KEYWORDS_PUPILAS,
+        allow_negation_window=True,
+    )
+    texto_norm = _normalize_text(clinica.reflejos_pupilares)
+    if "anisocoria" in hallazgos and any(k in texto_norm for k in _KEYWORDS_ANISOCORIA_BENIGNA):
+        hallazgos = [h for h in hallazgos if h != "anisocoria"]
+    return hallazgos
 
 
 def _cond_pupilas_alteradas(req: ImpresionClinicaRequest) -> bool:
     """Caso clinico: anisocoria o DPAR en reflejos pupilares ameritan alerta neurooftalmica."""
     if _cond_glaucoma_asimetrico(req):
         return False
-    clinica = req.clinica
-    if clinica is None:
-        return False
-    hallazgos = _extract_normalized_findings(
-        clinica.reflejos_pupilares,
-        _KEYWORDS_PUPILAS,
-        allow_negation_window=True,
-    )
-    return bool(hallazgos)
+    return bool(_pupilas_hallazgos(req.clinica))
 
 
 def _texto_pupilas_alteradas(req: ImpresionClinicaRequest) -> str:
-    hallazgos = _extract_normalized_findings(
-        req.clinica.reflejos_pupilares,
-        _KEYWORDS_PUPILAS,
-        allow_negation_window=True,
+    hallazgos = _pupilas_hallazgos(req.clinica)
+    texto = (
+        f"En la exploracion pupilar se documenta {_join_hallazgos(hallazgos)}, "
+        "lo que amerita valoracion neurooftalmologica."
     )
-    texto = f"En la exploracion pupilar se documenta {_join_hallazgos(hallazgos)}."
     if "defecto pupilar aferente relativo" in hallazgos:
         texto += (
-            " Hallazgo urgente: se identifica defecto pupilar aferente relativo, "
-            "indicador de asimetria funcional en la via optica aferente."
+            " Hallazgo urgente: la presencia de defecto pupilar aferente relativo es "
+            "indicativa de patologia de via optica y requiere evaluacion urgente."
         )
     return texto
 
@@ -519,7 +684,8 @@ def _cond_motilidad_alterada(req: ImpresionClinicaRequest) -> bool:
 
 
 _texto_motilidad_alterada = (
-    "Se documenta alteracion de la motilidad ocular."
+    "Se documenta alteracion de la motilidad ocular, lo que amerita estudio de vias "
+    "motoras y posible interconsulta neurooftalmologica."
 )
 
 
@@ -541,7 +707,8 @@ def _cond_campos_visuales_alterados(req: ImpresionClinicaRequest) -> bool:
 
 
 _texto_campos_visuales_alterados = (
-    "La confrontacion de campos visuales revela alteracion."
+    "La confrontacion de campos visuales revela alteracion que amerita perimetria "
+    "automatizada para caracterizacion del defecto."
 )
 
 
@@ -556,7 +723,8 @@ def _cond_opacidad_cristaliniana(req: ImpresionClinicaRequest) -> bool:
 
 
 _texto_opacidad_cristaliniana = (
-    "Se documenta alteracion del cristalino."
+    "Se documenta alteracion del cristalino, ameritando evaluacion biomicroscopica "
+    "para caracterizacion y estadificacion de la opacidad."
 )
 
 
@@ -581,9 +749,20 @@ def _texto_miopia_magna(req: ImpresionClinicaRequest) -> str:
             ojos.append((label, ee))
     muy_alta = any(ee <= -8.00 for _, ee in ojos)
     severidad = "muy alta" if muy_alta else "alta"
-    return (
-        f"Se documenta miopia de magnitud {severidad} en {_format_eyes_with_values(ojos, 'EE')}."
+    riesgo = "riesgo significativamente elevado" if muy_alta else "mayor riesgo"
+    texto = (
+        f"Se documenta miopia de magnitud {severidad} en {_format_eyes_with_values(ojos, 'EE')}, "
+        f"lo que conlleva {riesgo} de patologia retiniana periferica y macular."
     )
+    cornea = _format_corneal_irregularity(req)
+    if cornea:
+        texto += (
+            f" La queratometria muestra curvatura corneal pronunciada en {cornea}, lo que sugiere "
+            "un componente corneal (no exclusivamente axial) en la magnitud miopica, y amerita "
+            "estudio topografico antes de asumir el mismo riesgo de patologia retiniana periferica "
+            "asociado a la miopia axial pura."
+        )
+    return texto
 
 
 def _cond_hipermetropia_alta(req: ImpresionClinicaRequest) -> bool:
@@ -607,8 +786,22 @@ def _texto_hipermetropia_alta(req: ImpresionClinicaRequest) -> str:
     base = f"Se documenta hipermetropia alta en {_format_eyes_with_values(ojos, 'EE')}"
     edad = req.paciente.edad if req.paciente is not None else None
     if edad is None or edad >= 40:
-        return f"{base}."
-    return f"{base}, con demanda acomodativa significativa."
+        texto = (
+            f"{base}, lo que amerita evaluacion de la profundidad de camara anterior "
+            "ante el riesgo asociado de angulo camerular estrecho."
+        )
+    else:
+        texto = (
+            f"{base}, con demanda acomodativa significativa que amerita vigilancia de "
+            "esoforia o esotropia acomodativa."
+        )
+    cornea = _format_corneal_irregularity(req)
+    plana = _format_flat_keratometry(req)
+    if cornea:
+        texto += f" La queratometria documenta curvatura corneal pronunciada en {cornea}, hallazgo que no explica por si solo la hipermetropia alta pero si modifica la interpretacion del astigmatismo asociado."
+    elif plana:
+        texto += f" La queratometria muestra curvatura corneal plana en {plana}, compatible con un componente corneal (y no exclusivamente axial) de la hipermetropia."
+    return texto
 
 
 def _cond_anisometropia(req: ImpresionClinicaRequest) -> bool:
@@ -637,10 +830,24 @@ def _texto_anisometropia(req: ImpresionClinicaRequest) -> str:
         cierre = "con diferencia significativa entre ambos ojos"
     if ee_od * ee_oi < 0:
         cierre = "antimetropia con posible compromiso fusional"
-    return (
+    texto = (
         f"Existe anisometropia {severidad} por diferencia de equivalente esferico de {diff:.2f}D "
         f"entre OD ({ee_od:+.2f}) y OI ({ee_oi:+.2f}); {cierre}."
     )
+    od_akr = _ojo_akr(req, "od")
+    oi_akr = _ojo_akr(req, "oi")
+    if _has_keratometry(od_akr) and _has_keratometry(oi_akr):
+        od_k = od_akr.k_promedio_d
+        oi_k = oi_akr.k_promedio_d
+        if od_k is not None and oi_k is not None and abs(od_k - oi_k) >= 1.00:
+            texto += f" La queratometria agrega asimetria corneal interocular de {abs(od_k - oi_k):.2f}D en K promedio."
+        elif (
+            _corneal_cyl_abs(od_akr) is not None
+            and _corneal_cyl_abs(oi_akr) is not None
+            and abs(_corneal_cyl_abs(od_akr) - _corneal_cyl_abs(oi_akr)) >= 1.50
+        ):
+            texto += " La queratometria agrega asimetria interocular relevante del cilindro corneal."
+    return texto
 
 
 def _cond_av_cc_limitada(req: ImpresionClinicaRequest) -> bool:
@@ -652,10 +859,20 @@ def _cond_av_cc_limitada(req: ImpresionClinicaRequest) -> bool:
 
 def _texto_av_cc_limitada(req: ImpresionClinicaRequest) -> str:
     partes = []
-    for label, av in [("OD", req.refraccion.od.av_cc), ("OI", req.refraccion.oi.av_cc)]:
+    for label, side, av in [
+        ("OD", "od", req.refraccion.od.av_cc),
+        ("OI", "oi", req.refraccion.oi.av_cc),
+    ]:
         if not _av_es_limitada(av):
             continue
-        partes.append(f"{label} ({av}): {_av_categoria(av)}")
+        detalle = f"{label} ({av}): {_av_categoria(av)}"
+        ojo_akr = _ojo_akr(req, side)
+        if _keratometry_suggests_corneal_irregularity(ojo_akr):
+            detalle += (
+                ", con queratometria compatible con irregularidad de la superficie corneal, "
+                "lo que puede explicar la limitacion de la agudeza visual pese a la correccion"
+            )
+        partes.append(detalle)
     return "; ".join(partes) + "."
 
 
@@ -680,8 +897,9 @@ def _cond_ar_rx_espasmo_acomodativo(req: ImpresionClinicaRequest) -> bool:
 
 
 _texto_ar_rx_espasmo_acomodativo = (
-    "El autorrefractometro documenta mayor componente miopico que la refraccion "
-    "subjetiva final en un paciente joven con uso de pantallas."
+    "El autorrefractometro documenta mayor componente miopico que la refraccion subjetiva "
+    "final en un paciente joven con uso intensivo de pantallas, patron compatible con "
+    "espasmo acomodativo que amerita control posterior y eventual refraccion bajo cicloplejia."
 )
 
 
@@ -692,6 +910,8 @@ def _cond_ar_rx_cambio_cristalino(req: ImpresionClinicaRequest) -> bool:
         return False
     edad = req.paciente.edad
     if edad is None or edad < 55:
+        return False
+    if _req_has_corneal_irregularity(req):
         return False
     for ojo in ("od", "oi"):
         esf_ar = getattr(req.akr, ojo).esfera
@@ -705,7 +925,9 @@ def _cond_ar_rx_cambio_cristalino(req: ImpresionClinicaRequest) -> bool:
 
 _texto_ar_rx_cambio_cristalino = (
     "Se documenta discrepancia entre autorrefractometro y refraccion final en un "
-    "paciente mayor de 55 anos."
+    "paciente mayor de 55 anos, sin patron queratometrico que explique primariamente "
+    "la diferencia refractiva, lo que puede reflejar cambios en el indice refractivo "
+    "del cristalino y amerita evaluacion biomicroscopica del segmento anterior."
 )
 
 
@@ -727,9 +949,14 @@ def _cond_ar_rx_variabilidad_inespecifica(req: ImpresionClinicaRequest) -> bool:
     return False
 
 
-_texto_ar_rx_variabilidad_inespecifica = (
-    "Se documenta discrepancia entre autorrefractometro y refraccion final."
-)
+def _texto_ar_rx_variabilidad_inespecifica(req: ImpresionClinicaRequest) -> str:
+    cornea = _format_corneal_irregularity(req)
+    if cornea:
+        return (
+            "Se documenta discrepancia entre autorrefractometro y refraccion final "
+            f"con queratometria de curvatura corneal pronunciada en {cornea}."
+        )
+    return "Se documenta discrepancia entre autorrefractometro y refraccion final."
 
 
 def _cond_ar_detecta_astigmatismo_no_prescrito(req: ImpresionClinicaRequest) -> bool:
@@ -737,20 +964,47 @@ def _cond_ar_detecta_astigmatismo_no_prescrito(req: ImpresionClinicaRequest) -> 
     if req.refraccion is None or req.akr is None:
         return False
     for ojo in ("od", "oi"):
-        cil_ar = getattr(req.akr, ojo).cilindro
+        akr_eye = getattr(req.akr, ojo)
+        cil_ar = akr_eye.cilindro
         cil_rx = getattr(req.refraccion, ojo).cilindro
         if cil_ar is None or abs(cil_ar) < 0.75:
+            continue
+        if _has_keratometry(akr_eye) and not _keratometry_supports_astigmatism(akr_eye):
             continue
         if cil_rx is None or abs(cil_rx) < 0.50:
             return True
     return False
 
 
-_texto_ar_detecta_astigmatismo_no_prescrito = (
-    "El autorrefractometro detecta un componente astigmatico que no fue incluido en la "
-    "refraccion subjetiva final, lo que puede corresponder a astigmatismo subumbral "
-    "con tolerancia clinica adecuada o variabilidad de la medicion automatizada."
-)
+def _texto_ar_detecta_astigmatismo_no_prescrito(req: ImpresionClinicaRequest) -> str:
+    partes = []
+    for label, side in [("OD", "od"), ("OI", "oi")]:
+        akr_eye = getattr(req.akr, side)
+        rx_eye = getattr(req.refraccion, side)
+        cil_ar = akr_eye.cilindro
+        if cil_ar is None or abs(cil_ar) < 0.75:
+            continue
+        if rx_eye.cilindro is not None and abs(rx_eye.cilindro) >= 0.50:
+            continue
+        if _has_keratometry(akr_eye) and _keratometry_supports_astigmatism(akr_eye):
+            partes.append(
+                f"{label} (AKR {cil_ar:+.2f}D; cilindro corneal {_corneal_cyl_abs(akr_eye):.2f}D)"
+            )
+        elif not _has_keratometry(akr_eye):
+            partes.append(f"{label} (AKR {cil_ar:+.2f}D)")
+    sufijo = (
+        " lo que puede corresponder a astigmatismo subumbral con tolerancia clinica "
+        "adecuada o variabilidad de la medicion automatizada."
+    )
+    if partes:
+        return (
+            "El autorrefractometro detecta astigmatismo no incluido en la refraccion "
+            f"subjetiva final en {_join_hallazgos(partes)}.{sufijo}"
+        )
+    return (
+        "El autorrefractometro detecta un componente astigmatico que no fue incluido "
+        f"en la refraccion subjetiva final.{sufijo}"
+    )
 
 
 def _es_eje_oblicuo(eje: int) -> bool:
@@ -758,6 +1012,15 @@ def _es_eje_oblicuo(eje: int) -> bool:
 
 
 def _cond_astig_oblicuo(req: ImpresionClinicaRequest) -> bool:
+    """Astigmatismo oblicuo se define por el cilindro de la Rx final prescrita.
+
+    La queratometria (dato estatico corneal) solo se usa como CONFIRMACION de un
+    hallazgo ya disparado por la Rx, nunca como via de disparo independiente: un
+    cilindro corneal oblicuo sin correlato en la Rx final es competencia de
+    `ar_detecta_astigmatismo_no_prescrito` (si el AR tambien lo detecta) o no
+    amerita correlato (si ni el AR lo detecta), pero no es "astigmatismo oblicuo
+    prescrito" — ver afinacion_correlaciones_queratometria.md seccion 3.4.
+    """
     refraccion = req.refraccion
     if refraccion is None:
         return False
@@ -773,7 +1036,8 @@ def _cond_astig_oblicuo(req: ImpresionClinicaRequest) -> bool:
 
 def _texto_astig_oblicuo(req: ImpresionClinicaRequest) -> str:
     partes = []
-    for label, ojo in [("OD", req.refraccion.od), ("OI", req.refraccion.oi)]:
+    for label, side in [("OD", "od"), ("OI", "oi")]:
+        ojo = getattr(req.refraccion, side)
         cil = ojo.cilindro
         eje = ojo.eje
         if cil is None or eje is None or abs(cil) <= 2.00 or not _es_eje_oblicuo(eje):
@@ -785,6 +1049,12 @@ def _texto_astig_oblicuo(req: ImpresionClinicaRequest) -> str:
             descripcion = "astigmatismo alto con eje oblicuo"
         else:
             descripcion = "astigmatismo de magnitud muy alta con eje oblicuo"
+        akr_eye = _ojo_akr(req, side)
+        if (
+            _keratometry_supports_astigmatism(akr_eye, min_cyl=1.00)
+            and _keratometry_axis_matches(akr_eye, eje)
+        ):
+            descripcion += " confirmado por queratometria"
         partes.append(f"{label} ({cil:+.2f} x {eje}): {descripcion}")
     return "; ".join(partes) + "."
 
@@ -807,7 +1077,8 @@ def _cond_amsler_alterado(req: ImpresionClinicaRequest) -> bool:
 
 
 _texto_amsler_alterado = (
-    "El test de Amsler revela alteracion."
+    "El test de Amsler revela alteracion compatible con patologia macular funcional "
+    "que amerita OCT macular."
 )
 
 
@@ -851,10 +1122,7 @@ def _texto_ppc_exoforia(req: ImpresionClinicaRequest) -> str:
     ppc = clinica.ppc_cm if clinica is not None else None
     cover = _normalize_cover_text(clinica.cover_test if clinica is not None else None)
     if ppc is not None and ppc > 10:
-        if ppc > 15:
-            partes.append(f"punto proximo de convergencia marcadamente alejado ({ppc} cm)")
-        else:
-            partes.append(f"punto proximo de convergencia alejado ({ppc} cm)")
+        partes.append(f"punto proximo de convergencia alejado ({ppc} cm)")
     if "exoforia" in cover:
         if any(token in cover for token in ("vp", "cerca", "proxima")):
             partes.append("exoforia en vision proxima")
@@ -876,7 +1144,8 @@ def _cond_cover_exoforia_sintomatica(req: ImpresionClinicaRequest) -> bool:
 
 
 _texto_cover_exoforia_sintomatica = (
-    "Se documenta exoforia con sintomatologia binocular asociada."
+    "Se documenta exoforia con sintomatologia binocular asociada, compatible con "
+    "disfuncion binocular de tipo divergente que amerita evaluacion funcional."
 )
 
 
@@ -889,7 +1158,8 @@ def _cond_cover_endoforia_sintomatica(req: ImpresionClinicaRequest) -> bool:
 
 
 _texto_cover_endoforia_sintomatica = (
-    "Se documenta endoforia con sintomatologia binocular asociada."
+    "Se documenta endoforia con sintomatologia binocular asociada, compatible con "
+    "exceso de convergencia o disfuncion acomodativa que amerita evaluacion funcional."
 )
 
 
@@ -907,8 +1177,9 @@ def _cond_insuficiencia_convergencia(req: ImpresionClinicaRequest) -> bool:
 
 
 _texto_insuficiencia_convergencia = (
-    "Se documenta punto proximo de convergencia alejado con tendencia exoforica "
-    "y sintomatologia asociada a vision proxima."
+    "La combinacion de punto proximo de convergencia alejado, exoforia y sintomatologia de "
+    "vision proxima es compatible con insuficiencia de convergencia, ameritando evaluacion "
+    "binocular completa para confirmar el diagnostico y plantear terapia visual si procede."
 )
 
 
@@ -922,8 +1193,9 @@ def _cond_cvs_sospecha(req: ImpresionClinicaRequest) -> bool:
 
 
 _texto_cvs_sospecha = (
-    "El perfil de uso de pantallas se correlaciona con la sintomatologia "
-    "visual referida."
+    "El perfil de uso de pantallas se correlaciona con la sintomatologia visual "
+    "referida, compatible con sindrome visual informatico, ameritando recomendaciones "
+    "ergonomicas y eventual correccion optica para vision intermedia."
 )
 
 
@@ -936,7 +1208,9 @@ def _cond_endotropia_lente(req: ImpresionClinicaRequest) -> bool:
 
 
 _texto_endotropia_lente = (
-    "Se documenta endotropia en el cover test."
+    "Se documenta endotropia en el cover test, ameritando evaluacion de la respuesta "
+    "a la correccion optica prescrita, con cover test bajo correccion para clasificar "
+    "el tipo de desviacion."
 )
 
 
@@ -950,7 +1224,9 @@ def _cond_exotropia_lente(req: ImpresionClinicaRequest) -> bool:
 
 
 _texto_exotropia_lente = (
-    "Se documenta exotropia en el cover test."
+    "Se documenta exotropia en el cover test, ameritando evaluacion binocular completa "
+    "para determinar frecuencia y magnitud de la desviacion, asi como la respuesta a "
+    "la correccion optica prescrita."
 )
 
 
@@ -974,9 +1250,15 @@ def _texto_desviacion_vertical(req: ImpresionClinicaRequest) -> str:
         partes.append(", ".join(tropias))
     texto_hallazgo = " y ".join(partes) if partes else "desviacion vertical"
     if tropias:
-        cierre = "desviacion manifiesta vertical."
+        cierre = (
+            "que representa una desviacion manifiesta y amerita cuantificacion "
+            "prismatica inmediata con evaluacion binocular completa."
+        )
     else:
-        cierre = "desviacion vertical latente."
+        cierre = (
+            "que puede generar sintomatologia binocular especifica y amerita "
+            "cuantificacion prismatica para evaluar compensacion."
+        )
     return f"Se documenta {texto_hallazgo}, {cierre}"
 
 
@@ -991,7 +1273,10 @@ def _cond_but_critico(req: ImpresionClinicaRequest) -> bool:
 
 def _texto_but_critico(req: ImpresionClinicaRequest) -> str:
     but = req.clinica.ojo_seco_but_seg
-    return f"El tiempo de ruptura lagrimal de {but}s se encuentra significativamente reducido."
+    return (
+        f"El tiempo de ruptura lagrimal de {but}s es patologicamente bajo, compatible "
+        "con ojo seco clinico que amerita evaluacion."
+    )
 
 
 def _cond_but_pantallas(req: ImpresionClinicaRequest) -> bool:
@@ -1021,7 +1306,10 @@ def _cond_but_limitrofe(req: ImpresionClinicaRequest) -> bool:
 
 def _texto_but_limitrofe(req: ImpresionClinicaRequest) -> str:
     but = req.clinica.ojo_seco_but_seg
-    return f"El tiempo de ruptura lagrimal de {but}s se encuentra en rango suboptimo."
+    return (
+        f"El tiempo de ruptura lagrimal de {but}s se encuentra en rango suboptimo, "
+        "sugiriendo inestabilidad leve de la pelicula lagrimal."
+    )
 
 
 _MULTIFOCAL_TOKENS = ("bifocal", "progresivo", "multifocal")
@@ -1077,6 +1365,7 @@ def _cond_adulto_mayor_screening(req: ImpresionClinicaRequest) -> bool:
             _cond_fondo_hipertensivo,
             _cond_miopia_magna,
             _cond_papila_patologica,
+            _req_has_corneal_irregularity,
         )
     )
 
@@ -1084,8 +1373,9 @@ def _cond_adulto_mayor_screening(req: ImpresionClinicaRequest) -> bool:
 def _texto_adulto_mayor_screening(req: ImpresionClinicaRequest) -> str:
     edad = req.paciente.edad
     return (
-        f"Paciente de {edad} anos con reduccion de agudeza visual sin causa "
-        "identificada en el examen actual."
+        f"En paciente de {edad} anos con reduccion de agudeza visual sin causa "
+        "identificada en el examen actual, se recomienda descarte activo de catarata, "
+        "glaucoma y maculopatia asociada a la edad mediante exploracion dirigida."
     )
 
 

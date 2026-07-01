@@ -81,6 +81,10 @@ class _UnusedClient:
 
 
 def test_run_inference_rejects_oversized_prompt(monkeypatch):
+    # La validacion preemptiva de contexto es exclusiva del path Ollama; forzar
+    # web_inference=False para no depender del .env ambiente (que puede tener
+    # WEB_INFERENCE=true y enrutar a NVIDIA antes de llegar a esta validacion).
+    monkeypatch.setattr(settings, "web_inference", False)
     # Forzar un num_ctx minusculo para que cualquier prompt realista excede.
     monkeypatch.setattr(settings, "ollama_num_ctx", 256)
     monkeypatch.setattr(settings, "ollama_num_predict", 128)
