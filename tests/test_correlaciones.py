@@ -244,7 +244,8 @@ def test_desviacion_vertical_activa():
 
 def test_astig_oblicuo_no_activa_solo_por_queratometria():
     """La queratometria por si sola (sin cilindro refractivo oblicuo relevante) no
-    debe disparar astig_oblicuo: ver afinacion_correlaciones_queratometria.md 3.4."""
+    debe disparar astig_oblicuo: la queratometria solo confirma, nunca dispara
+    (ver CORRELACIONES_CLINICAS.md, seccion 5.4)."""
     req = _make_request(
         akr=AkrSnapshot(
             od=AkrOjo(
@@ -331,3 +332,26 @@ def test_but_critico_esta_antes_que_correlaciones_contextuales():
 
     assert names.index("but_critico") < names.index("presbicia_multifocal")
     assert names.index("but_critico") < names.index("but_pantallas")
+
+
+def test_registro_tiene_36_correlaciones_con_nombres_unicos():
+    """El paquete por dominio debe seguir registrando exactamente las 36
+    correlaciones, con nombres unicos. Blinda el ensamblado de registry.py tras
+    el split por dominios."""
+    names = [c.nombre for c in corr.CORRELACIONES]
+    assert len(names) == 36
+    assert len(set(names)) == 36
+
+
+def test_nombres_correlaciones_activas_coincide_con_evaluar():
+    """nombres_correlaciones_activas y evaluar_correlaciones deben activar el mismo
+    conjunto de correlaciones (misma logica de supresion, un solo origen)."""
+    req = _make_request(
+        clinica=DatosClinica(
+            fondo_de_ojo="Excavacion c/d 0.8 en OD.",
+            reflejos_pupilares="Marcus Gunn: positivo OD",
+        ),
+    )
+    nombres = corr.nombres_correlaciones_activas(req)
+    esperados = [c.nombre for c in corr.CORRELACIONES if c.condicion(req)]
+    assert nombres == esperados

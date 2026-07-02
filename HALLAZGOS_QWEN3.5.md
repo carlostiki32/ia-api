@@ -1,7 +1,7 @@
 # Hallazgos de auditoria - Cumplimiento con documentacion oficial de Qwen3.5-9B
 
 Fecha original: 2026-04-24
-Ultima actualizacion: 2026-04-24 (tras aplicar Fase 1, Fase 2 y Paso 2 de Fase 3)
+Ultima actualizacion: 2026-07-01 (Fase 3 completa: Paso 1 y Paso 2 aplicados)
 Modelo: `qwen3.5:9b` (Ollama, Q4_K_M, ~6.6 GB)
 Hardware: RTX 3070 Ti (8 GB VRAM)
 Backend: **Ollama** (decision firme, no se considera migracion)
@@ -15,8 +15,17 @@ Uso: impresion clinica optometrica single-turn, `think=False`
 |---|---|---|
 | Fase 1 — Fixes criticos | APLICADA | `num_ctx`, `num_predict`, warmup |
 | Fase 2 — Robustez | APLICADA | sanitizacion, system prompt, `_postprocess` |
-| Fase 3 — Alineacion avanzada | **Parcial** | Paso 2 aplicado; Paso 1 y Paso 3 pendientes |
-| Fase 4 — Documentacion | Pendiente | Actualizar `PIPELINE_LLM.md` |
+| Fase 3 — Alineacion avanzada | **APLICADA** | Paso 1 (Modelfile nothink) y Paso 2 (comentarios `config.py`) entregados |
+| Fase 4 — Documentacion | APLICADA | `PIPELINE_LLM.md` y `CORRELACIONES_CLINICAS.md` actualizados |
+
+- **Paso 1** entregado como artefacto en [`ops/`](ops/): `Modelfile.qwen3.5-9b-nothink`
+  (referencia estatica), `build_nothink_model.sh` (generador adaptativo recomendado)
+  y `README.md`. Aplicarlo en produccion es una accion de ops (`ollama create` +
+  `OLLAMA_MODEL=qwen3.5-9b-nothink` en `.env`); rollback trivial a `qwen3.5:9b`.
+- **Paso 2** aplicado: el comentario extendido sobre `presence_penalty` vs
+  `repeat_penalty` ya vive en [`app/config.py`](app/config.py).
+- El "Paso 3" que mencionaba una version previa de este documento no existia como
+  tarea concreta (remanente de un borrador); se elimina de la nomenclatura.
 
 Todos los hallazgos restantes son compatibles con permanecer en Ollama.
 
@@ -25,11 +34,11 @@ Todos los hallazgos restantes son compatibles con permanecer en Ollama.
 ## Tabla de contenidos
 
 1. [Metodologia y contexto](#1-metodologia-y-contexto)
-2. [Hallazgos pendientes](#2-hallazgos-pendientes)
+2. [Hallazgos de Fase 3 (aplicados)](#2-hallazgos-de-fase-3-aplicados)
    - 2.1 `think=False` + Modelfile custom para eliminar emisiones de `<think>`
-   - 2.2 Comentarios faltantes en `repeat_penalty` y `seed`
+   - 2.2 Comentarios en `repeat_penalty` y `seed`
 3. [Hallazgos NO APLICAN (revisados)](#3-hallazgos-no-aplican-revisados)
-4. [Plan de ejecucion de Fase 3 restante](#4-plan-de-ejecucion-de-fase-3-restante)
+4. [Registro de ejecucion de Fase 3](#4-registro-de-ejecucion-de-fase-3)
 5. [Fase 4 — Documentacion final](#5-fase-4--documentacion-final)
 
 ---
@@ -46,9 +55,17 @@ El backend es Ollama por decision firme del proyecto. Todos los fixes aqui se ad
 
 ---
 
-## 2. Hallazgos pendientes
+## 2. Hallazgos de Fase 3 (aplicados)
 
-### 2.1 `think=False` + Modelfile custom para eliminar emisiones de `<think>`
+> Ambos hallazgos de esta seccion ya fueron atendidos (ver "Estado de avance"). Se
+> conservan aqui como registro del razonamiento y del artefacto entregado.
+
+### 2.1 `think=False` + Modelfile custom para eliminar emisiones de `<think>`  — **APLICADO**
+
+**Estado:** entregado en [`ops/`](ops/) (`Modelfile.qwen3.5-9b-nothink`,
+`build_nothink_model.sh`, `README.md`). El `build_nothink_model.sh` es la via
+recomendada porque deriva la plantilla del tag instalado; el Modelfile estatico de
+abajo es la referencia/fallback.
 
 **Archivos:** [app/main.py](app/main.py), [app/inference.py](app/inference.py)
 
@@ -81,7 +98,7 @@ En la practica el modelo a veces sigue emitiendo `<think>...</think>`. El `_post
 
 **Fix propuesto (opcion A, recomendada — elimina la emision de raiz):**
 
-Crear `ops/Modelfile.qwen3-5-9b-nothink`:
+Crear `ops/Modelfile.qwen3.5-9b-nothink`:
 
 ```
 FROM qwen3.5:9b
@@ -106,7 +123,7 @@ PARAMETER stop "<|im_start|>"
 
 Build:
 ```bash
-ollama create qwen3.5-9b-nothink -f ops/Modelfile.qwen3-5-9b-nothink
+ollama create qwen3.5-9b-nothink -f ops/Modelfile.qwen3.5-9b-nothink
 ```
 
 Actualizar `.env`:
@@ -120,7 +137,10 @@ Aceptar que el `_postprocess` ya blinda los 3 casos. Costo: retries ocasionales 
 
 ---
 
-### 2.2 Comentarios faltantes en `repeat_penalty` y `seed`
+### 2.2 Comentarios en `repeat_penalty` y `seed` — **APLICADO**
+
+**Estado:** el comentario extendido que advierte no confundir `repeat_penalty` con
+`presence_penalty` ya vive en [app/config.py](app/config.py).
 
 **Archivo:** [app/config.py](app/config.py)
 
@@ -187,19 +207,19 @@ Items de la doc oficial que se revisaron y **no aplican** al sistema actual:
 
 ---
 
-## 4. Plan de ejecucion de Fase 3 restante
+## 4. Registro de ejecucion de Fase 3
 
-Quedan 2 pasos independientes. Se puede hacer cualquiera de los dos, ambos, o ninguno sin que afecte la estabilidad actual.
+Ambos pasos fueron aplicados el 2026-07-01. Se conserva el detalle como registro.
 
-### Paso 1 — Modelfile custom (hallazgo 2.1)
+### Paso 1 — Modelfile custom (hallazgo 2.1) — HECHO
 
 **Esfuerzo:** ~20 min.
 **Ganancia:** elimina emisiones intermitentes de `<think>` de raiz. Libera budget de `num_predict` y evita retries por truncamiento de razonamiento.
 
 **Acciones:**
 
-1. Crear `ops/Modelfile.qwen3-5-9b-nothink` con el template sin bloque `<think>` (contenido en seccion 2.1).
-2. Ejecutar `ollama create qwen3.5-9b-nothink -f ops/Modelfile.qwen3-5-9b-nothink`.
+1. Crear `ops/Modelfile.qwen3.5-9b-nothink` con el template sin bloque `<think>` (contenido en seccion 2.1).
+2. Ejecutar `ollama create qwen3.5-9b-nothink -f ops/Modelfile.qwen3.5-9b-nothink`.
 3. Verificar en `ollama list` que aparezca el nuevo tag.
 4. Actualizar `.env` y `.env.example`:
    ```
@@ -217,32 +237,25 @@ Quedan 2 pasos independientes. Se puede hacer cualquiera de los dos, ambos, o ni
 
 ---
 
-### Paso 2 — Comentarios de `repeat_penalty` y `seed` (hallazgo 2.2)
+### Paso 2 — Comentarios de `repeat_penalty` y `seed` (hallazgo 2.2) — HECHO
 
-**Esfuerzo:** ~5 min.
 **Ganancia:** previene que un proximo desarrollador "arregle" el `repeat_penalty` subiendolo a 1.5 por confundirlo con `presence_penalty`.
 
-**Acciones:**
-
-1. Actualizar los comentarios en [app/config.py](app/config.py) con el texto de 2.2.
-2. Opcional: agregar un aviso en la cabecera de `.env.example` indicando que `OLLAMA_REPEAT_PENALTY` y `OLLAMA_SEED` tienen rationale documentado en `config.py`.
-
-**Validacion:** ninguna (solo comentarios).
+**Aplicado:** el comentario extendido esta en [app/config.py](app/config.py) (nota
+sobre `presence_penalty=1.5` no expuesto por Ollama y prohibicion de mapearlo).
 
 ---
 
-## 5. Fase 4 — Documentacion final
+## 5. Fase 4 — Documentacion final (aplicada)
 
-Una vez aplicada la Fase 3 (completa o parcial):
-
-1. **Actualizar [PIPELINE_LLM.md](PIPELINE_LLM.md)**:
-   - Seccion 9 (Inferencia con Ollama): actualizar la tabla de parametros con los valores reales (`num_ctx=4096`, `num_predict=1024`).
-   - Mencionar la validacion preemptiva de contexto (HTTP 413 si el prompt estimado excede `num_ctx * 0.95`).
-   - Si se aplico Paso 1: cambiar la mencion del modelo a `qwen3.5-9b-nothink` y explicar por que.
-
-2. **Archivar esta guia**:
-   - Si los 2 pasos restantes se completaron: borrar `HALLAZGOS_QWEN3.5.md` (o moverlo a `docs/decisiones/HALLAZGOS_QWEN3.5_2026-04-24.md` como registro historico).
-   - Si solo se hicieron algunos: mantener el archivo con los restantes.
+- [PIPELINE_LLM.md](PIPELINE_LLM.md) actualizado: paquete `app/correlaciones/`,
+  endurecimiento de schema, `correlaciones_activadas` y `/health` con `concurrencia`;
+  el catalogo de correlaciones se centralizo en `CORRELACIONES_CLINICAS.md`.
+- La configuracion `num_ctx=4096` / `num_predict=1024` y la validacion preemptiva de
+  contexto (HTTP 413) ya estan documentadas en `PIPELINE_LLM.md` y en los comentarios
+  de `app/config.py`.
+- Este documento se mantiene como registro historico de la auditoria Qwen3.5 y del
+  rationale de sampling (single source para "por que estos parametros").
 
 ---
 

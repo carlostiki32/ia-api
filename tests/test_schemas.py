@@ -105,6 +105,41 @@ def test_datos_clinica_ppc_out_of_range():
         DatosClinica(ppc_cm=16)
 
 
+def test_graduacion_ojo_eje_rango_valido():
+    assert GraduacionOjo(eje=0).eje == 0
+    assert GraduacionOjo(eje=180).eje == 180
+
+
+def test_graduacion_ojo_eje_fuera_de_rango():
+    with pytest.raises(ValidationError):
+        GraduacionOjo(eje=181)
+    with pytest.raises(ValidationError):
+        GraduacionOjo(eje=-1)
+
+
+def test_graduacion_ojo_av_snellen_se_canoniza():
+    ojo = GraduacionOjo(av_sc=" 20 / 040 ", av_cc="20/20")
+    assert ojo.av_sc == "20/40"
+    assert ojo.av_cc == "20/20"
+
+
+def test_graduacion_ojo_av_no_snellen_se_conserva():
+    ojo = GraduacionOjo(av_cc="cuenta dedos a 1 m")
+    assert ojo.av_cc == "cuenta dedos a 1 m"
+
+
+def test_contexto_paciente_edad_fuera_de_rango():
+    with pytest.raises(ValidationError):
+        ContextoPaciente(edad=121)
+    with pytest.raises(ValidationError):
+        ContextoPaciente(edad=-1)
+
+
+def test_tipo_lente_normaliza_espacios():
+    req = ImpresionClinicaRequest(receta_id="t", tipo_lente="  lente   progresivo  ")
+    assert req.tipo_lente == "lente progresivo"
+
+
 def test_contexto_paciente_defaults():
     p = ContextoPaciente()
     assert p.edad is None

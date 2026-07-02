@@ -27,6 +27,11 @@ class Settings(BaseSettings):
                                         # clínica requiere repetición exacta
                                         # de términos (OD/OI, agudeza visual);
                                         # penalizarla genera circunloquios.
+                                        # NOTA: el preset non-thinking oficial de
+                                        # Qwen3.5 lista presence_penalty=1.5, que
+                                        # Ollama NO expone. NO mapear a
+                                        # repeat_penalty: son semánticas distintas
+                                        # (la doc del modelo lo prohíbe explícitamente).
     ollama_top_p: float = 0.8
     ollama_top_k: int = 20              # Qwen3.5 non-thinking mode requiere top_k=20
     ollama_min_p: float = 0.0           # Qwen3.5 non-thinking mode requiere min_p=0.0

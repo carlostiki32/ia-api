@@ -13,6 +13,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from app.cache import inference_cache
 from app.clinical_data import has_clinical_data
 from app.config import settings
+from app.correlaciones import nombres_correlaciones_activas
 from app.inference import CONTEXT_OVERFLOW_PREFIX, run_inference
 from app.schemas import ImpresionClinicaRequest
 
@@ -143,11 +144,21 @@ async def crear_impresion_clinica(
             "Al menos un campo de refraccion o clinica debe tener valor.",
         )
 
+    # Trazabilidad: los nombres de las correlaciones deterministas que aplican al
+    # caso se devuelven junto al texto. Es barato y deterministico, asi que se
+    # calcula tambien en cache hit para que la respuesta sea homogenea.
+    correlaciones = nombres_correlaciones_activas(req)
+
     cache_key = inference_cache.build_key(req)
     cached = inference_cache.get(req, key=cache_key)
     if cached is not None:
         logger.info("Cache hit [%s]", sid)
-        return {"status": "ok", "impresion_clinica": cached, "cached": True}
+        return {
+            "status": "ok",
+            "impresion_clinica": cached,
+            "cached": True,
+            "correlaciones_activadas": correlaciones,
+        }
 
     try:
         await _acquire_inference_slot(sid)
@@ -167,7 +178,12 @@ async def crear_impresion_clinica(
         elapsed = time.perf_counter() - start_time
         logger.info("Inference completed [%s] via %s in %.1fs", sid, provider, elapsed)
         inference_cache.put(req, result, key=cache_key)
-        return {"status": "ok", "impresion_clinica": result, "provider": provider}
+        return {
+            "status": "ok",
+            "impresion_clinica": result,
+            "provider": provider,
+            "correlaciones_activadas": correlaciones,
+        }
 
     except asyncio.TimeoutError:
         detail = (
@@ -252,4 +268,11 @@ async def health(client: Annotated[httpx.AsyncClient, Depends(get_http_client)])
         "model": settings.ollama_model,
         "model_available": model_available,
         "model_loaded": model_loaded,
+        # Con max_concurrent=1 la profundidad de cola es la senal operacional mas
+        # importante: indica cuantas peticiones esperan turno de GPU (0..max_queue_size).
+        "concurrencia": {
+            "max_concurrent": settings.max_concurrent,
+            "en_cola": _queue_waiting,
+            "max_en_cola": settings.max_queue_size,
+        },
     }

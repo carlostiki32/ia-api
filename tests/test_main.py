@@ -105,5 +105,40 @@ def test_endpoint_returns_inference_result(monkeypatch):
         "status": "ok",
         "impresion_clinica": "Texto generado.",
         "provider": "ollama",
+        "correlaciones_activadas": [],
     }
+
+
+def test_endpoint_reporta_correlaciones_activadas(monkeypatch):
+    monkeypatch.setattr(main.settings, "api_key", "secret-token")
+
+    async def fake_run_inference(req, client):
+        return "Texto generado.", "ollama"
+
+    monkeypatch.setattr(main, "run_inference", fake_run_inference)
+
+    with TestClient(main.app) as client:
+        response = client.post(
+            "/inferencia/impresion-clinica",
+            headers={"Authorization": "Bearer secret-token"},
+            json={
+                "receta_id": "test-corr",
+                "clinica": {"fondo_de_ojo": "Lattice temporal en OI."},
+            },
+        )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert "fondo_periferico_riesgo" in body["correlaciones_activadas"]
+
+
+def test_health_incluye_concurrencia():
+    with TestClient(main.app) as client:
+        response = client.get("/health")
+
+    assert response.status_code == 200
+    concurrencia = response.json()["concurrencia"]
+    assert concurrencia["max_concurrent"] == main.settings.max_concurrent
+    assert concurrencia["en_cola"] == 0
+    assert concurrencia["max_en_cola"] == main.settings.max_queue_size
 

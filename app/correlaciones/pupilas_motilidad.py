@@ -1,0 +1,93 @@
+"""Dominio: pupilas y motilidad ocular (2 correlaciones).
+
+pupilas_alteradas (anisocoria, DPAR, midriasis...) y motilidad_alterada
+(limitacion, nistagmo, paresia...). pupilas_alteradas se suprime cuando ya
+activa glaucoma_asimetrico (que integra el DPAR en su propio enunciado).
+"""
+from __future__ import annotations
+
+from app.correlaciones.fondo_de_ojo import _cond_glaucoma_asimetrico
+from app.correlaciones.texto import (
+    _contains_keyword,
+    _extract_normalized_findings,
+    _join_hallazgos,
+    _normalize_text,
+)
+from app.schemas import ImpresionClinicaRequest
+
+_KEYWORDS_PUPILAS = {
+    "anisocoria": "anisocoria",
+    "midriasis": "midriasis",
+    "miosis": "miosis",
+    "dpar": "defecto pupilar aferente relativo",
+    "marcus gunn": "defecto pupilar aferente relativo",
+    "no reactivo": "pupila no reactiva",
+    "no reactiva": "pupila no reactiva",
+    "irregular": "pupila irregular",
+    "discoria": "discoria",
+    "ausente": "respuesta pupilar ausente",
+}
+_KEYWORDS_ANISOCORIA_BENIGNA = ("anisocoria fisiologica", "anisocoria benigna", "anisocoria simple")
+_KEYWORDS_MOTILIDAD = (
+    "limitacion", "paresia", "paralisis", "restriccion", "nistagmo", "nistagmus",
+    "dolor con movimiento", "dolor al movimiento", "sobreacti", "hiperfuncion",
+    "hipoaccion", "hipofuncion", "sincinesia", "duane", "oftalmoplejia",
+    "oftalmoplegia",
+)
+
+
+def _pupilas_hallazgos(clinica) -> list[str]:
+    """Extrae hallazgos pupilares, descartando anisocoria explicitamente calificada
+    de fisiologica/benigna/simple (hallazgo prevalente y benigno, ~15-30% de la
+    poblacion). La ventana de negacion estandar no cubre este caso porque el
+    calificador va DESPUES del sustantivo ("anisocoria fisiologica"), no antes."""
+    if clinica is None:
+        return []
+    hallazgos = _extract_normalized_findings(
+        clinica.reflejos_pupilares,
+        _KEYWORDS_PUPILAS,
+        allow_negation_window=True,
+    )
+    texto_norm = _normalize_text(clinica.reflejos_pupilares)
+    if "anisocoria" in hallazgos and any(k in texto_norm for k in _KEYWORDS_ANISOCORIA_BENIGNA):
+        hallazgos = [h for h in hallazgos if h != "anisocoria"]
+    return hallazgos
+
+
+def _cond_pupilas_alteradas(req: ImpresionClinicaRequest) -> bool:
+    """Caso clinico: anisocoria o DPAR en reflejos pupilares ameritan alerta neurooftalmica."""
+    if _cond_glaucoma_asimetrico(req):
+        return False
+    return bool(_pupilas_hallazgos(req.clinica))
+
+
+def _texto_pupilas_alteradas(req: ImpresionClinicaRequest) -> str:
+    hallazgos = _pupilas_hallazgos(req.clinica)
+    texto = (
+        f"En la exploracion pupilar se documenta {_join_hallazgos(hallazgos)}, "
+        "lo que amerita valoracion neurooftalmologica."
+    )
+    if "defecto pupilar aferente relativo" in hallazgos:
+        texto += (
+            " Hallazgo urgente: la presencia de defecto pupilar aferente relativo es "
+            "indicativa de patologia de via optica y requiere evaluacion urgente."
+        )
+    return texto
+
+
+def _cond_motilidad_alterada(req: ImpresionClinicaRequest) -> bool:
+    """Caso clinico: limitacion, nistagmo o dolor al movimiento activan estudio motor."""
+    clinica = req.clinica
+    if clinica is None:
+        return False
+    return _contains_keyword(
+        clinica.motilidad_ocular,
+        _KEYWORDS_MOTILIDAD,
+        allow_negation_window=True,
+    )
+
+
+_texto_motilidad_alterada = (
+    "Se documenta alteracion de la motilidad ocular, lo que amerita estudio de vias "
+    "motoras y posible interconsulta neurooftalmologica."
+)
