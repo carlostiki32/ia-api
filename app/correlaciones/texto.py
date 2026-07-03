@@ -27,8 +27,25 @@ _NEGACIONES = (
 # Las correlaciones buscan keywords unidas (exoforia, endotropia, etc.);
 # esta regex reconoce los pares para expandirlos a la forma unida.
 _COVER_PAIR_RE = re.compile(r"\b(endo|exo|hiper|hipo)\s+y\s+(foria|tropia)\b")
+# Parser estructurado del formato canonico por ojo. El sub es OPCIONAL en la UI
+# (radios sin default): "OD: Endo | OI: Orto" es un estado real del formulario.
+_COVER_EYE_RE = re.compile(
+    r"\b(od|oi)\s*:\s*(orto|endo|exo|hiper|hipo)\b(?:\s+y\s+(foria|tropia))?"
+)
 
 _WHITESPACE_RE = re.compile(r"\s+")
+
+# Keywords que DEBEN coincidir como palabra completa. Son abreviaturas clinicas
+# cortas que, con el matching por substring por defecto, aparecen dentro de
+# palabras comunes ("mer" en "primero", "irma" en "afirma", "adie" en "nadie",
+# "iol" en "violeta") y dispararian falsos positivos. Solo se listan tokens que son
+# abreviaturas atomicas, nunca raices/prefijos intencionales (p. ej. "negativ",
+# "ausenc", "neovas").
+_WHOLE_WORD_KEYWORDS = frozenset({
+    "mer", "cnv", "mev", "mnvc", "crsc",
+    "isnt", "dmre", "cscr", "emq", "rdnp", "rdp", "irma",
+    "dgm", "iol", "rapd", "adie",
+})
 
 
 @functools.lru_cache(maxsize=512)
@@ -68,6 +85,28 @@ def _normalize_cover_text(value: str | None) -> str:
     return f"{text} {expanded}"
 
 
+@functools.lru_cache(maxsize=256)
+def _cover_desviaciones(value: str | None) -> frozenset[str]:
+    """Desviaciones del cover test segun el formato canonico del SaaS.
+
+    Devuelve tokens unidos ('exoforia', 'endotropia', 'hiperforia', ...) y,
+    cuando el optometrista dejo el sub sin clasificar (eligio Tipo pero no
+    Tropia/Foria), el tipo suelto ('exo', 'endo', 'hiper', 'hipo'). 'orto' no
+    genera token. Texto libre legacy que no siga el formato canonico no matchea
+    aqui: lo cubren las keywords sobre _normalize_cover_text.
+    """
+    text = _normalize_text(value)
+    if not text:
+        return frozenset()
+    tokens: set[str] = set()
+    for match in _COVER_EYE_RE.finditer(text):
+        tipo, sub = match.group(2), match.group(3)
+        if tipo == "orto":
+            continue
+        tokens.add(f"{tipo}{sub}" if sub else tipo)
+    return frozenset(tokens)
+
+
 def _dedupe(values: list[str]) -> list[str]:
     seen: set[str] = set()
     ordered: list[str] = []
@@ -87,8 +126,17 @@ def _join_hallazgos(values: list[str]) -> str:
     return ", ".join(values[:-1]) + f" y {values[-1]}"
 
 
+def _is_word_bounded(text: str, start: int, end: int) -> bool:
+    before = text[start - 1] if start > 0 else ""
+    after = text[end] if end < len(text) else ""
+    return not before.isalnum() and not after.isalnum()
+
+
 def _keyword_matches(text: str, keyword: str, *, allow_negation_window: bool) -> bool:
+    whole_word = keyword in _WHOLE_WORD_KEYWORDS
     for match in _compiled_keyword(keyword).finditer(text):
+        if whole_word and not _is_word_bounded(text, match.start(), match.end()):
+            continue
         if not allow_negation_window:
             return True
         sentence_start = max(text.rfind(sep, 0, match.start()) for sep in ".;!?") + 1

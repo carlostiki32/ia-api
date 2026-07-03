@@ -20,16 +20,38 @@ _KEYWORDS_PUPILAS = {
     "midriasis": "midriasis",
     "miosis": "miosis",
     "dpar": "defecto pupilar aferente relativo",
+    "rapd": "defecto pupilar aferente relativo",
+    "defecto pupilar aferente": "defecto pupilar aferente relativo",
     "marcus gunn": "defecto pupilar aferente relativo",
     "no reactivo": "pupila no reactiva",
     "no reactiva": "pupila no reactiva",
+    "arreactiva": "pupila no reactiva",
+    "pupila fija": "pupila no reactiva",
+    "hiporreactiva": "respuesta pupilar disminuida",
     "irregular": "pupila irregular",
     "discoria": "discoria",
+    "corectopia": "corectopia",
+    "pupila tonica": "pupila tonica",
+    "adie": "pupila tonica de adie",
     "ausente": "respuesta pupilar ausente",
 }
-_KEYWORDS_ANISOCORIA_BENIGNA = ("anisocoria fisiologica", "anisocoria benigna", "anisocoria simple")
+_KEYWORDS_ANISOCORIA_BENIGNA = (
+    "anisocoria fisiologica", "anisocoria benigna", "anisocoria simple",
+    "anisocoria esencial",
+)
+# Calificadores que indican midriasis/miosis inducida (no un hallazgo patologico):
+# examen bajo dilatacion o efecto de farmacos.
+_KEYWORDS_PUPILA_FARMACOLOGICA = (
+    "farmacologic", "post dilatacion", "post-dilatacion", "bajo dilatacion",
+    "midriatic", "dilatacion pupilar", "cicloplej", "tropicamida", "fenilefrina",
+    "pilocarpina",
+)
 _KEYWORDS_MOTILIDAD = (
-    "limitacion", "paresia", "paralisis", "restriccion", "nistagmo", "nistagmus",
+    "limitacion", "movimientos oculares limitados", "ducciones limitadas",
+    "versiones limitadas", "mirada limitada",
+    "paresia", "paretic", "paralisis", "paralitic", "oftalmoparesia",
+    "restriccion", "incomitancia", "incomitante",
+    "nistagmo", "nistagmus", "torticolis", "posicion compensadora",
     "dolor con movimiento", "dolor al movimiento", "sobreacti", "hiperfuncion",
     "hipoaccion", "hipofuncion", "sincinesia", "duane", "oftalmoplejia",
     "oftalmoplegia",
@@ -51,6 +73,9 @@ def _pupilas_hallazgos(clinica) -> list[str]:
     texto_norm = _normalize_text(clinica.reflejos_pupilares)
     if "anisocoria" in hallazgos and any(k in texto_norm for k in _KEYWORDS_ANISOCORIA_BENIGNA):
         hallazgos = [h for h in hallazgos if h != "anisocoria"]
+    # Midriasis/miosis inducida por farmacos o dilatacion no es un hallazgo clinico.
+    if any(k in texto_norm for k in _KEYWORDS_PUPILA_FARMACOLOGICA):
+        hallazgos = [h for h in hallazgos if h not in ("midriasis", "miosis")]
     return hallazgos
 
 

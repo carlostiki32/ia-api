@@ -63,23 +63,37 @@ def _texto_miopia_magna(req: ImpresionClinicaRequest) -> str:
     return texto
 
 
+# Hipermetropia alta: EE >= +5.00 D pero con un componente esferico genuinamente
+# hipermetropico (>= +3.00 D). El piso de esfera evita clasificar como "hipermetropia
+# alta" a un gran astigmata (p. ej. +1.00 esf +8.00 cil, EE +5.00) cuyo riesgo de
+# cierre angular/acomodativo lo determina la esfera, no el cilindro.
+_HIPERMETROPIA_EE_MIN = 5.00
+_HIPERMETROPIA_ESFERA_MIN = 3.00
+
+
+def _es_hipermetropia_alta(ojo) -> bool:
+    ee = _equivalente_esferico(ojo.esfera, ojo.cilindro)
+    return (
+        ee is not None
+        and ee >= _HIPERMETROPIA_EE_MIN
+        and ojo.esfera is not None
+        and ojo.esfera >= _HIPERMETROPIA_ESFERA_MIN
+    )
+
+
 def _cond_hipermetropia_alta(req: ImpresionClinicaRequest) -> bool:
-    """Caso clinico: equivalente esferico de +5.00D o mayor activa hipermetropia alta."""
+    """Caso clinico: equivalente esferico de +5.00D o mayor (con esfera >= +3.00D) activa hipermetropia alta."""
     refraccion = req.refraccion
     if refraccion is None:
         return False
-    for ojo in (refraccion.od, refraccion.oi):
-        ee = _equivalente_esferico(ojo.esfera, ojo.cilindro)
-        if ee is not None and ee >= 5.00:
-            return True
-    return False
+    return any(_es_hipermetropia_alta(ojo) for ojo in (refraccion.od, refraccion.oi))
 
 
 def _texto_hipermetropia_alta(req: ImpresionClinicaRequest) -> str:
     ojos = []
     for label, ojo in [("OD", req.refraccion.od), ("OI", req.refraccion.oi)]:
-        ee = _equivalente_esferico(ojo.esfera, ojo.cilindro)
-        if ee is not None and ee >= 5.00:
+        if _es_hipermetropia_alta(ojo):
+            ee = _equivalente_esferico(ojo.esfera, ojo.cilindro)
             ojos.append((label, ee))
     base = f"Se documenta hipermetropia alta en {_format_eyes_with_values(ojos, 'EE')}"
     edad = req.paciente.edad if req.paciente is not None else None
@@ -132,6 +146,16 @@ def _texto_anisometropia(req: ImpresionClinicaRequest) -> str:
         f"Existe anisometropia {severidad} por diferencia de equivalente esferico de {diff:.2f}D "
         f"entre OD ({ee_od:+.2f}) y OI ({ee_oi:+.2f}); {cierre}."
     )
+    # La anisometropia es factor de ambliopia solo dentro del periodo de
+    # maduracion visual (~hasta los 8-9 anos); en el adulto con anisometropia de
+    # larga data el impacto suele limitarse a la fusion/aniseiconia. Se modula el
+    # mensaje segun la edad cuando esta disponible.
+    edad = req.paciente.edad if req.paciente is not None else None
+    if edad is not None and edad <= 8:
+        texto += (
+            " En este grupo de edad la anisometropia es factor de riesgo de ambliopia, "
+            "por lo que amerita correccion optica temprana y control del desarrollo visual."
+        )
     od_akr = _ojo_akr(req, "od")
     oi_akr = _ojo_akr(req, "oi")
     if _has_keratometry(od_akr) and _has_keratometry(oi_akr):

@@ -20,58 +20,81 @@ from app.schemas import ImpresionClinicaRequest
 _KEYWORDS_VASCULARES_DIABETICOS = (
     "microaneurisma", "microaneurismas",
     "exudado",
-    "hemorragia retiniana", "hemorragia intraretin",
-    "hemorragia en mancha", "hemorragia puntiforme",
+    "hemorragia retiniana", "hemorragia intraretin", "hemorragia intrarretin",
+    "hemorragia en mancha", "hemorragia puntiforme", "hemorragia en punto",
     "neovas", "rubeosis",
+    "retinopatia diabetica", "rdnp", "rdp",
+    "arrosariamiento", "rosario venoso", "arrosariamiento venoso", "irma",
 )
 _KEYWORDS_FONDO_GLAUCOMATOSO = (
-    "c/d 0.5", "c/d 0.6", "c/d 0.7", "c/d 0.8", "c/d 0.9",
-    "cup/disc 0.5", "cup/disc 0.6", "cup/disc 0.7", "cup/disc 0.8", "cup/disc 0.9",
-    "excavacion", "papila asimetrica", "asimetria c/d", "muesca", "notch",
-    "hemorragia peripapilar", "rima neural adelgazada",
+    "c/d 0.6", "c/d 0.7", "c/d 0.8", "c/d 0.9",
+    "cup/disc 0.6", "cup/disc 0.7", "cup/disc 0.8", "cup/disc 0.9",
+    "e/p 0.6", "e/p 0.7", "e/p 0.8", "e/p 0.9",
+    "cd 0.6", "cd 0.7", "cd 0.8", "cd 0.9",
+    "excavacion", "excavada", "excavado", "papila asimetrica", "asimetria c/d",
+    "asimetria de la excavacion", "muesca", "escotadura", "notch",
+    "hemorragia peripapilar", "hemorragia en astilla",
+    "rima neural adelgazada", "anillo neurorretiniano adelgazado",
+    "adelgazamiento del anillo", "adelgazamiento neurorretiniano", "isnt",
 )
 _KEYWORDS_FONDO_DMAE = (
-    "drusas", "drusen", "alteracion pigmentaria", "alteracion del epr",
-    "atrofia geografica", "membrana neovascular", "mnvc", "cnv", "mev",
-    "epiteliopatia", "dmae", "degeneracion macular",
+    "drusas", "drusa", "drusen", "alteracion pigmentaria", "cambios pigmentarios",
+    "alteracion del epr", "atrofia del epr", "hiperplasia del epr",
+    "atrofia geografica", "membrana neovascular", "membrana neovascular coroidea",
+    "neovascularizacion coroidea", "mnvc", "cnv", "mev",
+    "epiteliopatia", "dmae", "dmre", "degeneracion macular",
+    "maculopatia relacionada con la edad", "maculopatia senil",
+)
+_KEYWORDS_PAPILA_EMERGENCIA = (
+    "papiledema", "edema de papila", "edema papilar", "edema del disco",
+    "papila edematosa", "disco edematoso",
+    "borramiento de bordes", "borramiento de los bordes",
+    "bordes borrosos", "bordes difuminados", "bordes mal definidos",
+    "margenes borrosos", "limites borrosos",
 )
 _KEYWORDS_PAPILA_NO_GLAUCOMA = (
-    "palidez papilar", "palidez de papila",
-    "atrofia optica", "atrofia papilar",
-    "edema de papila", "papiledema",
-    "neuritis optica",
-    "borramiento de bordes", "bordes borrosos",
-)
+    "palidez papilar", "palidez de papila", "papila palida", "disco palido",
+    "atrofia optica", "atrofia papilar", "atrofia del nervio optico",
+    "neuritis optica", "neuropatia optica",
+) + _KEYWORDS_PAPILA_EMERGENCIA
 _KEYWORDS_FONDO_MACULAR_OTROS = (
-    "edema macular", "membrana epirretiniana", "mer", "pucker",
-    "agujero macular", "quiste macular", "coroidopatia serosa",
-    "corioretinopatia serosa", "crsc",
-)
-_KEYWORDS_FONDO_PERIFERICO = (
-    "desgarro", "agujero retiniano", "agujero atrofico", "agujero operculado",
-    "lattice", "degeneracion reticular", "degeneracion en empalizada", "palizada",
-    "blanco con presion", "desprendimiento", "schisis", "retinosquisis",
+    "edema macular", "membrana epirretiniana", "membrana epiretiniana", "mer",
+    "gliosis macular", "gliosis premacular", "pucker",
+    "traccion vitreomacular", "agujero macular", "quiste macular",
+    "coroidopatia serosa", "corioretinopatia serosa", "coriorretinopatia serosa",
+    "crsc", "cscr", "emq",
 )
 _KEYWORDS_FONDO_HIPERTENSIVO = (
     "tortuosidad vascular", "tortuosidad", "cruces arteriovenosos", "cruces av",
-    "signo de gunn", "estrechamiento arterial", "hilos de cobre",
-    "hilos de plata", "algodonoso", "cotton wool", "salus",
-    "ingurgitacion venosa", "hemorragia en llama",
+    "cruce arteriovenoso", "cruce av", "signo de gunn", "signo de salus",
+    "signo de bonnet", "estrechamiento arterial", "estrechamiento arteriolar",
+    "adelgazamiento arteriolar", "relacion a/v disminuida",
+    "hilos de cobre", "hilos de plata", "alambre de cobre", "alambre de plata",
+    "algodonoso", "cotton wool", "salus",
+    "ingurgitacion venosa", "hemorragia en llama", "hemorragia en flama",
+    "retinopatia hipertensiva",
 )
 _KEYWORDS_FONDO_PERIFERICO_MAP = {
     "desgarro": "desgarro retiniano",
+    "rotura retiniana": "desgarro retiniano",
+    "ruptura retiniana": "desgarro retiniano",
+    "dialisis retiniana": "dialisis retiniana",
     "agujero retiniano": "agujero retiniano",
     "agujero atrofico": "agujero atrofico",
     "agujero operculado": "agujero operculado",
     "lattice": "degeneracion lattice",
     "degeneracion reticular": "degeneracion reticular",
     "degeneracion en empalizada": "degeneracion lattice",
+    "empalizada": "degeneracion lattice",
     "palizada": "degeneracion lattice",
+    "baba de caracol": "degeneracion en baba de caracol",
+    "huella de caracol": "degeneracion en baba de caracol",
     "blanco con presion": "blanco con presion",
     "desprendimiento": "desprendimiento de retina",
     "schisis": "schisis periferica",
     "retinosquisis": "retinosquisis",
 }
+_KEYWORDS_FONDO_PERIFERICO = tuple(_KEYWORDS_FONDO_PERIFERICO_MAP)
 
 
 @_memoize_cond
@@ -138,10 +161,7 @@ def _cond_papila_patologica(req: ImpresionClinicaRequest) -> bool:
 
 def _texto_papila_patologica(req: ImpresionClinicaRequest) -> str:
     fondo = _normalize_text(req.clinica.fondo_de_ojo if req.clinica is not None else None)
-    es_emergencia = any(
-        token in fondo
-        for token in ("papiledema", "edema de papila", "borramiento de bordes", "bordes borrosos")
-    )
+    es_emergencia = any(token in fondo for token in _KEYWORDS_PAPILA_EMERGENCIA)
     if es_emergencia:
         return (
             "Hallazgo urgente: los hallazgos del nervio optico documentados son compatibles "

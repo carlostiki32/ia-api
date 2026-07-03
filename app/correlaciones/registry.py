@@ -1,4 +1,4 @@
-"""Registro y evaluacion de las 36 correlaciones.
+"""Registro y evaluacion de las 41 correlaciones.
 
 El ORDEN de esta lista es un invariante clinico, no incidental: determina el orden
 en que los hechos llegan al prompt y, por tanto, la secuencia narrativa del
@@ -50,12 +50,24 @@ from app.correlaciones.campos_amsler import (
     _texto_campos_visuales_alterados,
 )
 from app.correlaciones.contexto import (
+    _cond_adicion_incongruente_edad,
     _cond_adulto_mayor_screening,
+    _cond_ambliopia_sospecha,
     _cond_cvs_sospecha,
     _cond_presbicia_multifocal,
+    _cond_presbicia_sin_adicion,
+    _texto_adicion_incongruente_edad,
     _texto_adulto_mayor_screening,
+    _texto_ambliopia_sospecha,
     _texto_cvs_sospecha,
     _texto_presbicia_multifocal,
+    _texto_presbicia_sin_adicion,
+)
+from app.correlaciones.corneal import (
+    _cond_astigmatismo_corneal_vs_refractivo,
+    _cond_queratocono_ectasia_sospecha,
+    _texto_astigmatismo_corneal_vs_refractivo,
+    _texto_queratocono_ectasia_sospecha,
 )
 from app.correlaciones.fondo_de_ojo import (
     _cond_fondo_glaucomatoso,
@@ -129,6 +141,8 @@ CORRELACIONES: list[Correlacion] = [
     Correlacion("ar_rx_variabilidad_inespecifica", _cond_ar_rx_variabilidad_inespecifica, _texto_ar_rx_variabilidad_inespecifica),
     Correlacion("ar_detecta_astigmatismo_no_prescrito", _cond_ar_detecta_astigmatismo_no_prescrito, _texto_ar_detecta_astigmatismo_no_prescrito),
     Correlacion("astig_oblicuo", _cond_astig_oblicuo, _texto_astig_oblicuo),
+    Correlacion("queratocono_ectasia_sospecha", _cond_queratocono_ectasia_sospecha, _texto_queratocono_ectasia_sospecha),
+    Correlacion("astigmatismo_corneal_vs_refractivo", _cond_astigmatismo_corneal_vs_refractivo, _texto_astigmatismo_corneal_vs_refractivo),
     Correlacion("amsler_alterado", _cond_amsler_alterado, _texto_amsler_alterado),
     Correlacion("anexos_patologicos", _cond_anexos_patologicos, _texto_anexos_patologicos),
     Correlacion("insuficiencia_convergencia", _cond_insuficiencia_convergencia, _texto_insuficiencia_convergencia),
@@ -142,12 +156,15 @@ CORRELACIONES: list[Correlacion] = [
     Correlacion("but_pantallas", _cond_but_pantallas, _texto_but_pantallas),
     Correlacion("but_limitrofe", _cond_but_limitrofe, _texto_but_limitrofe),
     Correlacion("presbicia_multifocal", _cond_presbicia_multifocal, _texto_presbicia_multifocal),
+    Correlacion("presbicia_sin_adicion", _cond_presbicia_sin_adicion, _texto_presbicia_sin_adicion),
+    Correlacion("adicion_incongruente_edad", _cond_adicion_incongruente_edad, _texto_adicion_incongruente_edad),
+    Correlacion("ambliopia_sospecha", _cond_ambliopia_sospecha, _texto_ambliopia_sospecha),
     Correlacion("adulto_mayor_screening", _cond_adulto_mayor_screening, _texto_adulto_mayor_screening),
 ]
 
 
 def _evaluar(req: ImpresionClinicaRequest) -> list[tuple[str, str]]:
-    """Evalua las 36 correlaciones dentro de un unico scope de memoizacion y
+    """Evalua las 41 correlaciones dentro de un unico scope de memoizacion y
     devuelve pares (nombre, texto) en el orden de registro de CORRELACIONES."""
     token = _eval_cache.set({})
     try:

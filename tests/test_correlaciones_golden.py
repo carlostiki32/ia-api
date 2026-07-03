@@ -224,6 +224,25 @@ GOLDEN: list[tuple[str, ImpresionClinicaRequest, str]] = [
         "OD (-2.50 x 45): astigmatismo elevado con eje oblicuo.",
     ),
     (
+        "queratocono_ectasia_sospecha",
+        _req(akr=AkrSnapshot(od=AkrOjo(k2_d=49.00, k_cilindro=-2.00))),
+        "La queratometria documenta curvatura corneal pronunciada o cilindro corneal elevado "
+        "en OD (Kmax 49.00D, cilindro corneal 2.00D), hallazgo compatible con irregularidad de "
+        "la superficie corneal o posible ectasia que amerita topografia/tomografia corneal para "
+        "descarte de queratocono.",
+    ),
+    (
+        "astigmatismo_corneal_vs_refractivo",
+        _req(
+            refraccion=Refraccion(od=GraduacionOjo(cilindro=-0.75, eje=90)),
+            akr=AkrSnapshot(od=AkrOjo(k_cilindro=-3.00, k_cilindro_eje=90)),
+        ),
+        "Se documenta discrepancia entre el astigmatismo corneal queratometrico y el cilindro "
+        "refractivo prescrito en OD (cilindro refractivo -0.75D vs cilindro corneal 3.00D), lo "
+        "que puede corresponder a un componente astigmatico lenticular o ameritar la revision de "
+        "la transposicion y el registro del cilindro en la refraccion final.",
+    ),
+    (
         "amsler_alterado",
         _req(clinica=DatosClinica(grid_de_amsler="Metamorfopsia central.")),
         "El test de Amsler revela alteracion compatible con patologia macular funcional "
@@ -315,6 +334,38 @@ GOLDEN: list[tuple[str, ImpresionClinicaRequest, str]] = [
         _req(paciente=ContextoPaciente(edad=48), refraccion=Refraccion(od=GraduacionOjo(add=2.00))),
         "El paciente de 48 anos presenta reduccion fisiologica de la amplitud acomodativa "
         "propia de la edad, lo que justifica la adicion prescrita.",
+    ),
+    (
+        "presbicia_sin_adicion",
+        _req(
+            paciente=ContextoPaciente(edad=50),
+            refraccion=Refraccion(od=GraduacionOjo(esfera=+0.50)),
+            tipo_lente="monofocal",
+        ),
+        "El paciente de 50 anos no presenta adicion prescrita pese a encontrarse en el rango de "
+        "edad con reduccion fisiologica de la amplitud acomodativa, por lo que conviene verificar "
+        "la necesidad de correccion para vision proxima.",
+    ),
+    (
+        "adicion_incongruente_edad",
+        _req(
+            paciente=ContextoPaciente(edad=46),
+            refraccion=Refraccion(od=GraduacionOjo(add=2.75)),
+        ),
+        "La adicion prescrita (+2.75D) supera el rango para la edad de 46 anos; conviene verificar "
+        "la distancia de trabajo y descartar una subcorreccion hipermetropica o una sobreestimacion "
+        "de la refraccion de lejos.",
+    ),
+    (
+        "ambliopia_sospecha",
+        _req(refraccion=Refraccion(
+            od=GraduacionOjo(esfera=-0.50, av_cc="20/20"),
+            oi=GraduacionOjo(esfera=-3.00, av_cc="20/60", av_sc="20/200"),
+        )),
+        "Se documenta agudeza visual con correccion limitada en OI (20/60), con agudeza visual sin "
+        "correccion de 20/200 en presencia de anisometropia significativa, patron compatible con "
+        "ambliopia; amerita verificar el antecedente de ambliopia y la fijacion, y descartar una "
+        "causa organica no evidente en el examen actual.",
     ),
     (
         "adulto_mayor_screening",

@@ -1,6 +1,3 @@
-import pytest
-from pydantic import ValidationError
-
 from app.schemas import (
     AkrOjo,
     AkrSnapshot,
@@ -59,11 +56,15 @@ def test_akr_ojo_accepts_keratometry_values():
     assert ojo.k_cilindro == -2.50
 
 
-def test_akr_ojo_rejects_out_of_range_keratometry():
-    with pytest.raises(ValidationError):
-        AkrOjo(k1_d=81)
-    with pytest.raises(ValidationError):
-        AkrOjo(k_cilindro_eje=181)
+def test_akr_ojo_descarta_keratometria_fuera_de_rango():
+    # Coercion tolerante: el endpoint recibe estado de formulario sin validar;
+    # un valor fisicamente imposible se descarta sin tumbar el request.
+    assert AkrOjo(k1_d=81).k1_d is None
+    assert AkrOjo(k1_d=24).k1_d is None
+    assert AkrOjo(k1_mm=13).k1_mm is None
+    assert AkrOjo(k_promedio_d=81).k_promedio_d is None
+    # El eje es ciclico: se normaliza modulo 180 en vez de descartarse.
+    assert AkrOjo(k_cilindro_eje=181).k_cilindro_eje == 1
 
 
 def test_datos_clinica_uso_pantallas_valid():
@@ -72,37 +73,34 @@ def test_datos_clinica_uso_pantallas_valid():
         assert c.uso_pantallas == val
 
 
-def test_datos_clinica_uso_pantallas_invalid():
-    with pytest.raises(ValidationError):
-        DatosClinica(uso_pantallas="invalid")
+def test_datos_clinica_uso_pantallas_invalid_se_descarta():
+    assert DatosClinica(uso_pantallas="invalid").uso_pantallas is None
 
 
 def test_datos_clinica_ojo_seco_range():
+    # Catalogo del SaaS: dropdown 1..15 segundos.
     c = DatosClinica(ojo_seco_but_seg=1)
     assert c.ojo_seco_but_seg == 1
     c = DatosClinica(ojo_seco_but_seg=15)
     assert c.ojo_seco_but_seg == 15
 
 
-def test_datos_clinica_ojo_seco_out_of_range():
-    with pytest.raises(ValidationError):
-        DatosClinica(ojo_seco_but_seg=0)
-    with pytest.raises(ValidationError):
-        DatosClinica(ojo_seco_but_seg=16)
+def test_datos_clinica_ojo_seco_out_of_range_se_descarta():
+    assert DatosClinica(ojo_seco_but_seg=0).ojo_seco_but_seg is None
+    assert DatosClinica(ojo_seco_but_seg=16).ojo_seco_but_seg is None
 
 
 def test_datos_clinica_ppc_range():
+    # Catalogo del SaaS: dropdown 1..15 cm.
     c = DatosClinica(ppc_cm=1)
     assert c.ppc_cm == 1
     c = DatosClinica(ppc_cm=15)
     assert c.ppc_cm == 15
 
 
-def test_datos_clinica_ppc_out_of_range():
-    with pytest.raises(ValidationError):
-        DatosClinica(ppc_cm=0)
-    with pytest.raises(ValidationError):
-        DatosClinica(ppc_cm=16)
+def test_datos_clinica_ppc_out_of_range_se_descarta():
+    assert DatosClinica(ppc_cm=0).ppc_cm is None
+    assert DatosClinica(ppc_cm=16).ppc_cm is None
 
 
 def test_graduacion_ojo_eje_rango_valido():
@@ -110,11 +108,53 @@ def test_graduacion_ojo_eje_rango_valido():
     assert GraduacionOjo(eje=180).eje == 180
 
 
-def test_graduacion_ojo_eje_fuera_de_rango():
-    with pytest.raises(ValidationError):
-        GraduacionOjo(eje=181)
-    with pytest.raises(ValidationError):
-        GraduacionOjo(eje=-1)
+def test_graduacion_ojo_eje_fuera_de_rango_se_normaliza_mod_180():
+    # El input de eje en el SaaS es un number libre sin validacion de rango;
+    # el eje es ciclico, asi que 181 == 1 y -1 == 179.
+    assert GraduacionOjo(eje=181).eje == 1
+    assert GraduacionOjo(eje=-1).eje == 179
+    assert GraduacionOjo(eje=270).eje == 90
+
+
+def test_graduacion_ojo_esfera_fuera_de_catalogo_se_descarta():
+    # Catalogo del SaaS: dropdown -20.00..+20.00 en pasos de 0.25.
+    assert GraduacionOjo(esfera=25.0).esfera is None
+    assert GraduacionOjo(esfera=-20.25).esfera is None
+    assert GraduacionOjo(esfera=20.0).esfera == 20.0
+
+
+def test_graduacion_ojo_cilindro_fuera_de_catalogo_se_descarta():
+    # Catalogo del SaaS: dropdown 0.00..-8.00 en pasos de 0.25.
+    assert GraduacionOjo(cilindro=-9.0).cilindro is None
+    assert GraduacionOjo(cilindro=-8.0).cilindro == -8.0
+
+
+def test_graduacion_ojo_rx_no_se_transpone():
+    # La Rx final NO se transpone: el dropdown del SaaS garantiza cilindro
+    # negativo, asi que en produccion nunca hay plus-cyl. Transponerla romperia
+    # el piso de esfera de hipermetropia_alta (CORRELACIONES_CLINICAS.md 5.2).
+    ojo = GraduacionOjo(esfera=1.0, cilindro=2.0, eje=90)
+    assert ojo.esfera == 1.0
+    assert ojo.cilindro == 2.0
+    assert ojo.eje == 90
+
+
+def test_akr_ojo_cilindro_positivo_se_transpone():
+    # El AKR (lectura de dispositivo) SI se transpone: su convencion la fija el
+    # autorrefractometro y puede ser plus-cyl. Alinearlo con la Rx (negativa)
+    # mantiene valida la comparacion esfera-a-esfera AR vs Rx.
+    ojo = AkrOjo(esfera=-1.0, cilindro=1.5, eje=10)
+    assert ojo.esfera == 0.5
+    assert ojo.cilindro == -1.5
+    assert ojo.eje == 100
+
+
+def test_graduacion_ojo_add_cero_o_negativa_se_descarta():
+    # add <= 0 significa "sin adicion": no debe contar como adicion prescrita
+    # (dispararia presbicia_multifocal / suprimiria presbicia_sin_adicion).
+    assert GraduacionOjo(add=0.0).add is None
+    assert GraduacionOjo(add=-1.0).add is None
+    assert GraduacionOjo(add=2.0).add == 2.0
 
 
 def test_graduacion_ojo_av_snellen_se_canoniza():
@@ -128,11 +168,9 @@ def test_graduacion_ojo_av_no_snellen_se_conserva():
     assert ojo.av_cc == "cuenta dedos a 1 m"
 
 
-def test_contexto_paciente_edad_fuera_de_rango():
-    with pytest.raises(ValidationError):
-        ContextoPaciente(edad=121)
-    with pytest.raises(ValidationError):
-        ContextoPaciente(edad=-1)
+def test_contexto_paciente_edad_fuera_de_rango_se_descarta():
+    assert ContextoPaciente(edad=121).edad is None
+    assert ContextoPaciente(edad=-1).edad is None
 
 
 def test_tipo_lente_normaliza_espacios():

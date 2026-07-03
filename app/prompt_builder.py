@@ -64,6 +64,16 @@ USO_PANTALLAS_MAP = {
     "gt6":    "mas de 6 horas diarias",
 }
 
+# Claves canonicas de tipo_lente del SaaS -> etiqueta clinica legible. Evita que
+# el modelo copie la clave cruda ("bifocal_blended") al parrafo. Claves fuera
+# del catalogo se pasan tal cual (texto libre legacy).
+TIPO_LENTE_MAP = {
+    "monofocal":       "monofocal",
+    "bifocal_blended": "bifocal blended (sin linea visible)",
+    "progresivo":      "progresivo",
+    "flat_top":        "bifocal flat-top (segmento visible)",
+}
+
 # (atributo, formateador) — orden preservado del prompt original.
 _CLINICA_FIELDS = [
     ("uso_pantallas",                 lambda v: f"Uso de pantallas: {USO_PANTALLAS_MAP[v]}"),
@@ -245,7 +255,8 @@ def build_user_prompt(req: ImpresionClinicaRequest) -> str:
             sections.append(formatter(value))
 
     if req.tipo_lente is not None:
-        sections.append(f"Diseno de lente prescrito: {req.tipo_lente}")
+        tipo_lente = TIPO_LENTE_MAP.get(req.tipo_lente.lower(), req.tipo_lente)
+        sections.append(f"Diseno de lente prescrito: {tipo_lente}")
 
     correlaciones_activas = evaluar_correlaciones(req)
     if correlaciones_activas:

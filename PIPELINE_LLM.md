@@ -164,7 +164,9 @@ Durante el `lifespan` de FastAPI se crea un `httpx.AsyncClient` y se hace un war
 
 El tipo raiz es `ImpresionClinicaRequest`.
 
-> **Fuente de verdad:** el SaaS (Laravel) es la unica fuente que construye el payload. Todos los tipos, rangos y enums aqui listados reflejan lo que el SaaS realmente puede enviar (validacion en `RecetaValidationRules` + construccion en `IaApiService::buildPayload`). El schema Pydantic de `ia-api` debe mantenerse alineado con este contrato y nunca asumir datos que el SaaS no genera.
+> **Fuente de verdad:** el SaaS (Laravel) es la unica fuente que construye el payload. Todos los tipos, rangos y enums aqui listados reflejan lo que el SaaS realmente puede enviar (catalogos en `OpticaOptions` + `RecetaFormOptions`, validacion en `RecetaValidationRules`, construccion en `IaApiService::buildPayload`). El mapeo campo-por-campo esta en [DICCIONARIO_DATOS_RECETA.md](DICCIONARIO_DATOS_RECETA.md).
+
+> **Politica de validacion: COERCION TOLERANTE (no rechazo).** El SaaS invoca este endpoint con el estado **crudo** del formulario, SIN pasar por `RecetaValidationRules` (el boton "Generar con IA" en `FormEditor::generateImpresionClinica` arma `toPayload()` y lo envia antes de guardar/validar). Por eso el schema **no** responde `422` ante un valor fuera de catalogo en un campo secundario: lo **descarta** (`None`) o lo **normaliza**, y lo registra en el log. Solo se responde `422` cuando no hay ningun dato clinico util (ver seccion 5). Esto evita que un eje de 190 o una K corrupta tumben toda la generacion.
 
 ### Campos de primer nivel
 
@@ -193,11 +195,11 @@ Se usa en `refraccion.od` y `refraccion.oi`.
 
 | Campo | Tipo | Restriccion real del SaaS |
 |---|---|---|
-| `esfera` | `float \| None` | Rango UI: `-20.00` a `+20.00` con paso `0.25` |
-| `cilindro` | `float \| None` | Rango UI: `-8.00` a `0.00` con paso `0.25` |
-| `eje` | `int \| None` | `0..180` — **el schema de la API lo valida** (`422` fuera de rango) |
-| `add` | `float \| None` | Libre |
-| `av_sc` | `str \| None` | Valores Snellen cerrados: `20/10`, `20/15`, `20/20`, `20/25`, `20/30`, `20/40`, `20/50`, `20/60`, `20/70`, `20/80`, `20/100`, `20/120`, `20/160`, `20/200`, `20/400`, `20/600`. El schema **canoniza** `20/xx` (colapsa espacios) |
+| `esfera` | `float \| None` | Dropdown `OpticaOptions::esfera`: `+20.00`..`-20.00` paso `0.25`. Fuera de `±20.00` → se descarta (`None`). Default `0.00`, sin opcion vacia (en `create` siempre llega valor) |
+| `cilindro` | `float \| None` | Dropdown `OpticaOptions::cilindro`: `0.00`..`-8.00` paso `0.25`, **siempre ≤ 0** (convencion negativa). Fuera de `\|8.00\|` → `None`. La Rx final **no** se transpone (el dropdown ya garantiza minus-cyl) |
+| `eje` | `int \| None` | Input libre; el SaaS **no** valida rango. El eje es ciclico: fuera de `0..180` se **normaliza modulo 180** (`225`→`45`), no se rechaza |
+| `add` | `float \| None` | Input libre. `add ≤ 0` (tecleado `0` o negativo) → `None`: "sin adicion" no cuenta como adicion prescrita |
+| `av_sc` | `str \| None` | Dropdown `OpticaOptions::av` (16 valores): `20/10`, `20/15`, `20/20`, `20/25`, `20/30`, `20/40`, `20/50`, `20/60`, `20/70`, `20/80`, `20/100`, `20/120`, `20/160`, `20/200`, `20/400`, `20/600`. El schema **canoniza** `20/xx` (colapsa espacios); notaciones legacy no-Snellen se conservan sin disparar |
 | `av_cc` | `str \| None` | Mismos valores que `av_sc` (tambien canonizados) |
 
 ### AkrSnapshot — metadata de sesion
@@ -209,12 +211,14 @@ Ademas de `od` y `oi`, el snapshot incluye metadata comun a la sesion de medicio
 | `ticket_id` | `int \| None` | Referencia al ticket de autorrefractometro/queratometro origen. `nullable\|integer\|exists:akr_tickets,id` |
 | `taken_at` | `str \| None` | Fecha/hora de la medicion. `nullable\|date` |
 | `pd` | `float \| None` | Distancia interpupilar. `nullable\|numeric`, sin rango declarado |
-| `vd` | `float \| None` | Distancia al vertice. `nullable\|numeric\|between:0,30` |
-| `ker_index` | `float \| None` | Indice queratometrico usado por el equipo para convertir mm↔D. `nullable\|numeric\|between:1.3,1.4` |
+| `vd` | `float \| None` | Distancia al vertice. `between:0,30`; fuera de rango → `None` |
+| `ker_index` | `float \| None` | Indice queratometrico usado por el equipo para convertir mm↔D. `between:1.3,1.4`; fuera de rango → `None` |
 
 ### AkrOjo
 
 Se usa en `akr.od` y `akr.oi`. Es un snapshot del autorrefractometro; **no** incluye `add`, `av_sc` ni `av_cc`. `pd` existe pero a nivel de sesion (`akr.pd`), no por ojo.
+
+> **Transposicion del AKR (solo AKR, no la Rx).** La convencion de cilindro del AKR la fija el **dispositivo** y puede ser plus-cyl. Si `akr.od/oi.cilindro > 0`, el schema transpone la lectura a convencion negativa (`esf' = esf + cil`, `cil' = -cil`, `eje' = (eje+90) % 180`) para que la comparacion esfera-a-esfera AR vs Rx (`ar_rx_espasmo/cambio/variabilidad`) quede en la misma convencion que la Rx final. La **Rx final NO se transpone**: su dropdown ya garantiza minus-cyl y transponerla alteraria el piso de esfera de `hipermetropia_alta`.
 
 Desde 2026-07 el SaaS captura tambien la prueba de queratometria en el mismo ticket AKR (dato nuevo, antes no se enviaba):
 
@@ -223,16 +227,16 @@ Desde 2026-07 el SaaS captura tambien la prueba de queratometria en el mismo tic
 | `esfera` | `float \| None` | |
 | `cilindro` | `float \| None` | |
 | `eje` | `int \| None` | |
-| `k1_d` | `float \| None` | Meridiano plano (K1) en dioptrias. `nullable\|numeric` (SaaS no acota rango; Pydantic si: `25..80`) |
-| `k1_mm` | `float \| None` | K1 en radio de curvatura. `nullable\|numeric\|between:4,12` |
-| `k1_eje` | `int \| None` | Eje de K1. `nullable\|integer\|between:0,180` |
-| `k2_d` | `float \| None` | Meridiano curvo (K2) en dioptrias. `nullable\|numeric` (Pydantic acota `25..80`) |
-| `k2_mm` | `float \| None` | K2 en radio de curvatura. `nullable\|numeric\|between:4,12` |
-| `k2_eje` | `int \| None` | Eje de K2. `nullable\|integer\|between:0,180` |
-| `k_promedio_d` | `float \| None` | K promedio en dioptrias. `nullable\|numeric\|between:25,80` |
-| `k_promedio_mm` | `float \| None` | K promedio en radio de curvatura. `nullable\|numeric\|between:4,12` |
-| `k_cilindro` | `float \| None` | Cilindro corneal (K2 - K1 con signo). `nullable\|numeric` (Pydantic acota `-20..20`) |
-| `k_cilindro_eje` | `int \| None` | Eje del cilindro corneal. `nullable\|integer\|between:0,180` |
+| `k1_d` | `float \| None` | Meridiano plano (K1) en dioptrias. Fisico `25..80`; fuera → `None` |
+| `k1_mm` | `float \| None` | K1 en radio de curvatura. `4..12`; fuera → `None` |
+| `k1_eje` | `int \| None` | Eje de K1. Ciclico: normalizado modulo 180 |
+| `k2_d` | `float \| None` | Meridiano curvo (K2) en dioptrias. `25..80`; fuera → `None` |
+| `k2_mm` | `float \| None` | K2 en radio de curvatura. `4..12`; fuera → `None` |
+| `k2_eje` | `int \| None` | Eje de K2. Ciclico: normalizado modulo 180 |
+| `k_promedio_d` | `float \| None` | K promedio en dioptrias. `25..80`; fuera → `None` |
+| `k_promedio_mm` | `float \| None` | K promedio en radio de curvatura. `4..12`; fuera → `None` |
+| `k_cilindro` | `float \| None` | Cilindro corneal (K2 - K1 con signo). `-20..20`; fuera → `None` |
+| `k_cilindro_eje` | `int \| None` | Eje del cilindro corneal. Ciclico: normalizado modulo 180 |
 
 ### DatosClinica
 
@@ -245,9 +249,9 @@ Desde 2026-07 el SaaS captura tambien la prueba de queratometria en el mismo tic
 | `confrontacion_campos_visuales` | `str \| None` | Texto libre `max:255` |
 | `fondo_de_ojo` | `str \| None` | Texto libre `max:255` |
 | `grid_de_amsler` | `str \| None` | Texto libre `max:255` |
-| `ojo_seco_but_seg` | `int \| None` | `1..15` (unsignedTinyInteger en DB del SaaS) |
-| `cover_test` | `str \| None` | `max:255`. **La UI compone siempre** `"OD: {tipo_od}[ y {sub_od}] \| OI: {tipo_oi}[ y {sub_oi}]"`. `tipo ∈ {Orto, Endo, Exo, Hiper, Hipo}`, `sub ∈ {Tropia, Foria}`. Ejemplos reales: `"OD: Orto \| OI: Exo y Foria"`, `"OD: Endo y Tropia \| OI: Orto"`. **No** se envian cadenas como `"exoforia"` unidas. |
-| `ppc_cm` | `int \| None` | `1..15` (unsignedTinyInteger en DB del SaaS) |
+| `ojo_seco_but_seg` | `int \| None` | Dropdown `1..15` (segundos). Fuera → `None` |
+| `cover_test` | `str \| None` | `max:255`. **La UI compone siempre** `"OD: {tipo_od}[ y {sub_od}] \| OI: {tipo_oi}[ y {sub_oi}]"`. `tipo ∈ {Orto, Endo, Exo, Hiper, Hipo}` (radio, default `Orto`); `sub ∈ {Tropia, Foria}` (radio **SIN default, opcional**). Ejemplos reales: `"OD: Orto \| OI: Exo y Foria"`, `"OD: Endo y Tropia \| OI: Orto"`, y **tipo sin sub**: `"OD: Exo \| OI: Orto"`. La capa de correlaciones parsea el formato canonico y dispara tambien con el tipo sin clasificar (ver seccion 6). **No** se envian cadenas como `"exoforia"` unidas. |
+| `ppc_cm` | `int \| None` | Dropdown `1..15` (cm). Fuera → `None` |
 | `recomendacion_seguimiento` | `str \| None` | Texto libre (TEXT en DB, sin limite duro) |
 
 ### Normalizaciones Pydantic relevantes
@@ -265,28 +269,40 @@ El ia-api nunca debe asumir ni procesar ninguno de estos:
 - Lente: `material`, `tratamientos`, `armazon_marca`, `armazon_modelo`, `armazon_color`.
 - Clinica: `impresion_clinica_plan` (ese es precisamente la salida de esta API, nunca entrada).
 
-### Endurecimiento del contrato (estado actual)
+### Alineacion del schema con el catalogo del SaaS (estado actual)
 
-El schema ([`app/schemas.py`](/c:/dev/ia-api/app/schemas.py)) se alineo con las
-constantes estrictas del frontend:
+El schema ([`app/schemas.py`](app/schemas.py)) refleja el catalogo real del frontend
+con **coercion tolerante**: un valor fuera de catalogo en un campo secundario se
+descarta o normaliza (con warning en log), nunca tumba la generacion con `422`.
 
-- `refraccion.od/oi.eje` ahora se valida a `0..180` (paridad con los ejes de AKR).
-- `paciente.edad` se valida a `0..120`.
-- `av_sc` / `av_cc` se **canonizan**: `" 20 / 40 "` → `"20/40"`. Las notaciones
-  no-Snellen (p. ej. "cuenta dedos") se conservan sin rechazar, porque el catalogo
-  real del frontend puede incluirlas y la capa de correlaciones las ignora sin error.
-- `tipo_lente` se normaliza (espacio en blanco) pero **no** se cierra a enum: el
-  catalogo de disenos lo define el frontend y puede crecer sin coordinacion con la
-  API; cerrarlo romperia compatibilidad hacia adelante. La deteccion multifocal se
-  hace por substring.
-- No se declara `extra="forbid"`: se prefiere tolerar campos adicionales para no
-  romper ante despliegues desincronizados entre SaaS y API.
+- `refraccion.od/oi.eje` y todos los ejes de AKR (`eje`, `k1_eje`, `k2_eje`,
+  `k_cilindro_eje`): el eje es **ciclico**; fuera de `0..180` se normaliza modulo 180
+  (`225`→`45`). El input del SaaS no valida rango, asi que normalizar (no rechazar) es
+  lo correcto para disparar `astig_oblicuo` con el eje real.
+- `paciente.edad`: `0..120`; fuera → `None` (comportamiento conservador de las reglas
+  que dependen de la edad).
+- `esfera` (`±20.00`), `cilindro` (`\|8.00\|`), `ojo_seco_but_seg`/`ppc_cm` (`1..15`),
+  `vd` (`0..30`), `ker_index` (`1.3..1.4`), K en dioptrias (`25..80`) y en mm (`4..12`):
+  fuera de catalogo → `None`. Estos rangos son los limites de los dropdowns/dispositivo;
+  un valor fuera es dato corrupto que no debe contar como hallazgo.
+- `add ≤ 0` → `None`: el input de add es libre y un `0` tecleado no es una adicion
+  prescrita (corrige el disparo de `presbicia_multifocal` / `presbicia_sin_adicion`).
+- **Transposicion solo del AKR** (no la Rx): ver recuadro en la seccion AkrOjo.
+- `av_sc` / `av_cc` se **canonizan**: `" 20 / 40 "` → `"20/40"`. Notaciones no-Snellen
+  legacy (p. ej. "cuenta dedos") se conservan sin disparar AV.
+- `uso_pantallas` es enum cerrado (`lt2`/`btw2_6`/`gt6`); un valor fuera → `None`.
+- `tipo_lente` se normaliza (espacio) pero **no** se cierra a enum: el catalogo canonico
+  del SaaS es `monofocal | bifocal_blended | progresivo | flat_top`, pero puede crecer
+  sin coordinacion con la API. La deteccion multifocal se hace por tokens e **incluye
+  `flat_top`** (bifocal de segmento). El prompt mapea la clave a etiqueta legible
+  (ver seccion 8).
+- No se declara `extra="forbid"`: se toleran campos adicionales para no romper ante
+  despliegues desincronizados entre SaaS y API.
 
 Las pruebas y ejemplos deben preferir valores que la UI real del SaaS si puede
 producir. En particular, `cover_test` se modela como
-`"OD: {tipo}[ y {sub}] | OI: {tipo}[ y {sub}]"`, no como strings sinteticos tipo
-`"ortoforia"` o `"exoforia en VP"`.
-- Para queratometria, `ia-api` es en cambio **mas estricta** que el SaaS: Pydantic acota `k1_d`/`k2_d`/`k_promedio_d` a `25..80` D y `k_cilindro` a `-20..20` D, rangos que `RecetaValidationRules` no impone explicitamente en `k1_d`/`k2_d`/`k_cilindro` (solo los valida como `numeric`). En la practica esto no deberia rechazar mediciones reales (fuera de ese rango no hay corneas humanas viables), pero si el SaaS llegara a aceptar una entrada manual fuera de rango, `ia-api` respondera `422` en vez de silenciarlo.
+`"OD: {tipo}[ y {sub}] | OI: {tipo}[ y {sub}]"` (con el sub opcional), no como strings
+sinteticos tipo `"ortoforia"` o `"exoforia en VP"`.
 
 ---
 
@@ -315,9 +331,9 @@ Si no hay datos de refraccion ni datos clinicos, la API responde `422`.
 La logica esta particionada por dominio clinico en el paquete
 [`app/correlaciones/`](/c:/dev/ia-api/app/correlaciones/):
 
-- Dominios (9 modulos): `fondo_de_ojo`, `refractivas`, `akr`, `anexos_cristalino`,
-  `pupilas_motilidad`, `campos_amsler`, `binocularidad`, `superficie_ocular`,
-  `contexto`.
+- Dominios (10 modulos): `fondo_de_ojo`, `refractivas`, `akr`, `corneal`,
+  `anexos_cristalino`, `pupilas_motilidad`, `campos_amsler`, `binocularidad`,
+  `superficie_ocular`, `contexto`.
 - Helpers compartidos: `base` (memoizacion + tipo `Correlacion`), `texto`
   (normalizacion y matching), `refraccion_utils` (Snellen, equivalente esferico),
   `queratometria` (lectura corneal).
@@ -351,26 +367,30 @@ en la respuesta HTTP), con la misma logica de supresion.
 - Ordenado: la posicion en `CORRELACIONES` (en `registry.py`) define el orden del
   bloque que recibe el LLM; es un invariante clinico cubierto por tests.
 - Textual: las correlaciones generan texto final, no instrucciones.
-- Blindado: los 36 textos exactos estan cubiertos por pruebas *golden*
+- Blindado: los 41 textos exactos estan cubiertos por pruebas *golden*
   (`tests/test_correlaciones_golden.py`) que impiden regresiones de contenido.
 
 ### Helpers clinicos relevantes
 
-#### `_snellen_denominator(av)`
+#### `_av_denominator(av)`
 
-Extrae el denominador de una AV tipo `20/30`, `20/100`, etc.
+Extrae el denominador Snellen equivalente en pie a partir de las tres notaciones que
+emiten los frontends: pie (`20/40`), metrica (`6/12`) y decimal (`0.5` / `0,5`).
+Notaciones no interpretables (CF, MM, cuenta dedos) devuelven `None`.
 
 #### `_av_es_limitada(av)`
 
-Retorna `True` solo cuando el denominador Snellen es mayor a 20.
+Retorna `True` solo cuando el denominador Snellen equivalente es mayor a 25
+(es decir 20/30 o peor).
 
-Esto evita falsos positivos con AV supranormal, por ejemplo `20/15`.
+Esto evita falsos positivos con AV supranormal o casi normal, por ejemplo `20/15`
+o `20/25`.
 
 #### `_av_categoria(av)`
 
 Clasifica la reduccion de AV con correccion:
 
-- `21-30`: leve
+- `26-30`: leve
 - `31-50`: moderada
 - `51-100`: marcada
 - `>100`: severa
@@ -387,11 +407,11 @@ Se usa para anisometropia, miopia magna e hipermetropia alta.
 
 #### Helpers de queratometria
 
-Desde la integracion de datos de queratometria (`akr.od`/`akr.oi.k1_d`, `k2_d`, `k_promedio_d`, `k_cilindro`, `k_cilindro_eje`), el modulo agrega helpers para leer y clasificar esos valores: `_k_values`, `_has_keratometry`, `_k_max`, `_corneal_cyl_abs`, `_keratometry_axis`, `_keratometry_supports_astigmatism`, `_keratometry_axis_matches` y `_keratometry_suggests_corneal_irregularity` (curvatura corneal ≥ 47.20D como umbral de sospecha, ≥ 48.70D o cilindro corneal ≥ 4.00D como umbral de ectasia/irregularidad franca). Estos helpers ya alimentan varias correlaciones existentes (ver seccion 7) como dato adicional, no como disparador independiente.
+Desde la integracion de datos de queratometria (`akr.od`/`akr.oi.k1_d`, `k2_d`, `k_promedio_d`, `k_cilindro`, `k_cilindro_eje`), el modulo agrega helpers para leer y clasificar esos valores: `_k_values`, `_has_keratometry`, `_k_max`, `_corneal_cyl_abs`, `_keratometry_axis`, `_keratometry_supports_astigmatism`, `_keratometry_axis_matches` y `_keratometry_suggests_corneal_irregularity` (curvatura corneal ≥ 47.20D como umbral de sospecha, ≥ 48.70D o cilindro corneal ≥ 4.00D como umbral de ectasia/irregularidad franca). Estos helpers alimentan las correlaciones refractivas y de AR como confirmacion/matiz, y ademas **disparan** las dos correlaciones del modulo `corneal.py` (`queratocono_ectasia_sospecha`, `astigmatismo_corneal_vs_refractivo`), unica excepcion a la regla "la queratometria no dispara".
 
-**Estado:** integrada. El detalle clinico de como cada una de las 36 correlaciones
-usa la queratometria (como confirmacion/matiz, no como disparador) esta documentado
-por correlacion en [CORRELACIONES_CLINICAS.md](CORRELACIONES_CLINICAS.md).
+**Estado:** integrada. El detalle clinico de como cada una de las 41 correlaciones
+usa la queratometria (confirmacion/matiz en las refractivas, disparador propio en las
+dos corneales) esta documentado por correlacion en [CORRELACIONES_CLINICAS.md](CORRELACIONES_CLINICAS.md).
 
 ### Matching de texto libre
 
@@ -400,6 +420,15 @@ El modulo usa normalizacion de texto:
 - lowercase
 - remocion de acentos con `unicodedata.normalize`
 - colapso de espacios
+
+Como los campos cualitativos son de **texto libre** (no dropdowns), las listas de
+keywords estan enriquecidas con sinonimos clinicos, coloquialismos mexicanos
+(`carnosidad`=pterigion, `calacio`=chalazion, `perrilla`=orzuelo), abreviaturas
+(`RAPD`, `IOL`, `RDNP`, `E/P`, `DGM`) y variantes de escritura/plural. Las abreviaturas
+de 3-4 letras que son subcadena de palabras comunes (`mer`, `irma`, `adie`, `iol`,
+`isnt`, `cnv`, `cscr`, `emq`...) se listan en `_WHOLE_WORD_KEYWORDS` y se buscan como
+**palabra completa** para no disparar dentro de otras palabras ("afirma", "nadie",
+"violeta").
 
 Para varios hallazgos se usa negacion por oracion. El sistema busca la keyword dentro de una oracion y revisa si antes de esa keyword, dentro de la misma oracion, aparece alguna marca de negacion como:
 
@@ -419,14 +448,34 @@ Esto se usa, por ejemplo, en:
 - anexos
 - opacidad del cristalino
 
+#### Cover test: parser estructurado del formato canonico
+
+Ademas del matching por keywords, `texto.py` parsea el formato canonico del SaaS
+(`"OD: {tipo}[ y {sub}] | OI: {tipo}[ y {sub}]"`) con dos rutas complementarias:
+
+- `_normalize_cover_text`: expande los pares `"exo y foria"` → `"exoforia"` para que
+  las keywords unidas (`exoforia`, `endotropia`, `hiperforia`...) matcheen.
+- `_cover_desviaciones`: cuando el optometrista eligio el tipo pero **dejo el sub sin
+  clasificar** (`"OD: Exo | OI: Orto"`, estado real porque el sub es un radio sin
+  default), devuelve el tipo suelto (`exo`, `endo`, `hiper`, `hipo`). `orto` no genera
+  token.
+
+Con esto, un tipo sin clasificar **si dispara** la correlacion binocular correspondiente
+(`ppc_exoforia`, `cover_endoforia_sintomatica`, `desviacion_vertical`) con un texto que
+pide precisar foria/tropia, pero **nunca** se trata como tropia manifiesta: las reglas
+`endotropia_lente`/`exotropia_lente` y el factor-tropia de `ambliopia_sospecha` siguen
+exigiendo el sub `Tropia` explicito. El detalle clinico esta en
+[CORRELACIONES_CLINICAS.md](CORRELACIONES_CLINICAS.md) seccion 10 y en
+[VERIFICACION_CORRELACIONES_VS_INVESTIGACION.md](VERIFICACION_CORRELACIONES_VS_INVESTIGACION.md).
+
 ---
 
 ## 7. Correlaciones activas actuales
 
-El registro contiene **36 correlaciones**, particionadas por dominio clinico en el
+El registro contiene **41 correlaciones**, particionadas por dominio clinico en el
 paquete `app/correlaciones/` (ver estructura en la seccion 6).
 
-> **Fuente unica de verdad clinica:** el catalogo completo de las 36 correlaciones
+> **Fuente unica de verdad clinica:** el catalogo completo de las 41 correlaciones
 > —campos que las disparan, umbrales, keywords, texto exacto generado y **fundamento
 > clinico con evidencia**— vive en [CORRELACIONES_CLINICAS.md](CORRELACIONES_CLINICAS.md).
 > Este documento ya no lo duplica, para evitar la divergencia que existia entre ambos.
@@ -436,7 +485,7 @@ paquete `app/correlaciones/` (ver estructura en la seccion 6).
 
 El **orden de evaluacion** es un invariante clinico (los hallazgos urgentes van
 primero) definido explicitamente en `app/correlaciones/registry.py` y cubierto por
-tests (`test_registro_tiene_36_correlaciones_con_nombres_unicos`,
+tests (`test_registro_tiene_41_correlaciones_con_nombres_unicos`,
 `test_but_critico_esta_antes_que_correlaciones_contextuales`).
 
 Trazabilidad: la respuesta HTTP incluye `correlaciones_activadas` con los nombres de
@@ -537,6 +586,18 @@ Se agrega como:
 ```text
 Diseno de lente prescrito: ...
 ```
+
+La clave canonica del SaaS se mapea a una etiqueta clinica legible via `TIPO_LENTE_MAP`
+para que el LLM no copie la clave cruda (`bifocal_blended`) al parrafo:
+
+| Clave SaaS | Etiqueta en prompt |
+|---|---|
+| `monofocal` | `monofocal` |
+| `bifocal_blended` | `bifocal blended (sin linea visible)` |
+| `progresivo` | `progresivo` |
+| `flat_top` | `bifocal flat-top (segmento visible)` |
+
+Una clave fuera del catalogo se pasa tal cual (texto libre legacy).
 
 #### Correlaciones clinicas aplicables
 
@@ -797,7 +858,7 @@ profundidad de cola (`en_cola`) es la senal operacional mas relevante.
 4. **Agregar un golden** en `tests/test_correlaciones_golden.py` que fije el texto
    exacto (obligatorio: `test_golden_cubre_todas_las_correlaciones` falla si no lo
    haces) y actualizar el conteo en
-   `test_registro_tiene_36_correlaciones_con_nombres_unicos`.
+   `test_registro_tiene_41_correlaciones_con_nombres_unicos`.
 5. Documentar la correlacion y su fundamento clinico en
    [CORRELACIONES_CLINICAS.md](CORRELACIONES_CLINICAS.md).
 

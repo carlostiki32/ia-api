@@ -18,6 +18,14 @@ from app.correlaciones.queratometria import (
 from app.correlaciones.texto import _join_hallazgos
 from app.schemas import ImpresionClinicaRequest
 
+# La red de seguridad de variabilidad inespecifica exige una discrepancia AR-Rx
+# amplia (>= 1.50 D). Los autorrefractometros sobre-miopizan de forma rutinaria
+# ~0.50-1.00 D respecto a la refraccion subjetiva; disparar por debajo de 1.50 D
+# convertiria un comportamiento normal del instrumento en un "hallazgo" y anadiria
+# ruido a casi todos los casos con AKR. Los patrones etarios especificos (espasmo,
+# cambio cristalino) mantienen sus propios umbrales mas sensibles.
+_UMBRAL_VARIABILIDAD_D = 1.50
+
 
 @_memoize_cond
 def _cond_ar_rx_espasmo_acomodativo(req: ImpresionClinicaRequest) -> bool:
@@ -85,9 +93,9 @@ def _cond_ar_rx_variabilidad_inespecifica(req: ImpresionClinicaRequest) -> bool:
         esf_rx = getattr(req.refraccion, ojo).esfera
         cil_ar = getattr(req.akr, ojo).cilindro
         cil_rx = getattr(req.refraccion, ojo).cilindro
-        if esf_ar is not None and esf_rx is not None and abs(esf_ar - esf_rx) > 1.00:
+        if esf_ar is not None and esf_rx is not None and abs(esf_ar - esf_rx) >= _UMBRAL_VARIABILIDAD_D:
             return True
-        if cil_ar is not None and cil_rx is not None and abs(cil_ar - cil_rx) > 1.00:
+        if cil_ar is not None and cil_rx is not None and abs(cil_ar - cil_rx) >= _UMBRAL_VARIABILIDAD_D:
             return True
     return False
 

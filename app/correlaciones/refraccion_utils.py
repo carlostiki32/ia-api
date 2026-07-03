@@ -7,29 +7,60 @@ import re
 from app.correlaciones.texto import _join_hallazgos
 
 
-def _snellen_denominator(av: str | None) -> int | None:
+# Umbral de AV con correccion "limitada": denominador Snellen (en pie) > 25, es
+# decir 20/30 o peor. 20/20 y 20/25 se consideran dentro de limites normales y no
+# disparan la correlacion (evita el ruido y el screening del adulto mayor por una
+# reduccion clinicamente trivial).
+_AV_DENOM_LIMITE = 25
+
+_AV_FEET_RE = re.compile(r"^\s*20\s*/\s*(\d{1,3})\s*$")
+_AV_METRIC_RE = re.compile(r"^\s*6\s*/\s*(\d{1,2}(?:\.\d+)?)\s*$")
+_AV_DECIMAL_RE = re.compile(r"^\s*(0?\.\d+|1(?:\.0+)?)\s*$")
+
+
+def _av_denominator(av: str | None) -> int | None:
+    """Denominador Snellen equivalente en pie (20/xx) a partir de las tres
+    notaciones que emiten los frontends: pie (20/40), metrica (6/12) y decimal
+    (0.5 / 0,5). Notaciones no interpretables (CF, MM, cuenta dedos) -> None."""
     if av is None:
         return None
-    match = re.match(r"^\s*20\s*/\s*(\d{1,3})\s*$", av)
-    if match is None:
-        return None
-    return int(match.group(1))
+    text = str(av).strip().replace(",", ".")
+
+    match = _AV_FEET_RE.match(text)
+    if match:
+        return int(match.group(1))
+
+    match = _AV_METRIC_RE.match(text)
+    if match:
+        metric_denominator = float(match.group(1))
+        if metric_denominator <= 0:
+            return None
+        return round(metric_denominator * 20.0 / 6.0)
+
+    match = _AV_DECIMAL_RE.match(text)
+    if match:
+        decimal = float(match.group(1))
+        if decimal <= 0:
+            return None
+        return round(20.0 / decimal)
+
+    return None
 
 
 def _av_es_limitada(av: str | None) -> bool:
-    denominator = _snellen_denominator(av)
-    return denominator is not None and denominator > 20
+    denominator = _av_denominator(av)
+    return denominator is not None and denominator > _AV_DENOM_LIMITE
 
 
 def _av_categoria(av: str | None) -> str | None:
-    denominator = _snellen_denominator(av)
-    if denominator is None or denominator <= 20:
+    denominator = _av_denominator(av)
+    if denominator is None or denominator <= _AV_DENOM_LIMITE:
         return None
-    if 21 <= denominator <= 30:
+    if denominator <= 30:
         return "leve reduccion de la agudeza visual con correccion"
-    if 31 <= denominator <= 50:
+    if denominator <= 50:
         return "reduccion moderada de la agudeza visual con correccion"
-    if 51 <= denominator <= 100:
+    if denominator <= 100:
         return "reduccion marcada de la agudeza visual con correccion"
     return "deficit visual severo con correccion optima"
 
