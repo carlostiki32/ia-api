@@ -31,6 +31,12 @@ El LLM **no decide** ninguna correlación: solo integra los hechos ya evaluados 
 párrafo final. La respuesta HTTP incluye además el campo `correlaciones_activadas`
 con los nombres de las reglas que aplicaron, para trazabilidad.
 
+> **Nota sobre acentos:** los textos de las correlaciones citados en este documento
+> se almacenan **sin acentos** en el código (facilita el matching normalizado y los
+> tests golden). El párrafo final que devuelve la API **sí** lleva acentos: un
+> reacentuador determinista los restaura al final del pipeline
+> ([PIPELINE_LLM.md §10](PIPELINE_LLM.md#10-postprocesamiento-del-output)).
+
 Lo que tú escribes determina las correlaciones que aparecen. Si una correlación
 esperada no salió, casi siempre es porque:
 
@@ -771,7 +777,10 @@ justifica la adición, la otra cuestiona su magnitud).
 
 ## Apéndice B — Hallazgos urgentes
 
-El system prompt obliga al LLM a colocarlos en las primeras dos o tres oraciones:
+Solo las correlaciones cuyo texto trae el prefijo `Hallazgo urgente:` autorizan al
+LLM a usar lenguaje de urgencia; el system prompt obliga a colocar ese hallazgo en
+la **segunda o tercera oración** del párrafo (y prohíbe calificar de urgente
+cualquier otro):
 
 - `fondo_periferico_riesgo` (siempre)
 - `glaucoma_asimetrico` (siempre)
@@ -789,7 +798,8 @@ El system prompt obliga al LLM a colocarlos en las primeras dos o tres oraciones
 3. **Relación C/D con decimal:** `"c/d 0.7"` o `"cup/disc 0.7"` (desde 0.5).
 4. **Cover test:** usa el formato de la UI `"OD: Tipo [y Sub] | OI: Tipo [y Sub]"`.
 5. **Reflejos pupilares:** registra hallazgos atípicos en la nota libre.
-6. **PPC y BUT** son enteros 1–15; fuera de rango los rechaza el schema.
+6. **PPC y BUT** son enteros 1–15; fuera de rango el schema los descarta (`None`,
+   coerción tolerante) y ninguna correlación de BUT/PPC dispara.
 7. **Motivo de consulta:** muchas correlaciones binoculares y de pantallas dependen
    de palabras clave aquí (cefalea, astenopia, lectura, ardor…). Anota síntomas
    reales en lugar de "examen de rutina".

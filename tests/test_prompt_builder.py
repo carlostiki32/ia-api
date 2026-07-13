@@ -124,9 +124,9 @@ def test_clinical_fields_included():
     prompt = build_user_prompt(req)
     assert "Reflejos pupilares: normales OU" in prompt
     assert "Fondo de ojo: papila nitida" in prompt
-    assert "Ojo seco (BUT): 8 segundos" in prompt
+    assert "Tiempo de ruptura lagrimal (BUT): 8 segundos" in prompt
     assert "Cover test: OD: Orto | OI: Orto" in prompt
-    assert "PPC: 10 cm" in prompt
+    assert "Punto proximo de convergencia (PPC): 10 cm" in prompt
 
 
 def test_tipo_lente_included():

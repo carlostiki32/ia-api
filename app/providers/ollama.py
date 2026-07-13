@@ -84,6 +84,22 @@ async def call(
                 continue
             raise
 
+    # Metricas de la inferencia (Ollama reporta duraciones en nanosegundos).
+    eval_count = data.get("eval_count", 0)
+    eval_s = data.get("eval_duration", 0) / 1e9
+    total_s = data.get("total_duration", 0) / 1e9
+    load_s = data.get("load_duration", 0) / 1e9
+    logger.info(
+        "Ollama OK: %d tok entrada, %d tok salida, %.1f tok/s, "
+        "%.1fs total (%.1fs carga), done_reason=%s",
+        data.get("prompt_eval_count", 0),
+        eval_count,
+        (eval_count / eval_s) if eval_s > 0 else 0.0,
+        total_s,
+        load_s,
+        data.get("done_reason", "?"),
+    )
+
     done_reason = data.get("done_reason", "")
     if done_reason == "length":
         logger.warning(

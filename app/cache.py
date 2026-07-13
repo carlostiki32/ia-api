@@ -24,11 +24,9 @@ class InferenceCache:
     def build_key(payload: ImpresionClinicaRequest) -> str:
         data = payload.model_dump(mode="json")
         data.pop("receta_id", None)
-        # Incluir modelo activo según el proveedor para evitar colisiones entre
-        # respuestas de NVIDIA (DeepSeek) y Ollama (Qwen) ante el mismo payload.
-        data["__model"] = (
-            settings.nvidia_model if settings.web_inference else settings.ollama_model
-        )
+        # Incluir el modelo activo para que un cambio de OLLAMA_MODEL invalide
+        # el cache (no servir respuestas generadas por otro modelo).
+        data["__model"] = settings.ollama_model
         # El system prompt efectivo varía según si hay recomendación de seguimiento
         # (effective_max = max_sentences - 1). Se incluye en la key para evitar
         # devolver del cache una respuesta generada con un límite de oraciones distinto.
@@ -65,10 +63,6 @@ class InferenceCache:
                 logger.info("Cache evicted oldest entry %s", oldest_key[:12])
             self._store[key] = (result, time.time())
             logger.info("Cache stored key %s (size: %d)", key[:12], len(self._store))
-
-    @property
-    def size(self) -> int:
-        return len(self._store)
 
 
 inference_cache = InferenceCache(

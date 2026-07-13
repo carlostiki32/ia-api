@@ -1,7 +1,8 @@
 import logging
-from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from app.observability import setup_logging
 
 
 class Settings(BaseSettings):
@@ -11,18 +12,30 @@ class Settings(BaseSettings):
     ollama_timeout: float = 120.0
 
     # Ollama — sampling
-    ollama_temperature: float = 0.7
+    ollama_temperature: float = 0.2     # Tarea de EXTRACCION/reporte fiel, no chat
+                                        # general: la guia de Qwen3.5 recomienda
+                                        # 0.1-0.3 para extraccion. Con seed fijo da
+                                        # salida casi determinista y reproducible
+                                        # (auditable) y reduce la cola de tokens
+                                        # improbables donde asoma la invencion.
+                                        # Coste de VRAM: cero.
     ollama_num_predict: int = 1024      # Budget de salida. 1024 elimina el
                                         # truncado (done_reason=length) en
                                         # casos con 4+ correlaciones activas
-                                        # + recomendacion; impacto de VRAM
-                                        # marginal con num_ctx=4096.
-    ollama_num_ctx: int = 4096          # Minimo operacional seguro: cubre
-                                        # system prompt (~300 tok) + user
-                                        # prompt peak (~1200 tok) + correlaciones
-                                        # (~400 tok) + num_predict (1024) con
-                                        # margen. KV extra sobre 2048 son ~80MB
-                                        # en Q4_K_M, absorbible en la 3070 Ti.
+                                        # + recomendacion; los reportes reales
+                                        # promedian ~100 tok, asi que sobra.
+    ollama_num_ctx: int = 8192          # El system prompt afinado pesa ~1595 tok y
+                                        # el payload MAXIMO del diccionario (6 campos
+                                        # de texto libre a 255 char + AKR completo)
+                                        # da ~3300 tok de prompt; con num_predict
+                                        # 1024 = ~4328 tok, que NO cabe en 4096 (413).
+                                        # MEDIDO en la 3070 Ti (8GB): 4096->8192 solo
+                                        # sube el footprint de 8.9GB a 9.1GB y el split
+                                        # se mantiene ~72% GPU (la arquitectura hibrida
+                                        # de Qwen3.5 -24/32 capas Gated DeltaNet sin
+                                        # KV-cache- hace el contexto barato). El modelo
+                                        # ya corre ~28% en CPU a CUALQUIER num_ctx por
+                                        # el tamano de los pesos, no por el contexto.
     ollama_repeat_penalty: float = 1.0  # 1.0 = desactivado. La terminología
                                         # clínica requiere repetición exacta
                                         # de términos (OD/OI, agudeza visual);
@@ -44,10 +57,6 @@ class Settings(BaseSettings):
     queue_wait_timeout: float = 120.0
     max_queue_size: int = 5             # Requests maximas en espera antes de 503.
 
-    # Servidor
-    host: str = "0.0.0.0"
-    port: int = 8888
-
     # Autenticación
     api_key: str = ""
 
@@ -57,18 +66,6 @@ class Settings(BaseSettings):
     # Cache
     cache_ttl_seconds: int = 86400
     cache_max_size: int = 500
-
-    # Web inference (NVIDIA NIM)
-    web_inference: bool = False
-    nvidia_api_key: str = ""
-    nvidia_base_url: str = "https://integrate.api.nvidia.com/v1"
-    nvidia_model: str = "deepseek-ai/deepseek-v3.2"
-    nvidia_timeout: float = 60.0
-    nvidia_max_tokens: int = 1024
-    nvidia_temperature: float = 0.7
-    nvidia_top_p: float = 0.95
-    nvidia_thinking: bool = False          # chat_template_kwargs thinking mode
-    nvidia_max_retries: int = 2
 
     # Health check
     health_check_timeout: float = 5.0
@@ -81,30 +78,10 @@ class Settings(BaseSettings):
 
 settings = Settings()
 
-# Crear directorio de logs si no existe
-_LOG_DIR = Path("logs")
-_LOG_DIR.mkdir(exist_ok=True)
-_LOG_FILE = _LOG_DIR / "inference.log"
-
-# Configurar logging con consola + archivo
-_log_level = getattr(logging, settings.log_level.upper(), logging.INFO)
-_formatter = logging.Formatter(
-    "%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
+# Logging: consola + logs/inference.log (rotatorio) + logs/errors.log (WARNING+).
+# Cada registro incluye el request-id ([rid]) que asigna el middleware de main.py.
+_LOG_FILE = setup_logging(settings.log_level)
+logging.info(
+    "Logging iniciado — %s (nivel %s; errores tambien en logs/errors.log)",
+    _LOG_FILE.resolve(), settings.log_level.upper(),
 )
-
-# Handler para consola
-_console_handler = logging.StreamHandler()
-_console_handler.setFormatter(_formatter)
-
-# Handler para archivo
-_file_handler = logging.FileHandler(_LOG_FILE, encoding="utf-8")
-_file_handler.setFormatter(_formatter)
-
-# Configurar logger raíz
-_root_logger = logging.getLogger()
-_root_logger.setLevel(_log_level)
-_root_logger.addHandler(_console_handler)
-_root_logger.addHandler(_file_handler)
-
-logging.info(f"Logging iniciado — Archivo: {_LOG_FILE.resolve()}")

@@ -3,11 +3,11 @@
 Este documento describe el funcionamiento real del pipeline LLM de la API clinica optometrica con base en el codigo actual de:
 
 - `app/main.py`
+- `app/config.py`
 - `app/clinical_data.py`
 - `app/cache.py`
 - `app/prompt_builder.py`
 - `app/inference.py`
-- `app/providers/nvidia.py`
 - `app/providers/ollama.py`
 - `app/correlaciones/` (paquete por dominio)
 - `app/schemas.py`
@@ -26,12 +26,13 @@ El objetivo del sistema es transformar un payload estructurado de refraccion y h
 6. Capa determinista de correlaciones
 7. Correlaciones activas actuales
 8. Construccion del prompt
-9. Inferencia — proveedores y fallback
+9. Inferencia — Ollama
 10. Postprocesamiento del output
 11. Recomendacion de seguimiento
 12. Cache de inferencia
 13. Salida esperada
 14. Como extender el sistema
+15. Logging y observabilidad
 
 ---
 
@@ -47,16 +48,10 @@ Esto separa claramente:
 - la decision clinica reproducible de si una correlacion aplica o no;
 - la redaccion natural del informe final.
 
-### Proveedores de inferencia
+### Motor de inferencia
 
-El sistema soporta dos proveedores configurables via `WEB_INFERENCE` en `.env`:
-
-| `WEB_INFERENCE` | Comportamiento |
-|---|---|
-| `false` (default) | Inferencia local con Ollama (`qwen3.5:9b`) |
-| `true` | NVIDIA NIM como principal (`deepseek-ai/deepseek-v3.2`), Ollama como fallback automatico |
-
-El fallback a Ollama se activa ante: timeout de NVIDIA, error de conexion, rate limit (429) o error de servidor (5xx). Los errores de configuracion (401/403) o prompt invalido (400) no activan fallback.
+El unico motor de inferencia es **Ollama local** con el modelo `qwen3.5:9b`
+(`OLLAMA_MODEL` en `.env`). El sistema nunca sale a internet.
 
 ---
 
@@ -84,24 +79,28 @@ run_inference(req, httpx_client)
   |    |- agrega bloque "Correlaciones clinicas aplicables" si hay activaciones
   |
   v
-  WEB_INFERENCE=true?
+  validacion preemptiva de contexto (num_ctx) -> 413 si excede
   |
-  |- SI --> providers/nvidia.call(system, user)
-  |           |- OK: raw_text, provider="nvidia"
-  |           |- NvidiaUnavailableError: fallback a Ollama
-  |           |- Error no recuperable (400/401/403): propagar
+  v
+providers/ollama.call(system, user, client)
   |
-  |- NO (o fallback) --> providers/ollama.call(system, user, client)
-  |                        |- validacion preemptiva de contexto (num_ctx)
-  |                        |- POST /api/chat a Ollama
-  |                        |- provider="ollama"
+  |- POST /api/chat a Ollama (think=false)
+  |- reintentos ante timeout / respuesta vacia / 5xx
   |
   v
 _postprocess(raw_text)
   |
-  |- elimina bloques <think>
+  |- elimina bloques <think> (completos, residuales o truncados)
   |- limpia listas, fences y espacios
   |- recompone un solo parrafo
+  |
+  v
+clean_impresion(text)   <- guardarrailes deterministas (prompt_builder.py)
+  |
+  |- descarta oraciones con placeholders sin rellenar ([valor], 20/??)
+  |- elimina meta-referencias al bloque de correlaciones
+  |- descarta meta-comentarios sobre datos ausentes
+  |- strip del participio "diagnosticad*" y reacentuacion de terminos clinicos
   |
   v
 _ensure_follow_up_last(text, recomendacion)
@@ -113,7 +112,7 @@ _ensure_follow_up_last(text, recomendacion)
 Cache store
   |
   v
-Respuesta JSON  { status, impresion_clinica, provider, cached? }
+Respuesta JSON  { status, impresion_clinica, cached?, correlaciones_activadas }
 ```
 
 ---
@@ -123,7 +122,7 @@ Respuesta JSON  { status, impresion_clinica, provider, cached? }
 ### Endpoint principal
 
 - Ruta: `POST /inferencia/impresion-clinica`
-- Handler: `crear_impresion_clinica()` en [`app/main.py`](/c:/Users/Uriel%20Rojo/Documents/ia-api/app/main.py)
+- Handler: `crear_impresion_clinica()` en [`app/main.py`](app/main.py)
 
 ### Autenticacion
 
@@ -145,18 +144,30 @@ La comparacion usa `hmac.compare_digest`.
 
 El sistema usa:
 
-- `settings.max_concurrent = 1`
+- `settings.max_concurrent = 1` (`MAX_CONCURRENT`)
 - un semaforo global `asyncio.Semaphore`
-- una cola maxima de espera de `5` requests
-- `settings.queue_wait_timeout = 120.0`
+- una cola maxima de espera de `5` requests (`MAX_QUEUE_SIZE`)
+- `settings.queue_wait_timeout = 120.0` (`QUEUE_WAIT_TIMEOUT`; `<= 0` = espera sin limite)
 
 Si la cola ya esta llena, el endpoint responde `503`.
 
-Si la inferencia completa supera el timeout total, responde `504`. Con `WEB_INFERENCE=true` el timeout cubre ambos proveedores en cadena (`nvidia_timeout + ollama_timeout + 10s`); con `WEB_INFERENCE=false` es simplemente `ollama_timeout`.
+Si la inferencia completa supera el timeout total (`ollama_timeout`), responde `504`.
+
+### Resumen de codigos de error
+
+| Codigo | Causa |
+|---|---|
+| `401` | Header `Authorization` ausente o token invalido |
+| `413` | El prompt estimado + `num_predict` excede `num_ctx` (validacion preemptiva; revisar longitud de campos de texto libre) |
+| `422` | Payload sin ningun dato clinico util (ver seccion 5) |
+| `500` | `API_KEY` no configurada en el servidor, o error interno (detalle solo en logs) |
+| `502` | Ollama devolvio un error HTTP no recuperable |
+| `503` | Cola de espera llena |
+| `504` | La inferencia no respondio dentro del timeout total |
 
 ### Warmup al arrancar
 
-Durante el `lifespan` de FastAPI se crea un `httpx.AsyncClient` y se hace un warmup simple contra Ollama para intentar cargar el modelo en VRAM.
+Durante el `lifespan` de FastAPI se crea un `httpx.AsyncClient` (timeouts separados de connect/read/write/pool para que un socket colgado no consuma el presupuesto completo) y se hace un warmup contra Ollama con `num_predict=1` y el **mismo `num_ctx` de produccion**, para que Ollama asigne el KV cache definitivo al arrancar y no en el primer request real. Si el warmup falla solo se loggea un warning (no es critico).
 
 ---
 
@@ -209,10 +220,11 @@ Ademas de `od` y `oi`, el snapshot incluye metadata comun a la sesion de medicio
 | Campo | Tipo | Restriccion real del SaaS |
 |---|---|---|
 | `ticket_id` | `int \| None` | Referencia al ticket de autorrefractometro/queratometro origen. `nullable\|integer\|exists:akr_tickets,id` |
-| `taken_at` | `str \| None` | Fecha/hora de la medicion. `nullable\|date` |
 | `pd` | `float \| None` | Distancia interpupilar. `nullable\|numeric`, sin rango declarado |
 | `vd` | `float \| None` | Distancia al vertice. `between:0,30`; fuera de rango → `None` |
 | `ker_index` | `float \| None` | Indice queratometrico usado por el equipo para convertir mm↔D. `between:1.3,1.4`; fuera de rango → `None` |
+
+El SaaS envia ademas `taken_at` (fecha/hora de la medicion), pero el schema **no lo modela**: Pydantic ignora los campos extra, asi que ese dato queda como trazabilidad del SaaS y nunca participa en correlaciones, prompt ni cache.
 
 ### AkrOjo
 
@@ -311,6 +323,7 @@ sinteticos tipo `"ortoforia"` o `"exoforia en VP"`.
 Antes de inferir, `has_clinical_data(req)` valida que exista al menos un valor no nulo dentro de:
 
 - `req.refraccion`
+- `req.akr`
 - `req.clinica`
 
 No basta con enviar solo:
@@ -329,7 +342,7 @@ Si no hay datos de refraccion ni datos clinicos, la API responde `422`.
 ### Arquitectura
 
 La logica esta particionada por dominio clinico en el paquete
-[`app/correlaciones/`](/c:/dev/ia-api/app/correlaciones/):
+[`app/correlaciones/`](app/correlaciones/):
 
 - Dominios (10 modulos): `fondo_de_ojo`, `refractivas`, `akr`, `corneal`,
   `anexos_cristalino`, `pupilas_motilidad`, `campos_amsler`, `binocularidad`,
@@ -465,8 +478,7 @@ Con esto, un tipo sin clasificar **si dispara** la correlacion binocular corresp
 pide precisar foria/tropia, pero **nunca** se trata como tropia manifiesta: las reglas
 `endotropia_lente`/`exotropia_lente` y el factor-tropia de `ambliopia_sospecha` siguen
 exigiendo el sub `Tropia` explicito. El detalle clinico esta en
-[CORRELACIONES_CLINICAS.md](CORRELACIONES_CLINICAS.md) seccion 10 y en
-[VERIFICACION_CORRELACIONES_VS_INVESTIGACION.md](VERIFICACION_CORRELACIONES_VS_INVESTIGACION.md).
+[CORRELACIONES_CLINICAS.md](CORRELACIONES_CLINICAS.md) seccion 10.
 
 ---
 
@@ -497,21 +509,44 @@ las reglas que aplicaron al caso (ver seccion 13).
 
 ### `build_system_prompt(effective_max)`
 
-El system prompt:
+El system prompt esta organizado en bloques explicitos (el texto completo vive en
+[app/prompt_builder.py](app/prompt_builder.py); pesa ~1595 tokens):
 
-- obliga a devolver un solo parrafo;
-- limita el numero maximo de oraciones;
-- define el orden de redaccion;
-- pide usar tercera persona;
-- pide lenguaje clinico objetivo;
-- prohibe incluir la recomendacion de seguimiento;
-- pide no inferir causalidad mas alla del bloque de correlaciones;
-- instruye al modelo a colocar cualquier correlacion marcada con "Hallazgo urgente:" en las primeras 2 oraciones del parrafo.
+- **Regla de oro — nunca diagnosticar:** prohibe emitir diagnosticos o nombres de
+  enfermedad, escalar un hallazgo a una entidad clinica, y proponer descartes,
+  estudios o conductas que no provengan textualmente de una correlacion del bloque
+  "Correlaciones clinicas aplicables".
+- **Solo lo que aparece en el user prompt:** prohibe describir campos ausentes,
+  rellenar ausencias con normalidad supuesta ("el fondo de ojo es normal" cuando no
+  vino), inventar valores o usar placeholders (`[valor]`, `20/xx`), e interpretar
+  por cuenta propia valores numericos sueltos (BUT, PPC, queratometria) sin
+  correlacion que los interprete.
+- **Formato:** maximo `{limit}` oraciones en un solo parrafo corrido, sin bullets ni
+  encabezados, "El paciente" en tercera persona sin asumir genero, tiempo presente,
+  español con acentos, punto final. Sin recomendaciones de seguimiento propias.
+- **Orden de redaccion:** motivo de consulta y AV s/c → refraccion final con AV c/c
+  (respetando el signo: esfera negativa = miopia) → hallazgos presentes →
+  correlaciones integradas como observacion objetiva.
+- **Urgencia restringida:** "urgente/inmediata/prioritaria/grave" SOLO cuando el
+  texto de una correlacion trae el prefijo `Hallazgo urgente:`; en ese caso el
+  hallazgo va en la **segunda o tercera oracion** del parrafo.
+- **Integracion de correlaciones:** reescribir cada correlacion con palabras propias
+  (nunca pegar el texto literal ni el prefijo `Hallazgo urgente:`), integrada al
+  flujo del parrafo.
+- **Sin meta-referencias ni meta-comentarios:** prohibido mencionar "correlaciones",
+  el nombre del bloque interno, o comentar que falta un dato ("no se dispone de...").
+- **Glosario** para interpretar los datos sin copiarlo al parrafo: PPC (punto proximo
+  de convergencia, cm), BUT (tiempo de ruptura lagrimal, s), c/d o E/P (relacion
+  copa/disco), AV s/c / AV c/c.
 
-Aspectos clave del prompt actual:
+Si existe recomendacion de seguimiento, `effective_max = max_sentences - 1` (el
+modelo deja espacio para la oracion final que se agrega despues de forma
+determinista).
 
-- "av_sc es agudeza visual sin correccion y av_cc es agudeza visual con correccion; ambas corresponden a vision lejana."
-- si existe recomendacion de seguimiento, `effective_max = max_sentences - 1`
+> El LLM pequeño (9B) no respeta estas reglas de forma 100% fiable; por eso ademas
+> del prompt existen los **guardarrailes deterministas** de `clean_impresion`
+> (seccion 10), que limpian placeholders, meta-referencias, meta-comentarios de
+> ausencia y el participio "diagnosticad*" de la salida.
 
 ### `build_user_prompt(req)`
 
@@ -521,10 +556,10 @@ Orden real:
 
 1. `Contexto del paciente`
 2. `Refraccion final`
-3. `Correlacion AKR vs refraccion final`
+3. `Correlacion AKR/queratometria vs refraccion final`
 4. Bloques clinicos sueltos
 5. `Diseno de lente prescrito`
-6. `Correlaciones clinicas aplicables`
+6. `Correlaciones clinicas aplicables (hechos pre-evaluados del caso)`
 7. `Genera el parrafo.`
 
 ### Secciones incluidas
@@ -550,6 +585,10 @@ Posibles componentes:
 - `AV s/c`
 - `AV c/c`
 
+Un `Eje` sin cilindro (posible cuando la coercion descarto esfera/cilindro fuera de
+catalogo y solo sobrevivio el eje) **se omite**: un eje suelto no tiene sentido
+clinico y confundia al modelo.
+
 #### Correlacion AKR/queratometria vs refraccion final
 
 Este bloque aparece si existe al menos un valor no nulo en la metadata de `akr` (`ticket_id`, `pd`, `vd`, `ker_index`) o en `akr.od`/`akr.oi` (incluyendo los campos de queratometria).
@@ -566,18 +605,21 @@ A diferencia de `AKR OD/OI` y `Rx final OD/OI` (que solo aparecen juntos), la li
 
 #### Hallazgos clinicos sueltos
 
-Se agregan como lineas individuales:
+Se agregan como lineas individuales, con estas etiquetas exactas:
 
-- `Uso de pantallas`
-- `Anexos oculares`
-- `Reflejos pupilares`
-- `Motilidad ocular`
-- `Confrontacion de campos visuales`
-- `Fondo de ojo`
-- `Grid de Amsler`
-- `Ojo seco (BUT)`
-- `Cover test`
-- `PPC`
+- `Uso de pantallas: {menos de 2 / entre 2 y 6 / mas de 6} horas diarias`
+- `Anexos oculares: ...`
+- `Reflejos pupilares: ...`
+- `Motilidad ocular: ...`
+- `Confrontacion de campos visuales: ...`
+- `Fondo de ojo: ...`
+- `Grid de Amsler: ...`
+- `Tiempo de ruptura lagrimal (BUT): {X} segundos`
+- `Cover test: ...`
+- `Punto proximo de convergencia (PPC): {X} cm`
+
+Las etiquetas de BUT y PPC van desplegadas (no solo la sigla) para que el modelo no
+malinterprete la abreviatura; el glosario del system prompt las refuerza.
 
 #### Tipo de lente
 
@@ -611,7 +653,15 @@ Correlaciones clinicas aplicables (hechos pre-evaluados del caso):
 
 ### Sanitizacion
 
-Los campos de texto libre pasan por `_sanitize()`, que elimina directivas `/think` y `/no_think`.
+Los campos de texto libre (ocupacion, motivo, hallazgos clinicos y los textos de las
+correlaciones) pasan por `_sanitize()`, que elimina los tokens de control de Qwen3.5
+que podrian romper el chat template si se inyectan accidentalmente en texto clinico
+(p. ej. copiado desde un log del modelo):
+
+- directivas `/think` y `/no_think` (no soportadas en Qwen3.5, pero se eliminan igual);
+- delimitadores del chat template: `<|im_start|>`, `<|im_end|>`, `<|system|>`,
+  `<|user|>`, `<|assistant|>`;
+- tags `<think>`/`</think>` y `<tool_call>`/`</tool_call>`.
 
 Campos numericos no se sanitizan porque ya estan validados por schema.
 
@@ -625,64 +675,38 @@ Campos numericos no se sanitizan porque ya estan validados por schema.
 
 ---
 
-## 9. Inferencia — proveedores y fallback
+## 9. Inferencia — Ollama
 
-La funcion central es `run_inference(payload, client)` en `app/inference.py`. Delega la llamada real al proveedor activo.
+La funcion central es `run_inference(payload, client)` en `app/inference.py`:
+construye los prompts, valida el contexto de forma preemptiva, llama a Ollama y
+aplica el postprocesado + guardarrailes. Devuelve el parrafo final.
 
-### Logica de seleccion de proveedor
-
-```python
-if WEB_INFERENCE:
-    try:
-        raw_text = await nvidia.call(system, user)   # proveedor principal
-        provider = "nvidia"
-    except NvidiaUnavailableError:
-        raw_text = await ollama.call(system, user, client)  # fallback
-        provider = "ollama"
-else:
-    raw_text = await ollama.call(system, user, client)
-    provider = "ollama"
-```
-
-### Provider NVIDIA NIM (`app/providers/nvidia.py`)
-
-- SDK: `openai` con `base_url=https://integrate.api.nvidia.com/v1`
-- Modelo: `NVIDIA_MODEL` (default: `deepseek-ai/deepseek-v3.2`)
-- Stream: `False`
-- Thinking mode: controlado por `NVIDIA_THINKING` via `chat_template_kwargs`
-
-| Parametro | Valor default |
-|---|---|
-| `temperature` | `0.7` |
-| `top_p` | `0.95` |
-| `max_tokens` | `1024` |
-| `nvidia_timeout` | `60.0s` |
-| `nvidia_max_retries` | `2` |
-
-Errores que activan fallback a Ollama: timeout, connection error, HTTP 429/500/502/503/504.
-Errores que NO activan fallback: HTTP 400 (prompt invalido), 401/403 (credenciales incorrectas).
-
-### Provider Ollama (`app/providers/ollama.py`)
+### Cliente Ollama (`app/providers/ollama.py`)
 
 - Endpoint: `POST {OLLAMA_URL}/api/chat`
 - Modelo: `OLLAMA_MODEL` (default: `qwen3.5:9b`)
 - `stream = False`, `think = False`
 
-| Parametro | Valor |
-|---|---|
-| `temperature` | `0.7` |
-| `top_p` | `0.8` |
-| `top_k` | `20` |
-| `min_p` | `0.0` |
-| `repeat_penalty` | `1.0` |
-| `num_predict` | `1024` |
-| `num_ctx` | `4096` |
-| `seed` | `42` |
-| `ollama_max_retries` | `2` |
+| Parametro | Valor | Por que |
+|---|---|---|
+| `temperature` | `0.2` | Tarea de extraccion/reporte fiel, no chat general; con seed fijo la salida es casi determinista y auditable |
+| `top_p` | `0.8` | Preset non-thinking oficial de Qwen3.5 |
+| `top_k` | `20` | Preset non-thinking oficial de Qwen3.5 |
+| `min_p` | `0.0` | Preset non-thinking oficial de Qwen3.5 |
+| `repeat_penalty` | `1.0` | Desactivado: la terminologia clinica exige repeticion exacta (OD/OI, agudeza visual). El `presence_penalty=1.5` del preset oficial **no** existe en Ollama y **no** debe mapearse a `repeat_penalty` (semanticas distintas) |
+| `num_predict` | `1024` | Elimina el truncado (`done_reason=length`) en casos con 4+ correlaciones activas |
+| `num_ctx` | `8192` | El system prompt afinado pesa ~1595 tok y el payload maximo del diccionario ~3300 tok: con `num_predict=1024` no cabia en 4096 (daba `413`). Medido en la 3070 Ti: 4096→8192 solo sube el footprint 0.2 GB |
+| `seed` | `42` | Reproducibilidad (`-1` para variabilidad) |
+| `ollama_max_retries` | `2` | Reintentos ante timeout / respuesta vacia / 5xx |
+
+Cada valor esta comentado con su justificacion (incluidas las mediciones de VRAM en
+la 3070 Ti) en [app/config.py](app/config.py); la evidencia empirica de la afinacion
+esta en [RESULTADOS_BATERIA.md](RESULTADOS_BATERIA.md).
 
 Se reintenta ante: `httpx.ReadTimeout`, `ValueError` por respuesta vacia, HTTP 500/503.
+Tras la respuesta, si `done_reason == "length"` se loggea warning de salida truncada.
 
-### Validacion preemptiva de contexto (solo Ollama)
+### Validacion preemptiva de contexto
 
 Antes de llamar a Ollama se verifica:
 
@@ -690,8 +714,16 @@ Antes de llamar a Ollama se verifica:
 est_input + num_predict <= num_ctx * 0.95
 ```
 
-Si se excede, se lanza `ValueError` con prefijo `context_overflow:` → `413` en el cliente.
-Esta validacion no aplica en NVIDIA NIM (DeepSeek V3.2 tiene contexto de 128K tokens).
+`est_input` se estima con un heuristico de ~3.5 caracteres por token (español con
+tokenizer Qwen); el conteo real lo devuelve Ollama en `prompt_eval_count` despues de
+la inferencia. Si se excede, se lanza `ValueError` con prefijo `context_overflow:` →
+`413` en el cliente.
+
+### Logging del prompt renderizado
+
+Con `LOG_LEVEL=DEBUG`, `run_inference` imprime el system prompt y el user prompt
+completos (con conteo de caracteres y tokens estimados) antes de cada inferencia.
+Es la forma mas rapida de depurar por que el parrafo dice lo que dice.
 
 ### Monitoreo de contexto (Ollama)
 
@@ -707,41 +739,71 @@ Si el margen es menor a `100`, se emite warning.
 
 ## 10. Postprocesamiento del output
 
-`_postprocess(raw_text)` aplica esta secuencia:
+El texto crudo del modelo pasa por tres etapas, en este orden:
 
-1. elimina bloques `<think>...</think>`;
-2. elimina bloques `<think>` truncados;
-3. elimina razonamiento residual antes de `</think>`;
+```
+_postprocess(raw)  →  clean_impresion(text)  →  _ensure_follow_up_last(text, recomendacion)
+   (inference.py)       (prompt_builder.py)          (inference.py, seccion 11)
+```
+
+### Etapa 1 — `_postprocess` (limpieza estructural)
+
+1. elimina bloques `<think>...</think>` completos (Qwen3.5 puede emitirlos aun con
+   `think=False`);
+2. si queda un `</think>` residual (apertura implicita), conserva solo lo posterior
+   al ultimo `</think>`;
+3. si queda un `<think>` sin cerrar (el budget de `num_predict` se agoto dentro del
+   razonamiento), conserva solo lo **anterior** al primer `<think>`;
 4. remueve fences Markdown;
 5. remueve bullets y listas numeradas;
 6. une todo en un solo parrafo;
 7. recompone oraciones con proteccion de abreviaturas;
 8. asegura punto final;
-9. si el resultado queda vacio, lanza `ValueError`.
+9. si el resultado queda vacio, lanza `ValueError` (que dispara el retry del cliente Ollama).
 
-### Abreviaturas protegidas
+#### Abreviaturas protegidas
 
-Antes de dividir oraciones se protegen tokens como:
+Antes de dividir oraciones se protegen estos tokens (los que realmente contienen un
+punto que confundiria al separador de oraciones):
 
-- `O.D.`
-- `O.I.`
-- `A.O.`
-- `Dr.`
-- `Dra.`
-- `Esf.`
-- `Cil.`
-- `Eje.`
-- `mmHg.`
-- `s.c.`
-- `c.c.`
-- `seg.`
-- `cm.`
+- `O.D.` / `O.I.` / `A.O.`
+- `Esf.` / `Cil.` / `Eje.` / `D.`
+- `s.c.` / `c.c.`
 
 Esto evita partir mal una oracion clinica.
 
+### Etapa 2 — `clean_impresion` (guardarrailes deterministas)
+
+El prompt ya prohibe estos defectos, pero el modelo de 9B no lo respeta de forma
+fiable; `clean_impresion` ([app/prompt_builder.py](app/prompt_builder.py)) los limpia
+de forma determinista, oracion por oracion:
+
+- **Anti-placeholder:** descarta la oracion completa si contiene un marcador sin
+  rellenar: `[valor]`/`[dato]` (cualquier cosa entre corchetes), `20/??`, `20/xx`, `??`.
+- **Anti-meta-referencia:** elimina las frases de atribucion al bloque interno
+  ("segun las correlaciones clinicas aplicables", "la correlacion clinica indica
+  que", "se integra la observacion de que"...) **conservando el hallazgo clinico**
+  de la oracion. No toca "correlacion con cifras tensionales" ni "correlacion
+  sistemica", que si son texto clinico.
+- **Anti-meta-comentario de ausencia:** descarta oraciones que solo comentan que
+  falta un dato ("no se dispone de datos de...", "la refraccion final no fue
+  documentada", "no existen correlaciones..."). Los negativos clinicos legitimos
+  del payload ("fondo sin lesiones", "no presenta pterigion") se conservan.
+- **Fragmentos colgados:** descarta oraciones que no empiezan con mayuscula.
+- **Regla de oro:** elimina el participio `diagnosticad{o,a,os,as}` (el sustantivo
+  "diagnostico" que usa la correlacion de insuficiencia de convergencia se conserva).
+- **Reacentuador:** los textos de las correlaciones se almacenan sin acentos (para
+  el matching por normalizacion) y el modelo los copia tal cual; ademas el propio
+  modelo omite acentos. Se restaura la ortografia con: (a) regla generica segura
+  `-cion`/`-sion` → `-ción`/`-sión` (el singular siempre lleva acento); (b) lista
+  blanca de terminos clinicos sin homografo (miopia→miopía, clinico→clínico,
+  pterigion→pterigión, anos→años...); (c) conversion de acento grave (artefacto del
+  modelo: `retinològica`) a agudo. Opera sobre el texto FINAL, asi que no afecta el
+  matching de keywords (que trabaja sobre la entrada normalizada).
+
 ---
 
-## 11. Recomendacion de seguimiento
+## 11. Recomendacion de seguimiento (etapa 3 del postprocesado)
 
 La recomendacion en `clinica.recomendacion_seguimiento` no se manda al modelo como parte del parrafo final. En su lugar:
 
@@ -778,14 +840,14 @@ La clave SHA-256 se construye con:
 
 - `payload.model_dump(mode="json")`
 - excluyendo `receta_id`
-- modelo activo: `nvidia_model` si `WEB_INFERENCE=true`, `ollama_model` si `false`
+- el modelo activo (`ollama_model`)
 - flag booleano `__has_recommendation`
 
 Detalles importantes:
 
 - `receta_id` no afecta el cache;
 - como la clave usa `payload.model_dump(mode="json")` completo, cualquier campo nuevo del schema (incluyendo los de queratometria) participa automaticamente en la clave sin cambios en `cache.py`;
-- si cambia el modelo o el proveedor activo, cambia la clave (evita servir respuestas de Qwen como si fueran de DeepSeek);
+- si cambia `OLLAMA_MODEL`, cambia la clave (no se sirven respuestas generadas por otro modelo);
 - si el caso tiene o no recomendacion, cambia la clave.
 
 ### Politica de eviction
@@ -802,7 +864,6 @@ Si el cache esta lleno y entra una nueva clave, se elimina la entrada mas antigu
 {
   "status": "ok",
   "impresion_clinica": "El paciente ...",
-  "provider": "nvidia",
   "correlaciones_activadas": ["fondo_periferico_riesgo", "av_cc_limitada"]
 }
 ```
@@ -818,15 +879,13 @@ Si el cache esta lleno y entra una nueva clave, se elimina la entrada mas antigu
 }
 ```
 
-- `provider` (solo en respuestas frescas) indica que proveedor genero la respuesta:
-  `"nvidia"` o `"ollama"`. Util para monitoreo y debug sin revisar logs.
 - `correlaciones_activadas` lista los nombres de las reglas deterministas que
   aplicaron al caso (trazabilidad); se incluye tambien en cache hit. El detalle
   clinico de cada nombre esta en [CORRELACIONES_CLINICAS.md](CORRELACIONES_CLINICAS.md).
 
 ### Endpoint `/health`
 
-Ademas del estado de proveedores/modelo, `/health` expone el bloque `concurrencia`
+Ademas del estado de Ollama/modelo, `/health` expone el bloque `concurrencia`
 con `max_concurrent`, `en_cola` y `max_en_cola`. Con `max_concurrent=1`, la
 profundidad de cola (`en_cola`) es la senal operacional mas relevante.
 
@@ -875,14 +934,75 @@ El LLM no debe decidir la correlacion: solo integrarla al parrafo.
 Debes revisar al menos:
 
 - `PIPELINE_LLM.md` y `CORRELACIONES_CLINICAS.md`
-- `app/prompt_builder.py`
+- `app/prompt_builder.py` (system prompt **y** guardarrailes de `clean_impresion`:
+  si el prompt cambia de vocabulario, los patrones anti-meta pueden dejar de matchear)
 - el paquete `app/correlaciones/` (dominio + `registry.py`)
-- `tests/test_correlaciones_golden.py` (texto exacto)
+- `tests/test_correlaciones_golden.py` (texto exacto) y `tests/test_prompt_builder.py`
 - `app/cache.py` si cambian condiciones que deban invalidar cache
+- idealmente, re-correr la bateria de [BATERIA_PRUEBAS_IA.md](BATERIA_PRUEBAS_IA.md)
+  y comparar contra [RESULTADOS_BATERIA.md](RESULTADOS_BATERIA.md)
 
-### Si cambias el proveedor de inferencia
+### Si cambias parametros de inferencia
 
-- Los parametros de sampling de Ollama estan en `app/providers/ollama.py`
-- Los parametros de NVIDIA estan en `app/providers/nvidia.py` y `app/config.py`
-- La logica de fallback y seleccion esta en `app/inference.py` (`run_inference`)
-- El timeout total de `asyncio.wait_for` se calcula en `app/main.py` (`_INFERENCE_TIMEOUT`)
+- Los parametros de sampling de Ollama se leen de `.env` en `app/config.py`
+  (cada uno comentado con su justificacion) y se arman en `app/providers/ollama.py`
+- La orquestacion (prompts, validacion de contexto, postprocesado) esta en
+  `app/inference.py` (`run_inference`)
+- El timeout total de `asyncio.wait_for` es `ollama_timeout` (`app/main.py`,
+  `_INFERENCE_TIMEOUT`)
+
+---
+
+## 15. Logging y observabilidad
+
+Configurado en [app/observability.py](app/observability.py) (lo activa
+`config.py` al importar). Tres destinos, todos con el mismo formato:
+
+```
+2026-07-11 15:40:42 [INFO] [a395f5b3] app.main: → POST /inferencia/impresion-clinica (origen 157.180.39.184)
+                            ^^^^^^^^ request-id
+```
+
+| Destino | Nivel | Rotacion |
+|---|---|---|
+| Consola | `LOG_LEVEL` (default INFO) | — |
+| `logs/inference.log` | `LOG_LEVEL` | 10 MB × 5 archivos |
+| `logs/errors.log` | WARNING+ (con traceback) | 10 MB × 5 archivos |
+
+### Request-id
+
+El middleware de `main.py` asigna a cada request un id corto (propaga el header
+`X-Request-ID` si el cliente lo envia, o genera uno), lo inyecta en **todas** las
+lineas de log de ese request via `ContextVar` + `logging.Filter`, y lo devuelve
+en el header `X-Request-ID` de la respuesta. Para reconstruir un request:
+`grep <rid> logs/inference.log`.
+
+### Que se loggea por request (INFO)
+
+1. `→ POST /inferencia/impresion-clinica (origen <ip>)` — la IP real se toma de
+   `CF-Connecting-IP` / `X-Forwarded-For` (detras de Cloudflare Tunnel el socket
+   siempre es local).
+2. `Payload recibido [sid]: edad=45 rx=OD+OI akr=OD clinica=[fondo_de_ojo, ...]`
+   — QUE campos vienen, no su contenido (el texto clinico solo aparece en DEBUG).
+3. `Correlaciones activadas [sid] (n): [...]`.
+4. Cache hit/miss, cola (`queued`/`acquired`/`released`).
+5. Metricas de Ollama: tokens de entrada/salida, tok/s, duracion total y de
+   carga, `done_reason`.
+6. Acciones de guardarrailes (`Guardarrail: ...`): meta-referencias eliminadas,
+   oraciones descartadas (placeholder/meta-ausencia/fragmento) y el strip de
+   `diagnosticad*`.
+7. `Inferencia completada [sid] en X.Xs (N chars, M correlaciones)` y
+   `← POST ... 200 en X.XXs`.
+
+Los errores agregan contexto especifico: auth rechazada (401, con longitud del
+token recibido), payload sin datos (422), overflow de contexto (413, con la
+estimacion de tokens), cola saturada (503, con profundidad), timeout (504, con
+el limite configurado) y cualquier excepcion no manejada con traceback completo
+en `logs/errors.log`.
+
+Con `LOG_LEVEL=DEBUG` se agrega el system/user prompt completo renderizado y el
+margen real de contexto que reporta Ollama. El logger `httpx` esta silenciado a
+WARNING (duplicaba cada POST).
+
+La guia de conexion y debugging del despliegue completo (SaaS + Cloudflare +
+tunel) esta en [GUIA_CONEXION.md](GUIA_CONEXION.md).

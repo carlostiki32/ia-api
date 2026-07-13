@@ -80,7 +80,7 @@ def test_endpoint_rejects_payload_without_clinical_data(monkeypatch):
         )
 
     assert response.status_code == 422
-    assert "datos clinicos" in response.json()["detail"]
+    assert "datos clínicos" in response.json()["detail"]
 
 
 def test_endpoint_returns_inference_result(monkeypatch):
@@ -89,7 +89,7 @@ def test_endpoint_returns_inference_result(monkeypatch):
     async def fake_run_inference(req, client):
         assert req.receta_id == "test-001"
         assert client is main.app.state.http_client
-        return "Texto generado.", "ollama"
+        return "Texto generado."
 
     monkeypatch.setattr(main, "run_inference", fake_run_inference)
 
@@ -104,7 +104,6 @@ def test_endpoint_returns_inference_result(monkeypatch):
     assert response.json() == {
         "status": "ok",
         "impresion_clinica": "Texto generado.",
-        "provider": "ollama",
         "correlaciones_activadas": [],
     }
 
@@ -113,7 +112,7 @@ def test_endpoint_reporta_correlaciones_activadas(monkeypatch):
     monkeypatch.setattr(main.settings, "api_key", "secret-token")
 
     async def fake_run_inference(req, client):
-        return "Texto generado.", "ollama"
+        return "Texto generado."
 
     monkeypatch.setattr(main, "run_inference", fake_run_inference)
 

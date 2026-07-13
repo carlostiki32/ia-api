@@ -6,9 +6,7 @@ import httpx
 
 from app.config import settings
 from app.prompt_builder import build_system_prompt, build_user_prompt, clean_impresion
-from app.providers import nvidia as nvidia_provider
 from app.providers import ollama as ollama_provider
-from app.providers.nvidia import NvidiaUnavailableError
 from app.schemas import ImpresionClinicaRequest
 
 logger = logging.getLogger(__name__)
@@ -50,27 +48,6 @@ CONTEXT_OVERFLOW_PREFIX = "context_overflow:"
 
 def _estimate_tokens(text: str) -> int:
     return int(len(text) / _CHARS_PER_TOKEN_ES)
-
-
-def _build_ollama_options() -> dict:
-    return {
-        "temperature":    settings.ollama_temperature,
-        "num_predict":    settings.ollama_num_predict,
-        "num_ctx":        settings.ollama_num_ctx,
-        "repeat_penalty": settings.ollama_repeat_penalty,
-        "top_p":          settings.ollama_top_p,
-        "top_k":          settings.ollama_top_k,
-        "min_p":          settings.ollama_min_p,
-        "seed":           settings.ollama_seed,
-    }
-
-
-_OLLAMA_OPTIONS = _build_ollama_options()
-
-# Nombre del provider que resolvió la última inferencia. Se expone en la
-# respuesta HTTP para facilitar el debug sin necesidad de mirar logs.
-PROVIDER_NVIDIA = "nvidia"
-PROVIDER_OLLAMA = "ollama"
 
 
 def _protect_abbreviations(text: str) -> str:
@@ -116,6 +93,9 @@ def _strip_leading_list_markers(line: str) -> str:
 def _postprocess(text: str) -> str:
     # Qwen 3.5 puede emitir <think>..</think> aun con think=False.
     text = text.strip()
+
+    if "<think>" in text or "</think>" in text:
+        logger.info("Output crudo contenia tags <think>; se remueven")
 
     # Caso 1: bloques completos — eliminarlos.
     text = THINK_BLOCK_RE.sub("", text).strip()
@@ -205,14 +185,11 @@ def _ensure_follow_up_last(text: str, recommendation: str | None) -> str:
 async def run_inference(
     payload: ImpresionClinicaRequest,
     client: httpx.AsyncClient,
-) -> tuple[str, str]:
+) -> str:
     """
-    Orquesta la inferencia según WEB_INFERENCE.
-
-    Si WEB_INFERENCE=true: intenta NVIDIA primero; ante NvidiaUnavailableError
-    cae a Ollama. Si WEB_INFERENCE=false: va directo a Ollama.
-
-    Devuelve (texto_generado, provider_usado).
+    Orquesta la inferencia contra Ollama (qwen3.5:9b): construye los prompts,
+    valida el contexto de forma preemptiva, llama al modelo y aplica el
+    postprocesado + guardarraíles. Devuelve el párrafo final.
     """
     has_recommendation = bool(payload.clinica.recomendacion_seguimiento)
     effective_max = settings.max_sentences - 1 if has_recommendation else settings.max_sentences
@@ -244,46 +221,29 @@ async def run_inference(
         _estimate_tokens(system_prompt) + _estimate_tokens(user_prompt),
     )
 
-    raw_text = ""
-    provider = PROVIDER_OLLAMA
+    # Validacion preemptiva de contexto: el prompt + la salida deben caber en num_ctx.
+    est_input = _estimate_tokens(system_prompt + user_prompt)
+    est_total = est_input + settings.ollama_num_predict
+    ctx_budget = int(settings.ollama_num_ctx * 0.95)
+    if est_total > ctx_budget:
+        raise ValueError(
+            f"{CONTEXT_OVERFLOW_PREFIX} prompt estimado ({est_input} tok) + "
+            f"salida ({settings.ollama_num_predict} tok) excede num_ctx "
+            f"({settings.ollama_num_ctx}). Revisar longitud de campos "
+            "clinicos de texto libre."
+        )
 
-    if settings.web_inference:
-        try:
-            raw_text = await nvidia_provider.call(system_prompt, user_prompt)
-            provider = PROVIDER_NVIDIA
-        except NvidiaUnavailableError as exc:
-            logger.warning("NVIDIA unavailable (%s), falling back to Ollama", exc)
-        except Exception as exc:
-            # Errores no recuperables de NVIDIA (400, 401, 403): propagar
-            logger.error("NVIDIA non-recoverable error: %s", exc)
-            raise
-
-    if not raw_text:
-        # Validacion preemptiva de contexto — solo aplica en Ollama.
-        # DeepSeek V3.2 tiene 128K de contexto; el guard no aplica ahi.
-        est_input = _estimate_tokens(system_prompt + user_prompt)
-        est_total = est_input + settings.ollama_num_predict
-        ctx_budget = int(settings.ollama_num_ctx * 0.95)
-        if est_total > ctx_budget:
-            raise ValueError(
-                f"{CONTEXT_OVERFLOW_PREFIX} prompt estimado ({est_input} tok) + "
-                f"salida ({settings.ollama_num_predict} tok) excede num_ctx "
-                f"({settings.ollama_num_ctx}). Revisar longitud de campos "
-                "clinicos de texto libre."
-            )
-        raw_text, _ = await ollama_provider.call(system_prompt, user_prompt, client)
-        provider = PROVIDER_OLLAMA
+    raw_text, _ = await ollama_provider.call(system_prompt, user_prompt, client)
 
     try:
         text = _postprocess(raw_text)
     except ValueError:
         logger.error(
-            "Model output empty after postprocessing (provider=%s). Raw length: %d chars",
-            provider, len(raw_text),
+            "Model output empty after postprocessing. Raw length: %d chars",
+            len(raw_text),
         )
         raise
 
     text = clean_impresion(text)  # ← aquí, después de postprocess y antes de follow-up
 
-    result = _ensure_follow_up_last(text, payload.clinica.recomendacion_seguimiento)
-    return result, provider
+    return _ensure_follow_up_last(text, payload.clinica.recomendacion_seguimiento)

@@ -3,6 +3,7 @@ import hashlib
 import hmac
 import logging
 import time
+import uuid
 from contextlib import asynccontextmanager
 from typing import Annotated, Any
 
@@ -15,16 +16,11 @@ from app.clinical_data import has_clinical_data
 from app.config import settings
 from app.correlaciones import nombres_correlaciones_activas
 from app.inference import CONTEXT_OVERFLOW_PREFIX, run_inference
+from app.observability import request_id_var
 from app.schemas import ImpresionClinicaRequest
 
-# El timeout de inferencia para asyncio.wait_for debe cubrir ambos proveedores
-# cuando web_inference=True: NVIDIA puede ser lento en cold starts, y si falla
-# aún queda el path de Ollama. Se usa el máximo de los dos con un margen.
-_INFERENCE_TIMEOUT = (
-    settings.nvidia_timeout + settings.ollama_timeout + 10.0
-    if settings.web_inference
-    else settings.ollama_timeout
-)
+# Timeout total de la inferencia para asyncio.wait_for.
+_INFERENCE_TIMEOUT = settings.ollama_timeout
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +31,44 @@ _queue_waiting = 0
 
 def _safe_id(receta_id: str) -> str:
     return hashlib.sha256(receta_id.encode()).hexdigest()[:10]
+
+
+def _origen_request(request: Request) -> str:
+    """IP real del cliente. Detras de Cloudflare Tunnel el socket es local, asi
+    que se prefieren los headers que Cloudflare agrega con la IP de origen."""
+    return (
+        request.headers.get("cf-connecting-ip")
+        or request.headers.get("x-forwarded-for", "").split(",")[0].strip()
+        or (request.client.host if request.client else "?")
+    )
+
+
+def _payload_resumen(req: ImpresionClinicaRequest) -> str:
+    """Resumen compacto del payload para el log: QUE campos vienen (no su
+    contenido — el texto libre completo solo se loggea en nivel DEBUG con el
+    prompt renderizado)."""
+
+    def _campos(model) -> list[str]:
+        return [k for k, v in model.model_dump().items() if v is not None]
+
+    rx = "+".join(
+        lbl for lbl, ojo in (("OD", req.refraccion.od), ("OI", req.refraccion.oi))
+        if _campos(ojo)
+    )
+    akr = "+".join(
+        lbl for lbl, ojo in (("OD", req.akr.od), ("OI", req.akr.oi))
+        if _campos(ojo)
+    )
+    clinica = _campos(req.clinica)
+    partes = [
+        f"edad={req.paciente.edad if req.paciente.edad is not None else '?'}",
+        f"rx={rx or 'no'}",
+        f"akr={akr or 'no'}",
+        f"clinica=[{', '.join(clinica)}]" if clinica else "clinica=no",
+    ]
+    if req.tipo_lente:
+        partes.append(f"lente={req.tipo_lente}")
+    return " ".join(partes)
 
 
 @asynccontextmanager
@@ -83,6 +117,39 @@ app = FastAPI(
 )
 
 
+@app.middleware("http")
+async def request_context_middleware(request: Request, call_next):
+    """Asigna un request-id a cada request (propaga X-Request-ID del cliente o
+    genera uno), lo inyecta en todos los logs via contextvar, mide la duracion
+    total y la loggea junto al status. El id vuelve al cliente en el header
+    X-Request-ID para correlacionar con los logs del SaaS."""
+    rid = request.headers.get("x-request-id") or uuid.uuid4().hex[:8]
+    token = request_id_var.set(rid)
+    # /health se consulta constantemente (monitoreo): solo a nivel DEBUG.
+    log = logger.debug if request.url.path == "/health" else logger.info
+    log("→ %s %s (origen %s)", request.method, request.url.path, _origen_request(request))
+    start = time.perf_counter()
+    try:
+        response = await call_next(request)
+        log(
+            "← %s %s %d en %.2fs",
+            request.method, request.url.path,
+            response.status_code, time.perf_counter() - start,
+        )
+        response.headers["X-Request-ID"] = rid
+        return response
+    except Exception:
+        # Error NO manejado por el endpoint (los HTTPException ya salieron como
+        # respuesta): traceback completo a logs/errors.log antes de propagar.
+        logger.exception(
+            "✗ %s %s fallo sin manejar tras %.2fs",
+            request.method, request.url.path, time.perf_counter() - start,
+        )
+        raise
+    finally:
+        request_id_var.reset(token)
+
+
 def get_http_client(request: Request) -> httpx.AsyncClient:
     client = getattr(request.app.state, "http_client", None)
     if client is None:
@@ -97,16 +164,22 @@ def verify_api_key(
     ],
 ) -> None:
     if not settings.api_key:
+        logger.error("Auth imposible: API_KEY no esta configurada en el servidor")
         raise HTTPException(
             status_code=500,
             detail="API_KEY no configurada en el servidor.",
         )
     if credentials is None or credentials.scheme.lower() != "bearer":
+        logger.warning("Auth rechazada (401): falta header 'Authorization: Bearer'")
         raise HTTPException(
             status_code=401,
             detail="Header Authorization requerido: Bearer <token>",
         )
     if not hmac.compare_digest(credentials.credentials, settings.api_key):
+        logger.warning(
+            "Auth rechazada (401): token invalido (longitud recibida: %d)",
+            len(credentials.credentials),
+        )
         raise HTTPException(status_code=401, detail="Token invalido.")
 
 
@@ -136,18 +209,24 @@ async def crear_impresion_clinica(
     client: Annotated[httpx.AsyncClient, Depends(get_http_client)],
 ):
     sid = _safe_id(req.receta_id)
+    logger.info("Payload recibido [%s]: %s", sid, _payload_resumen(req))
 
     if not has_clinical_data(req):
+        logger.warning("Payload sin datos clinicos [%s] -> 422", sid)
         raise HTTPException(
             status_code=422,
-            detail="El payload no contiene datos clinicos. "
-            "Al menos un campo de refraccion o clinica debe tener valor.",
+            detail="El payload no contiene datos clínicos. "
+            "Al menos un campo de refracción o clínica debe tener valor.",
         )
 
     # Trazabilidad: los nombres de las correlaciones deterministas que aplican al
     # caso se devuelven junto al texto. Es barato y deterministico, asi que se
     # calcula tambien en cache hit para que la respuesta sea homogenea.
     correlaciones = nombres_correlaciones_activas(req)
+    logger.info(
+        "Correlaciones activadas [%s] (%d): %s",
+        sid, len(correlaciones), correlaciones or "ninguna",
+    )
 
     cache_key = inference_cache.build_key(req)
     cached = inference_cache.get(req, key=cache_key)
@@ -163,6 +242,10 @@ async def crear_impresion_clinica(
     try:
         await _acquire_inference_slot(sid)
     except asyncio.TimeoutError:
+        logger.warning(
+            "Cola saturada [%s] -> 503 (en espera: %d, maximo: %d)",
+            sid, _queue_waiting, settings.max_queue_size,
+        )
         raise HTTPException(
             status_code=503,
             detail="Servidor ocupado. Hay demasiadas peticiones en espera. "
@@ -171,36 +254,43 @@ async def crear_impresion_clinica(
 
     start_time = time.perf_counter()
     try:
-        result, provider = await asyncio.wait_for(
+        result = await asyncio.wait_for(
             run_inference(req, client),
             timeout=_INFERENCE_TIMEOUT,
         )
         elapsed = time.perf_counter() - start_time
-        logger.info("Inference completed [%s] via %s in %.1fs", sid, provider, elapsed)
+        logger.info(
+            "Inferencia completada [%s] en %.1fs (%d chars, %d correlaciones)",
+            sid, elapsed, len(result), len(correlaciones),
+        )
         inference_cache.put(req, result, key=cache_key)
         return {
             "status": "ok",
             "impresion_clinica": result,
-            "provider": provider,
             "correlaciones_activadas": correlaciones,
         }
 
     except asyncio.TimeoutError:
-        detail = (
-            "La inferencia no respondio a tiempo (NVIDIA + Ollama). Intente de nuevo."
-            if settings.web_inference
-            else "Ollama no respondio a tiempo. Intente de nuevo."
+        logger.error(
+            "Timeout de inferencia [%s] -> 504 tras %.0fs (OLLAMA_TIMEOUT=%.0fs). "
+            "¿Modelo descargado de VRAM o GPU saturada?",
+            sid, time.perf_counter() - start_time, settings.ollama_timeout,
         )
-        raise HTTPException(status_code=504, detail=detail)
+        raise HTTPException(
+            status_code=504,
+            detail="Ollama no respondio a tiempo. Intente de nuevo.",
+        )
     except ValueError as exc:
         detail = str(exc)
         if detail.startswith(CONTEXT_OVERFLOW_PREFIX):
             # Prompt demasiado grande para num_ctx: 413 Payload Too Large.
             # Se strippea el prefijo interno antes de exponer al cliente.
+            logger.warning("Prompt excede contexto [%s] -> 413: %s", sid, detail)
             raise HTTPException(
                 status_code=413,
                 detail=detail[len(CONTEXT_OVERFLOW_PREFIX):].strip(),
             )
+        logger.exception("ValueError en inferencia [%s] -> 500", sid)
         raise HTTPException(status_code=500, detail=detail)
     except httpx.HTTPStatusError as exc:
         logger.exception("Ollama HTTP error [%s]", sid)
@@ -248,22 +338,8 @@ async def health(client: Annotated[httpx.AsyncClient, Depends(get_http_client)])
         except Exception:
             pass
 
-    nvidia_info: dict = {}
-    if settings.web_inference:
-        nvidia_info = {
-            "enabled": True,
-            "model": settings.nvidia_model,
-            "api_key_set": bool(settings.nvidia_api_key),
-        }
-    else:
-        nvidia_info = {"enabled": False}
-
-    overall_ok = ollama_status == "ok" or (settings.web_inference and bool(settings.nvidia_api_key))
-
     return {
-        "status": "ok" if overall_ok else "degraded",
-        "web_inference": settings.web_inference,
-        "nvidia": nvidia_info,
+        "status": "ok" if ollama_status == "ok" else "degraded",
         "ollama": ollama_status,
         "model": settings.ollama_model,
         "model_available": model_available,

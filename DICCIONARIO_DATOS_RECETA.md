@@ -60,7 +60,7 @@ Leyenda de **origen**: `DROPDOWN` (catálogo cerrado), `RADIO` (opciones fijas),
 | `pd` | DEVICE | numérico sin rango |
 | `vd` | DEVICE | `between:0,30` |
 | `ker_index` | DEVICE | `between:1.3,1.4` |
-| `ticket_id`, `taken_at` | DEVICE | entero / fecha; solo trazabilidad |
+| `ticket_id`, `taken_at` | DEVICE | entero / fecha; solo trazabilidad. `taken_at` **no está modelado** en el schema de la API (Pydantic lo ignora) |
 
 ### 1.4 `clinica` (extensión clínica — solo si el usuario tiene permiso `recetas.clinica`)
 
@@ -111,9 +111,9 @@ loggea, en vez de tumbar toda la generación por un dato secundario.
 
 | # | Hallazgo | Antes (ia-api) | Cambio aplicado |
 |---|---|---|---|
-| H1 | El payload llega sin validar desde el SaaS (sección 2) | Cualquier valor fuera de rango → 422 de todo el request | **Coerción tolerante** en `app/schemas.py`: rangos del catálogo documentados como constantes (`AV_CATALOGO`, `TIPOS_LENTE_SAAS`, `COVER_TIPOS/SUBS`, `REFLEJOS_OPCION_*`); fuera de rango → `None` + warning en log |
+| H1 | El payload llega sin validar desde el SaaS (sección 2) | Cualquier valor fuera de rango → 422 de todo el request | **Coerción tolerante** en `app/schemas.py`: los límites del catálogo viven como constantes (`_ESFERA_MAX_ABS_D`, `_CILINDRO_MAX_ABS_D`, `_EJE_MIN/_EJE_MAX`, `_BUT_PPC_MIN/_BUT_PPC_MAX`, `_USO_PANTALLAS`); fuera de rango → `None` + warning en log (`_rango_o_none`) |
 | H2 | `eje` es input libre **sin validación de rango en el SaaS**; la API exigía 0..180 | `eje=190` → 422 | El eje es cíclico: se **normaliza módulo 180** (190→10, −1→179, 225→45). Aplica a Rx y a los 4 ejes de AKR |
-| H3 | El catálogo de cilindro es **solo negativo** (0..−8); un cilindro positivo del **AKR** (lectura de dispositivo) puede venir en convención plus-cyl y sesgar la comparación esfera-a-esfera AR vs Rx | El AKR plus-cyl se aceptaba tal cual → comparación AR vs Rx en distinta convención | **Transposición automática a convención negativa** (`esf'=esf+cil`, `cil'=−cil`, `eje'=(eje+90)%180`) **solo en el AKR**. La **Rx final NO se transpone**: el dropdown ya garantiza minus-cyl y transponerla alteraría el piso de esfera de `hipermetropia_alta` (ver VERIFICACION §1) |
+| H3 | El catálogo de cilindro es **solo negativo** (0..−8); un cilindro positivo del **AKR** (lectura de dispositivo) puede venir en convención plus-cyl y sesgar la comparación esfera-a-esfera AR vs Rx | El AKR plus-cyl se aceptaba tal cual → comparación AR vs Rx en distinta convención | **Transposición automática a convención negativa** (`esf'=esf+cil`, `cil'=−cil`, `eje'=(eje+90)%180`) **solo en el AKR**. La **Rx final NO se transpone**: el dropdown ya garantiza minus-cyl y transponerla alteraría el piso de esfera de `hipermetropia_alta` (ver [CORRELACIONES_CLINICAS.md §5.2](CORRELACIONES_CLINICAS.md)) |
 | H4 | Esfera limitada al catálogo ±20.00; cilindro a \|8.00\| | Sin límite | Fuera de catálogo → `None` (dato corrupto, no hallazgo) |
 | H5 | `add` es input libre: el optometrista puede teclear `0` | `add=0.0` contaba como "adición prescrita": disparaba `presbicia_multifocal` y **suprimía** `presbicia_sin_adicion` (bug real) | `add ≤ 0` → `None`; con ello `presbicia_sin_adicion` vuelve a operar correctamente |
 | H6 | El **sub del cover test es opcional** (radios sin default): "OD: Exo \| OI: Orto" es un estado real del formulario que las keywords unidas (`exoforia`, `exotropia`) no ven | Un Endo/Exo/Hiper/Hipo sin clasificar **no disparaba nada** (dato de dropdown silenciosamente ignorado) | Parser estructurado del formato canónico (`_cover_desviaciones` en `texto.py`): `Exo` suelto → `ppc_exoforia` ("exodesviación no clasificada"); `Endo` suelto + síntomas → `cover_endoforia_sintomatica`; `Hiper/Hipo` sueltos → `desviacion_vertical`. Un tipo sin clasificar NUNCA se trata como tropía manifiesta |

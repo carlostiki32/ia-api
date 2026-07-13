@@ -49,29 +49,6 @@ _BUT_PPC_MIN, _BUT_PPC_MAX = 1, 15
 # Uso de pantallas: select con exactamente estas claves.
 _USO_PANTALLAS = ("lt2", "btw2_6", "gt6")
 
-# AV: catalogo cerrado del dropdown (OpticaOptions::av). Documental: la
-# normalizacion no rechaza valores fuera de catalogo (registros legacy).
-AV_CATALOGO = (
-    "20/10", "20/15", "20/20", "20/25", "20/30", "20/40", "20/50", "20/60",
-    "20/70", "20/80", "20/100", "20/120", "20/160", "20/200", "20/400", "20/600",
-)
-
-# Tipos de lente: catalogo cerrado del SaaS (OpticaOptions::tiposLente).
-# El campo se mantiene abierto (str) por si el catalogo crece, pero estas son
-# las claves canonicas que llegan hoy. flat_top ES un bifocal de segmento.
-TIPOS_LENTE_SAAS = ("monofocal", "bifocal_blended", "progresivo", "flat_top")
-
-# Opciones canonicas de reflejos pupilares (RecetaFormOptions): el valor llega
-# como "Opcion" u "Opcion: nota libre". Documental para la capa de correlaciones.
-REFLEJOS_OPCION_NORMAL = "Reflejo fotomotor, consesual, acomodativo"
-REFLEJOS_OPCION_DPAR = "Marcus Gunn"
-
-# Cover test canonico compuesto por el SaaS: "OD: Tipo[ y Sub] | OI: Tipo[ y Sub]"
-# con Tipo en COVER_TIPOS y Sub en COVER_SUBS (sub puede omitirse).
-COVER_TIPOS = ("Orto", "Endo", "Exo", "Hiper", "Hipo")
-COVER_SUBS = ("Tropia", "Foria")
-
-
 def _normalize_whitespace(value) -> str | None:
     if value is None:
         return None
@@ -207,7 +184,6 @@ class Refraccion(BaseModel):
 
 class AkrSnapshot(BaseModel):
     ticket_id: int | None = None
-    taken_at: str | None = None
     pd: float | None = None
     vd: float | None = None
     ker_index: float | None = None
@@ -281,8 +257,8 @@ class ImpresionClinicaRequest(BaseModel):
     refraccion: Refraccion = Field(default_factory=Refraccion)
     akr: AkrSnapshot = Field(default_factory=AkrSnapshot)
     clinica: DatosClinica = Field(default_factory=DatosClinica)
-    # tipo_lente NO se cierra a Literal: el catalogo canonico actual es
-    # TIPOS_LENTE_SAAS (monofocal, bifocal_blended, progresivo, flat_top) pero
+    # tipo_lente NO se cierra a Literal: el catalogo canonico actual del SaaS
+    # es monofocal, bifocal_blended, progresivo y flat_top, pero
     # el frontend puede ampliarlo sin coordinacion con la API. Se normaliza
     # espacio en blanco; la deteccion multifocal (incluido flat_top, que es un
     # bifocal de segmento) se hace por tokens en la capa de correlaciones.
