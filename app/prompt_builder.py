@@ -29,9 +29,9 @@ def build_system_prompt(effective_max: int | None = None) -> str:
     """
     Construye el system prompt.
 
-    effective_max: límite real de oraciones para esta inferencia.
-    Cuando hay recomendación de seguimiento, se pasa max_sentences - 1
-    para que el modelo deje espacio sin necesidad de truncamiento.
+    Es inmutable por defecto (fijado en settings.max_sentences) para permitir
+    que Ollama mantenga y reutilice el KV Prefix Cache de los ~1595 tokens
+    a lo largo de todas las inferencias consecutivas.
     """
     limit = effective_max if effective_max is not None else settings.max_sentences
 

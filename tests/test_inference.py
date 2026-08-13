@@ -66,7 +66,7 @@ def test_postprocess_strips_code_fences():
 
 def test_estimate_tokens_scales_with_length():
     assert _estimate_tokens("") == 0
-    assert _estimate_tokens("x" * 35) == 10
+    assert _estimate_tokens("x" * 33) == 10
     # Monotonicidad basica
     assert _estimate_tokens("x" * 1000) > _estimate_tokens("x" * 500)
 

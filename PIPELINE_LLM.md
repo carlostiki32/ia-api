@@ -147,7 +147,7 @@ El sistema usa:
 - `settings.max_concurrent = 1` (`MAX_CONCURRENT`)
 - un semaforo global `asyncio.Semaphore`
 - una cola maxima de espera de `5` requests (`MAX_QUEUE_SIZE`)
-- `settings.queue_wait_timeout = 120.0` (`QUEUE_WAIT_TIMEOUT`; `<= 0` = espera sin limite)
+- `settings.queue_wait_timeout = 30.0` (`QUEUE_WAIT_TIMEOUT`; `<= 0` = espera sin limite)
 
 Si la cola ya esta llena, el endpoint responde `503`.
 
@@ -507,10 +507,9 @@ las reglas que aplicaron al caso (ver seccion 13).
 
 ## 8. Construccion del prompt
 
-### `build_system_prompt(effective_max)`
+### `build_system_prompt()`
 
-El system prompt esta organizado en bloques explicitos (el texto completo vive en
-[app/prompt_builder.py](app/prompt_builder.py); pesa ~1595 tokens):
+El system prompt es **inmutable** (~1595 tokens) para permitir que Ollama / llama.cpp mantenga y reutilice el **KV Prefix Cache** a traves de peticiones consecutivas, reduciendo drasticamente el Time-To-First-Token (TTFT). Esta organizado en bloques explicitos (el texto completo vive en [app/prompt_builder.py](app/prompt_builder.py)):
 
 - **Regla de oro — nunca diagnosticar:** prohibe emitir diagnosticos o nombres de
   enfermedad, escalar un hallazgo a una entidad clinica, y proponer descartes,
@@ -521,7 +520,7 @@ El system prompt esta organizado en bloques explicitos (el texto completo vive e
   vino), inventar valores o usar placeholders (`[valor]`, `20/xx`), e interpretar
   por cuenta propia valores numericos sueltos (BUT, PPC, queratometria) sin
   correlacion que los interprete.
-- **Formato:** maximo `{limit}` oraciones en un solo parrafo corrido, sin bullets ni
+- **Formato:** maximo `{settings.max_sentences}` oraciones en un solo parrafo corrido, sin bullets ni
   encabezados, "El paciente" en tercera persona sin asumir genero, tiempo presente,
   español con acentos, punto final. Sin recomendaciones de seguimiento propias.
 - **Orden de redaccion:** motivo de consulta y AV s/c → refraccion final con AV c/c
@@ -539,9 +538,7 @@ El system prompt esta organizado en bloques explicitos (el texto completo vive e
   de convergencia, cm), BUT (tiempo de ruptura lagrimal, s), c/d o E/P (relacion
   copa/disco), AV s/c / AV c/c.
 
-Si existe recomendacion de seguimiento, `effective_max = max_sentences - 1` (el
-modelo deja espacio para la oracion final que se agrega despues de forma
-determinista).
+Si existe recomendacion de seguimiento, `_ensure_follow_up_last()` la agrega deterministamente al final.
 
 > El LLM pequeño (9B) no respeta estas reglas de forma 100% fiable; por eso ademas
 > del prompt existen los **guardarrailes deterministas** de `clean_impresion`
@@ -714,7 +711,7 @@ Antes de llamar a Ollama se verifica:
 est_input + num_predict <= num_ctx * 0.95
 ```
 
-`est_input` se estima con un heuristico de ~3.5 caracteres por token (español con
+`est_input` se estima con un heuristico calibrado de ~3.3 caracteres por token (español con
 tokenizer Qwen); el conteo real lo devuelve Ollama en `prompt_eval_count` despues de
 la inferencia. Si se excede, se lanza `ValueError` con prefijo `context_overflow:` →
 `413` en el cliente.

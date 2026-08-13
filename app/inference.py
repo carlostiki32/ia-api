@@ -36,10 +36,11 @@ THINK_BLOCK_RE      = re.compile(r"<think>.*?</think>", re.DOTALL)
 CODEFENCE_OPEN_RE   = re.compile(r"^```\w*\n?")
 CODEFENCE_CLOSE_RE  = re.compile(r"\n?```\s*$")
 
-# Heuristico para español con tokenizer Qwen: ~3.5 chars/token.
+# Heuristico calibrado para español con tokenizer Qwen (~3.3 chars/token).
+# Es mas conservador ante datos tabulares, signos (+/-) y abreviaturas clinicas.
 # Se usa solo para validacion preemptiva; el conteo real viene del
 # prompt_eval_count que Ollama devuelve tras la inferencia.
-_CHARS_PER_TOKEN_ES = 3.5
+_CHARS_PER_TOKEN_ES = 3.3
 
 # Prefijo que marca ValueError de oversized prompt para que main.py
 # lo pueda distinguir de otros ValueError y responder 413 en vez de 500.
@@ -191,10 +192,9 @@ async def run_inference(
     valida el contexto de forma preemptiva, llama al modelo y aplica el
     postprocesado + guardarraíles. Devuelve el párrafo final.
     """
-    has_recommendation = bool(payload.clinica.recomendacion_seguimiento)
-    effective_max = settings.max_sentences - 1 if has_recommendation else settings.max_sentences
-
-    system_prompt = build_system_prompt(effective_max)
+    # System prompt inmutable: permite que Ollama mantenga y reutilice el KV Prefix Cache
+    # de los ~1595 tokens a traves de peticiones consecutivas (reduciendo TTFT).
+    system_prompt = build_system_prompt()
     user_prompt = build_user_prompt(payload)
 
     # Logging detallado del prompt renderizado antes de enviar a inferencia
