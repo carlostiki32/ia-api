@@ -33,8 +33,8 @@ _SNELLEN_RE = re.compile(r"^\s*20\s*/\s*(\d{1,3})\s*$")
 # ---------------------------------------------------------------------------
 # Catalogo del formulario de receta del SaaS (valores estandarizados).
 # ---------------------------------------------------------------------------
-# Esfera: dropdown +20.00 a -20.00 en pasos de 0.25 (OpticaOptions::esfera).
-_ESFERA_MAX_ABS_D = 20.0
+# Esfera: dropdown habitual +20.00 a -20.00, pero admite alta miopia y afaquia extrema hasta 30.00 D.
+_ESFERA_MAX_ABS_D = 30.0
 # Cilindro: dropdown 0.00 a -8.00 en pasos de 0.25 (OpticaOptions::cilindro).
 # Convencion de cilindro NEGATIVO: el catalogo nunca emite cilindro positivo;
 # un positivo solo puede venir de datos legacy en convencion plus-cyl y se

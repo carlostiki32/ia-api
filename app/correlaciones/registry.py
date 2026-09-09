@@ -1,4 +1,4 @@
-"""Registro y evaluacion de las 41 correlaciones.
+"""Registro y evaluacion de las 49 correlaciones.
 
 El ORDEN de esta lista es un invariante clinico, no incidental: determina el orden
 en que los hechos llegan al prompt y, por tanto, la secuencia narrativa del
@@ -23,8 +23,10 @@ from app.correlaciones.akr import (
 )
 from app.correlaciones.anexos_cristalino import (
     _cond_anexos_patologicos,
+    _cond_anexos_riesgo_glaucoma_secundario,
     _cond_opacidad_cristaliniana,
     _texto_anexos_patologicos,
+    _texto_anexos_riesgo_glaucoma_secundario,
     _texto_opacidad_cristaliniana,
 )
 from app.correlaciones.binocularidad import (
@@ -52,56 +54,84 @@ from app.correlaciones.campos_amsler import (
 from app.correlaciones.contexto import (
     _cond_adicion_incongruente_edad,
     _cond_adulto_mayor_screening,
+    _cond_ambliopia_isoametropica_bilateral,
     _cond_ambliopia_sospecha,
     _cond_cvs_sospecha,
+    _cond_deficit_visual_inexplicado_refractivo,
+    _cond_insuficiencia_acomodacion_joven,
     _cond_presbicia_multifocal,
     _cond_presbicia_sin_adicion,
     _texto_adicion_incongruente_edad,
     _texto_adulto_mayor_screening,
+    _texto_ambliopia_isoametropica_bilateral,
     _texto_ambliopia_sospecha,
     _texto_cvs_sospecha,
+    _texto_deficit_visual_inexplicado_refractivo,
+    _texto_insuficiencia_acomodacion_joven,
     _texto_presbicia_multifocal,
     _texto_presbicia_sin_adicion,
 )
 from app.correlaciones.corneal import (
     _cond_astigmatismo_corneal_vs_refractivo,
+    _cond_astigmatismo_lenticular_puro,
+    _cond_cornea_plana_extrema,
     _cond_queratocono_ectasia_sospecha,
+    _cond_queratometria_asimetrica_interocular,
     _texto_astigmatismo_corneal_vs_refractivo,
+    _texto_astigmatismo_lenticular_puro,
+    _texto_cornea_plana_extrema,
     _texto_queratocono_ectasia_sospecha,
+    _texto_queratometria_asimetrica_interocular,
 )
 from app.correlaciones.fondo_de_ojo import (
     _cond_fondo_glaucomatoso,
     _cond_fondo_hipertensivo,
     _cond_fondo_macular_dmae,
     _cond_fondo_macular_otros,
+    _cond_fondo_oclusion_vascular_urgente,
     _cond_fondo_periferico_riesgo,
     _cond_fondo_vascular_diabetico,
     _cond_glaucoma_asimetrico,
+    _cond_isnt_violada_papila,
     _cond_papila_patologica,
+    _cond_sintomas_alarma_traccion_vitreoretina,
     _texto_fondo_glaucomatoso,
     _texto_fondo_hipertensivo,
     _texto_fondo_macular_dmae,
     _texto_fondo_macular_otros,
+    _texto_fondo_oclusion_vascular_urgente,
     _texto_fondo_periferico_riesgo,
     _texto_fondo_vascular_diabetico,
     _texto_glaucoma_asimetrico,
+    _texto_isnt_violada_papila,
     _texto_papila_patologica,
+    _texto_sintomas_alarma_traccion_vitreoretina,
 )
 from app.correlaciones.pupilas_motilidad import (
+    _cond_horner_o_tercer_par_sospecha,
     _cond_motilidad_alterada,
     _cond_pupilas_alteradas,
+    _texto_horner_o_tercer_par_sospecha,
     _texto_motilidad_alterada,
     _texto_pupilas_alteradas,
 )
 from app.correlaciones.refractivas import (
+    _cond_aniseiconia_queratometrica_severa,
     _cond_anisometropia,
+    _cond_antimetropia_pura_acomodativa,
     _cond_astig_oblicuo,
+    _cond_astigmatismo_contra_regla_joven,
     _cond_av_cc_limitada,
+    _cond_distancia_vertice_alta_ametropia,
     _cond_hipermetropia_alta,
     _cond_miopia_magna,
+    _texto_aniseiconia_queratometrica_severa,
     _texto_anisometropia,
+    _texto_antimetropia_pura_acomodativa,
     _texto_astig_oblicuo,
+    _texto_astigmatismo_contra_regla_joven,
     _texto_av_cc_limitada,
+    _texto_distancia_vertice_alta_ametropia,
     _texto_hipermetropia_alta,
     _texto_miopia_magna,
 )
@@ -109,9 +139,11 @@ from app.correlaciones.superficie_ocular import (
     _cond_but_critico,
     _cond_but_limitrofe,
     _cond_but_pantallas,
+    _cond_ojo_seco_evaporativo_dgm,
     _texto_but_critico,
     _texto_but_limitrofe,
     _texto_but_pantallas,
+    _texto_ojo_seco_evaporativo_dgm,
 )
 from app.schemas import ImpresionClinicaRequest
 
@@ -120,31 +152,44 @@ logger = logging.getLogger(__name__)
 
 CORRELACIONES: list[Correlacion] = [
     Correlacion("fondo_periferico_riesgo", _cond_fondo_periferico_riesgo, _texto_fondo_periferico_riesgo),
+    Correlacion("fondo_oclusion_vascular_urgente", _cond_fondo_oclusion_vascular_urgente, _texto_fondo_oclusion_vascular_urgente),
     Correlacion("papila_patologica", _cond_papila_patologica, _texto_papila_patologica),
     Correlacion("glaucoma_asimetrico", _cond_glaucoma_asimetrico, _texto_glaucoma_asimetrico),
+    Correlacion("horner_o_tercer_par_sospecha", _cond_horner_o_tercer_par_sospecha, _texto_horner_o_tercer_par_sospecha),
     Correlacion("pupilas_alteradas", _cond_pupilas_alteradas, _texto_pupilas_alteradas),
     Correlacion("fondo_glaucomatoso", _cond_fondo_glaucomatoso, _texto_fondo_glaucomatoso),
+    Correlacion("isnt_violada_papila", _cond_isnt_violada_papila, _texto_isnt_violada_papila),
     Correlacion("fondo_macular_dmae", _cond_fondo_macular_dmae, _texto_fondo_macular_dmae),
     Correlacion("fondo_macular_otros", _cond_fondo_macular_otros, _texto_fondo_macular_otros),
+    Correlacion("sintomas_alarma_traccion_vitreoretina", _cond_sintomas_alarma_traccion_vitreoretina, _texto_sintomas_alarma_traccion_vitreoretina),
     Correlacion("fondo_hipertensivo", _cond_fondo_hipertensivo, _texto_fondo_hipertensivo),
     Correlacion("fondo_vascular_diabetico", _cond_fondo_vascular_diabetico, _texto_fondo_vascular_diabetico),
     Correlacion("motilidad_alterada", _cond_motilidad_alterada, _texto_motilidad_alterada),
     Correlacion("campos_visuales_alterados", _cond_campos_visuales_alterados, _texto_campos_visuales_alterados),
     Correlacion("opacidad_cristaliniana", _cond_opacidad_cristaliniana, _texto_opacidad_cristaliniana),
+    Correlacion("anexos_riesgo_glaucoma_secundario", _cond_anexos_riesgo_glaucoma_secundario, _texto_anexos_riesgo_glaucoma_secundario),
     Correlacion("but_critico", _cond_but_critico, _texto_but_critico),
     Correlacion("miopia_magna", _cond_miopia_magna, _texto_miopia_magna),
     Correlacion("hipermetropia_alta", _cond_hipermetropia_alta, _texto_hipermetropia_alta),
+    Correlacion("distancia_vertice_alta_ametropia", _cond_distancia_vertice_alta_ametropia, _texto_distancia_vertice_alta_ametropia),
     Correlacion("anisometropia", _cond_anisometropia, _texto_anisometropia),
+    Correlacion("antimetropia_pura_acomodativa", _cond_antimetropia_pura_acomodativa, _texto_antimetropia_pura_acomodativa),
+    Correlacion("aniseiconia_queratometrica_severa", _cond_aniseiconia_queratometrica_severa, _texto_aniseiconia_queratometrica_severa),
     Correlacion("av_cc_limitada", _cond_av_cc_limitada, _texto_av_cc_limitada),
     Correlacion("ar_rx_espasmo_acomodativo", _cond_ar_rx_espasmo_acomodativo, _texto_ar_rx_espasmo_acomodativo),
     Correlacion("ar_rx_cambio_cristalino", _cond_ar_rx_cambio_cristalino, _texto_ar_rx_cambio_cristalino),
     Correlacion("ar_rx_variabilidad_inespecifica", _cond_ar_rx_variabilidad_inespecifica, _texto_ar_rx_variabilidad_inespecifica),
     Correlacion("ar_detecta_astigmatismo_no_prescrito", _cond_ar_detecta_astigmatismo_no_prescrito, _texto_ar_detecta_astigmatismo_no_prescrito),
     Correlacion("astig_oblicuo", _cond_astig_oblicuo, _texto_astig_oblicuo),
+    Correlacion("astigmatismo_contra_regla_joven", _cond_astigmatismo_contra_regla_joven, _texto_astigmatismo_contra_regla_joven),
     Correlacion("queratocono_ectasia_sospecha", _cond_queratocono_ectasia_sospecha, _texto_queratocono_ectasia_sospecha),
+    Correlacion("queratometria_asimetrica_interocular", _cond_queratometria_asimetrica_interocular, _texto_queratometria_asimetrica_interocular),
+    Correlacion("cornea_plana_extrema", _cond_cornea_plana_extrema, _texto_cornea_plana_extrema),
     Correlacion("astigmatismo_corneal_vs_refractivo", _cond_astigmatismo_corneal_vs_refractivo, _texto_astigmatismo_corneal_vs_refractivo),
+    Correlacion("astigmatismo_lenticular_puro", _cond_astigmatismo_lenticular_puro, _texto_astigmatismo_lenticular_puro),
     Correlacion("amsler_alterado", _cond_amsler_alterado, _texto_amsler_alterado),
     Correlacion("anexos_patologicos", _cond_anexos_patologicos, _texto_anexos_patologicos),
+    Correlacion("ojo_seco_evaporativo_dgm", _cond_ojo_seco_evaporativo_dgm, _texto_ojo_seco_evaporativo_dgm),
     Correlacion("insuficiencia_convergencia", _cond_insuficiencia_convergencia, _texto_insuficiencia_convergencia),
     Correlacion("ppc_exoforia", _cond_ppc_exoforia, _texto_ppc_exoforia),
     Correlacion("cover_exoforia_sintomatica", _cond_cover_exoforia_sintomatica, _texto_cover_exoforia_sintomatica),
@@ -157,14 +202,17 @@ CORRELACIONES: list[Correlacion] = [
     Correlacion("but_limitrofe", _cond_but_limitrofe, _texto_but_limitrofe),
     Correlacion("presbicia_multifocal", _cond_presbicia_multifocal, _texto_presbicia_multifocal),
     Correlacion("presbicia_sin_adicion", _cond_presbicia_sin_adicion, _texto_presbicia_sin_adicion),
+    Correlacion("insuficiencia_acomodacion_joven", _cond_insuficiencia_acomodacion_joven, _texto_insuficiencia_acomodacion_joven),
     Correlacion("adicion_incongruente_edad", _cond_adicion_incongruente_edad, _texto_adicion_incongruente_edad),
     Correlacion("ambliopia_sospecha", _cond_ambliopia_sospecha, _texto_ambliopia_sospecha),
+    Correlacion("ambliopia_isoametropica_bilateral", _cond_ambliopia_isoametropica_bilateral, _texto_ambliopia_isoametropica_bilateral),
+    Correlacion("deficit_visual_inexplicado_refractivo", _cond_deficit_visual_inexplicado_refractivo, _texto_deficit_visual_inexplicado_refractivo),
     Correlacion("adulto_mayor_screening", _cond_adulto_mayor_screening, _texto_adulto_mayor_screening),
 ]
 
 
 def _evaluar(req: ImpresionClinicaRequest) -> list[tuple[str, str]]:
-    """Evalua las 41 correlaciones dentro de un unico scope de memoizacion y
+    """Evalua las 57 correlaciones dentro de un unico scope de memoizacion y
     devuelve pares (nombre, texto) en el orden de registro de CORRELACIONES."""
     token = _eval_cache.set({})
     try:
@@ -189,6 +237,11 @@ def evaluar_correlaciones(req: ImpresionClinicaRequest) -> list[str]:
     return [texto for _, texto in activas]
 
 
+def evaluar_correlaciones_con_nombres(req: ImpresionClinicaRequest) -> list[tuple[str, str]]:
+    """Pares (nombre, texto) de las correlaciones activas."""
+    return _evaluar(req)
+
+
 def nombres_correlaciones_activas(req: ImpresionClinicaRequest) -> list[str]:
     """Solo los nombres de las correlaciones activas, para trazabilidad en la
     respuesta HTTP. Determinista y barato: comparte la logica de supresion con
@@ -198,3 +251,4 @@ def nombres_correlaciones_activas(req: ImpresionClinicaRequest) -> list[str]:
         return [c.nombre for c in CORRELACIONES if c.condicion(req)]
     finally:
         _eval_cache.reset(token)
+

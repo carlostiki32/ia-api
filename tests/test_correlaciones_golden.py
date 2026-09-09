@@ -37,7 +37,13 @@ GOLDEN: list[tuple[str, ImpresionClinicaRequest, str]] = [
     (
         "fondo_periferico_riesgo",
         _req(clinica=DatosClinica(fondo_de_ojo="Lattice temporal en OI.")),
-        "Hallazgo urgente: en la retina periferica se documenta degeneracion lattice, "
+        "En la retina periferica se documenta degeneracion lattice, "
+        "que amerita seguimiento retinologico preventivo y educacion sobre sintomas de alarma (fotopsias y miodesopsias).",
+    ),
+    (
+        "fondo_periferico_riesgo_urgente",
+        _req(clinica=DatosClinica(fondo_de_ojo="Desgarro retiniano en herradura superior en OI.")),
+        "Hallazgo urgente: en la retina periferica se documenta desgarro retiniano, "
         "que amerita valoracion retinologica urgente y posible tratamiento profilactico.",
     ),
     (
@@ -374,6 +380,167 @@ GOLDEN: list[tuple[str, ImpresionClinicaRequest, str]] = [
         "el examen actual, se recomienda descarte activo de catarata, glaucoma y "
         "maculopatia asociada a la edad mediante exploracion dirigida.",
     ),
+    (
+        "horner_o_tercer_par_sospecha",
+        _req(clinica=DatosClinica(
+            anexos_oculares="Ptosis palpebral en OD",
+            reflejos_pupilares="Anisocoria pupilar OD > OI",
+        )),
+        "Hallazgo urgente: la presencia simultanea de alteracion pupilar y ptosis palpebral "
+        "sugiere compromiso de la inervacion simpatica u oculomotora (sospecha de sindrome de "
+        "Horner o paresia del III par craneal), ameritando valoracion neurooftalmologica urgente.",
+    ),
+    (
+        "isnt_violada_papila",
+        _req(clinica=DatosClinica(fondo_de_ojo="Regla ISNT violada en papila de OD.")),
+        "Se documenta alteracion focal del anillo neurorretiniano con violacion de la regla ISNT "
+        "en la papila optica, hallazgo sugestivo de neuropatia glaucomatosa inicial que amerita "
+        "tonometria y perimetria priorizada.",
+    ),
+    (
+        "cornea_plana_extrema",
+        _req(akr=AkrSnapshot(od=AkrOjo(k1_d=38.50, k2_d=39.00))),
+        "La queratometria revela curvatura corneal marcadamente plana en OD (38.50D), "
+        "variante anatomica de relevancia refractiva que amerita valoracion del segmento anterior "
+        "y monitorizacion biometrica.",
+    ),
+    (
+        "astigmatismo_lenticular_puro",
+        _req(
+            akr=AkrSnapshot(od=AkrOjo(k1_d=43.00, k2_d=43.25)),
+            refraccion=Refraccion(od=GraduacionOjo(cilindro=-2.00, eje=180)),
+        ),
+        "Se documenta astigmatismo refractivo relevante en presencia de una superficie corneal "
+        "queratometricamente esferica en OD (cilindro refractivo 2.00D vs cilindro corneal 0.25D), "
+        "lo que confirma un origen cristaliniano/interno del defecto y amerita valoracion del "
+        "segmento anterior para descartar asimetria cristaliniana o ectopia lentis.",
+    ),
+    (
+        "ojo_seco_evaporativo_dgm",
+        _req(clinica=DatosClinica(
+            anexos_oculares="Blefaritis anterior y disfuncion meibomio",
+            ojo_seco_but_seg=6,
+        )),
+        "La presencia de alteracion en glandulas de Meibomio o blefaritis asociada a un tiempo de "
+        "ruptura lagrimal reducido configura un cuadro compatible con ojo seco de predominio "
+        "evaporativo, ameritando manejo dirigido a la superficie palpebral y estabilidad lagrimal.",
+    ),
+    (
+        "aniseiconia_queratometrica_severa",
+        _req(
+            refraccion=Refraccion(
+                od=GraduacionOjo(esfera=-1.00),
+                oi=GraduacionOjo(esfera=-4.00),
+            ),
+            akr=AkrSnapshot(
+                od=AkrOjo(k_promedio_d=42.00),
+                oi=AkrOjo(k_promedio_d=44.25),
+            ),
+        ),
+        "La asimetria queratometrica interocular significativa (2.25D) sugiere que la anisometropia "
+        "posee un fuerte componente corneal, lo que predispone a aniseiconia sintomatica con lentes "
+        "aereos; se sugiere considerar la adaptacion de lentes de contacto para optimizar la fusion binocular.",
+    ),
+    (
+        "insuficiencia_acomodacion_joven",
+        _req(
+            paciente=ContextoPaciente(edad=22, motivo_consulta="Cansancio visual y fatiga al leer"),
+            refraccion=Refraccion(od=GraduacionOjo(add=1.00)),
+        ),
+        "El paciente de 22 anos presenta sintomatologia astenopica en vision cercana asociada a la "
+        "prescripcion de adicion (+1.00D), patron sugestivo de insuficiencia o disfuncion acomodativa; "
+        "se recomienda evaluar la amplitud de acomodacion (metodo de Donders o Sheard) y la flexibilidad "
+        "acomodativa con flippers antes de consolidar la adicion definitiva.",
+    ),
+    (
+        "deficit_visual_inexplicado_refractivo",
+        _req(
+            paciente=ContextoPaciente(edad=28),
+            refraccion=Refraccion(
+                od=GraduacionOjo(esfera=-1.50, av_sc="20/100", av_cc="20/50"),
+            ),
+        ),
+        "Se registra agudeza visual subnormal en OD con correccion (20/50) (AV sin correccion 20/100) "
+        "sin hallazgos organicos evidentes en el examen actual ni factores ambliogenicos manifiestos; "
+        "se recomienda prueba con agujero estenopeico, reevaluar refraccion bajo ciclopejia o descartar "
+        "patologia corneal o macular subclinica.",
+    ),
+    (
+        "fondo_oclusion_vascular_urgente",
+        _req(clinica=DatosClinica(fondo_de_ojo="Sospecha de OVCR con hemorragias 360 grados")),
+        "Hallazgo urgente: los hallazgos en fondo de ojo son compatibles con oclusion vascular retiniana "
+        "(arterial o venosa), emergencia oftalmologica que amerita valoracion retinologica urgente y "
+        "descarte sistemico cardiovascular y tromboembolico prioritario.",
+    ),
+    (
+        "sintomas_alarma_traccion_vitreoretina",
+        _req(paciente=ContextoPaciente(motivo_consulta="Refiere fotopsias y flashes en periferia")),
+        "La presencia de fotopsias y/o miodesopsias agudas sugiere traccion vitreorretiniana "
+        "en el contexto de desprendimiento de vitreo posterior en evolucion, ameritando examen "
+        "bajo midriasis de la retina periferica con lente de tres espejos o indentacion escleral "
+        "para descartar desgarros retinianos subclinicos.",
+    ),
+    (
+        "anexos_riesgo_glaucoma_secundario",
+        _req(clinica=DatosClinica(anexos_oculares="Huso de Krukenberg en endotelio corneal")),
+        "En la biomicroscopia del segmento anterior se documentan signos compatibles con "
+        "sindrome de dispersion pigmentaria o pseudoexfoliacion, entidades con predisposicion "
+        "al desarrollo de glaucoma secundario de angulo abierto que ameritan gonioscopia y "
+        "control periodico de la presion intraocular.",
+    ),
+    (
+        "distancia_vertice_alta_ametropia",
+        _req(refraccion=Refraccion(od=GraduacionOjo(esfera=-4.50))),
+        "La magnitud de la ametropia en OD (-4.50D) (|esfera| >= 4.00D) hace que la distancia al vertice "
+        "tenga impacto optico clinicamente significativo; se recomienda registrar la distancia al vertice "
+        "de examen para la elaboracion del lente aereo o calcular la potencia efectiva compensada en caso "
+        "de adaptacion de lentes de contacto.",
+    ),
+    (
+        "antimetropia_pura_acomodativa",
+        _req(refraccion=Refraccion(
+            od=GraduacionOjo(esfera=-1.50),
+            oi=GraduacionOjo(esfera=+1.25),
+        )),
+        "Se documenta antimetropia (OD (-1.50D) vs OI (+1.25D)), condicion con un ojo miope y el contralateral "
+        "hipermetrope que induce demandas acomodativas asimetricas y anisoforia con lentes aereos; se recomienda "
+        "vigilar el balance binocular y considerar lentes de contacto para facilitar la fusion.",
+    ),
+    (
+        "astigmatismo_contra_regla_joven",
+        _req(
+            paciente=ContextoPaciente(edad=24),
+            refraccion=Refraccion(od=GraduacionOjo(cilindro=-1.50, eje=90)),
+        ),
+        "Se documenta astigmatismo contra la regla en paciente joven en OD (-1.50 x 90), orientacion no habitual "
+        "para el grupo etario que amerita valoracion del segmento anterior y topografia corneal para descartar "
+        "irregularidad corneal o ectasia incipiente.",
+    ),
+    (
+        "queratometria_asimetrica_interocular",
+        _req(akr=AkrSnapshot(
+            od=AkrOjo(k_promedio_d=42.50),
+            oi=AkrOjo(k_promedio_d=44.00),
+        )),
+        "Se documenta asimetria queratometrica interocular significativa (1.50D (OD 42.50D vs OI 44.00D)) "
+        "sin ectasia corneal manifiesta en el examen actual, hallazgo que amerita monitorizacion "
+        "biometrica periodica y estudio tomografico/topografico corneal para descarte de ectasia "
+        "asimetrica incipiente o queratocono frustro.",
+    ),
+    (
+        "ambliopia_isoametropica_bilateral",
+        _req(
+            paciente=ContextoPaciente(edad=8),
+            refraccion=Refraccion(
+                od=GraduacionOjo(esfera=+5.00, av_cc="20/50"),
+                oi=GraduacionOjo(esfera=+5.00, av_cc="20/50"),
+            ),
+        ),
+        "En paciente de 8 anos con agudeza visual corregida bilateralmente limitada "
+        "(OD 20/50, OI 20/50) asociada a alta ametropia simetrica en ausencia de patologia organica, "
+        "el cuadro es compatible con ambliopia isoametropica (bilateral refractiva), ameritando prescripcion "
+        "optica total y valoracion de terapia visual de estimulacion.",
+    ),
 ]
 
 
@@ -387,7 +554,7 @@ def test_texto_clinico_exacto(caso_id, req, esperado):
 
 
 def test_golden_cubre_todas_las_correlaciones():
-    """Garantiza que cada una de las 36 correlaciones registradas tenga al menos
+    """Garantiza que cada una de las 57 correlaciones registradas tenga al menos
     un golden que fije su texto. Si se agrega una correlacion nueva sin golden,
     esta prueba falla y obliga a documentar su texto exacto."""
     cubiertas = set()

@@ -117,10 +117,11 @@ def test_graduacion_ojo_eje_fuera_de_rango_se_normaliza_mod_180():
 
 
 def test_graduacion_ojo_esfera_fuera_de_catalogo_se_descarta():
-    # Catalogo del SaaS: dropdown -20.00..+20.00 en pasos de 0.25.
-    assert GraduacionOjo(esfera=25.0).esfera is None
-    assert GraduacionOjo(esfera=-20.25).esfera is None
-    assert GraduacionOjo(esfera=20.0).esfera == 20.0
+    # Rango clinico: hasta +/-30.00 D para permitir alta miopia (-25.00 D) y afaquia extrema.
+    assert GraduacionOjo(esfera=35.0).esfera is None
+    assert GraduacionOjo(esfera=-30.25).esfera is None
+    assert GraduacionOjo(esfera=-25.0).esfera == -25.0
+    assert GraduacionOjo(esfera=30.0).esfera == 30.0
 
 
 def test_graduacion_ojo_cilindro_fuera_de_catalogo_se_descarta():

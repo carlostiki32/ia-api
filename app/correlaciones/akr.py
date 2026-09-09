@@ -15,7 +15,7 @@ from app.correlaciones.queratometria import (
     _keratometry_supports_astigmatism,
     _req_has_corneal_irregularity,
 )
-from app.correlaciones.texto import _join_hallazgos
+from app.correlaciones.texto import _join_hallazgos, _normalize_text
 from app.schemas import ImpresionClinicaRequest
 
 # La red de seguridad de variabilidad inespecifica exige una discrepancia AR-Rx
@@ -42,7 +42,7 @@ def _cond_ar_rx_espasmo_acomodativo(req: ImpresionClinicaRequest) -> bool:
         esf_rx = getattr(req.refraccion, ojo).esfera
         if esf_ar is None or esf_rx is None:
             continue
-        if (esf_rx - esf_ar) >= 0.50:
+        if (esf_rx - esf_ar) >= 0.75:
             return True
     return False
 
@@ -64,6 +64,18 @@ def _cond_ar_rx_cambio_cristalino(req: ImpresionClinicaRequest) -> bool:
         return False
     if _req_has_corneal_irregularity(req):
         return False
+    textos = []
+    if req.paciente is not None and req.paciente.motivo_consulta:
+        textos.append(req.paciente.motivo_consulta)
+    if req.clinica is not None:
+        if req.clinica.anexos_oculares:
+            textos.append(req.clinica.anexos_oculares)
+        if req.clinica.fondo_de_ojo:
+            textos.append(req.clinica.fondo_de_ojo)
+    if textos:
+        texto_norm = _normalize_text(" ".join(textos))
+        if any(t in texto_norm for t in ("pseudofaquia", "pseudofaco", "pseudofaquico", "lente intraocular", "lio", "iol", "afaquia", "afaquico")):
+            return False
     for ojo in ("od", "oi"):
         esf_ar = getattr(req.akr, ojo).esfera
         esf_rx = getattr(req.refraccion, ojo).esfera

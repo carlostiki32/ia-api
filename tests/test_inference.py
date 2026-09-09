@@ -5,6 +5,7 @@ import pytest
 from app.config import settings
 from app.inference import (
     CONTEXT_OVERFLOW_PREFIX,
+    _ensure_emergency_preserved,
     _estimate_tokens,
     _postprocess,
     run_inference,
@@ -101,3 +102,25 @@ def test_run_inference_rejects_oversized_prompt(monkeypatch):
     msg = str(excinfo.value)
     assert msg.startswith(CONTEXT_OVERFLOW_PREFIX)
     assert "excede num_ctx" in msg
+
+
+def test_ensure_emergency_preserved_when_already_present():
+    payload = ImpresionClinicaRequest(
+        receta_id="test-emerg-ok",
+        clinica={"fondo_de_ojo": "Desgarro retiniano en herradura en sector temporal"},
+    )
+    text = "Se detecta desgarro retiniano periferico que amerita valoracion urgente por retinologo."
+    result = _ensure_emergency_preserved(text, payload)
+    assert result == text
+
+
+def test_ensure_emergency_preserved_injects_if_dropped():
+    payload = ImpresionClinicaRequest(
+        receta_id="test-emerg-dropped",
+        clinica={"fondo_de_ojo": "Desgarro retiniano en herradura en sector temporal"},
+    )
+    text = "Paciente acude a control optometrico rutinario. Se prescribe correccion aerea."
+    result = _ensure_emergency_preserved(text, payload)
+    assert "Hallazgo urgente" in result or "desgarro" in result.lower()
+    assert result.startswith("Paciente acude a control optometrico rutinario.")
+

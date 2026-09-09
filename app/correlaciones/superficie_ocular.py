@@ -5,7 +5,19 @@ exposicion a pantallas). Son mutuamente excluyentes por construccion.
 """
 from __future__ import annotations
 
+from app.correlaciones.base import _memoize_cond
+from app.correlaciones.texto import (
+    _contains_keyword,
+    _keyword_matches,
+    _normalize_text,
+)
 from app.schemas import ImpresionClinicaRequest
+
+_KEYWORDS_DGM_BLEFARITIS = (
+    "blefaritis", "meibomitis", "disfuncion de meibomio",
+    "disfuncion de glandulas de meibomio", "glandulas de meibomio",
+    "meibomio", "disfuncion glandular", "dgm",
+)
 
 
 def _cond_but_critico(req: ImpresionClinicaRequest) -> bool:
@@ -56,3 +68,33 @@ def _texto_but_limitrofe(req: ImpresionClinicaRequest) -> str:
         f"El tiempo de ruptura lagrimal de {but}s se encuentra en rango suboptimo, "
         "sugiriendo inestabilidad leve de la pelicula lagrimal."
     )
+
+
+@_memoize_cond
+def _cond_ojo_seco_evaporativo_dgm(req: ImpresionClinicaRequest) -> bool:
+    """Caso clinico: alteracion en glandulas de Meibomio o blefaritis + BUT reducido (<10s)
+    configura ojo seco evaporativo segun criterios TFOS DEWS II."""
+    clinica = req.clinica
+    if clinica is None or clinica.ojo_seco_but_seg is None:
+        return False
+    if clinica.ojo_seco_but_seg >= 10:
+        return False
+    if not _contains_keyword(
+        clinica.anexos_oculares,
+        _KEYWORDS_DGM_BLEFARITIS,
+        allow_negation_window=True,
+    ):
+        return False
+    anexos = _normalize_text(clinica.anexos_oculares)
+    if any(k in anexos for k in ("permeable", "buena expresibilidad", "expresion normal")):
+        otras_dgm = ("blefaritis", "meibomitis", "disfuncion de meibomio", "dgm", "taponamiento", "obstruc")
+        return any(_keyword_matches(anexos, k, allow_negation_window=True) for k in otras_dgm)
+    return True
+
+
+_texto_ojo_seco_evaporativo_dgm = (
+    "La presencia de alteracion en glandulas de Meibomio o blefaritis asociada a un tiempo "
+    "de ruptura lagrimal reducido configura un cuadro compatible con ojo seco de predominio "
+    "evaporativo, ameritando manejo dirigido a la superficie palpebral y estabilidad lagrimal."
+)
+

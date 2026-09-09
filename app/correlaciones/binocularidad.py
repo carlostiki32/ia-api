@@ -78,7 +78,7 @@ def _cover_tokens(req: ImpresionClinicaRequest) -> frozenset[str]:
 def _has_binocular_symptoms(req: ImpresionClinicaRequest) -> bool:
     paciente = req.paciente
     motivo = paciente.motivo_consulta if paciente is not None else None
-    return _contains_keyword(motivo, _KEYWORDS_BINOCULAR)
+    return _contains_keyword(motivo, _KEYWORDS_BINOCULAR, allow_negation_window=True)
 
 
 def _hay_demanda_proxima(req: ImpresionClinicaRequest) -> bool:
@@ -228,7 +228,7 @@ def _cond_endotropia_lente(req: ImpresionClinicaRequest) -> bool:
     if clinica is None:
         return False
     cover = _normalize_cover_text(clinica.cover_test)
-    return "endotropia" in cover and req.tipo_lente is not None
+    return "endotropia" in cover
 
 
 _texto_endotropia_lente = (
@@ -239,12 +239,12 @@ _texto_endotropia_lente = (
 
 
 def _cond_exotropia_lente(req: ImpresionClinicaRequest) -> bool:
-    """Caso clinico: exotropia manifiesta con lente prescrito amerita estudio binocular."""
+    """Caso clinico: exotropia manifiesta amerita estudio binocular."""
     clinica = req.clinica
     if clinica is None:
         return False
     cover = _normalize_cover_text(clinica.cover_test)
-    return "exotropia" in cover and req.tipo_lente is not None
+    return "exotropia" in cover
 
 
 _texto_exotropia_lente = (

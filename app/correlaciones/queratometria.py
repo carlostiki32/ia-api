@@ -44,9 +44,13 @@ def _k_max(ojo) -> float | None:
 
 
 def _corneal_cyl_abs(ojo) -> float | None:
-    if ojo is None or ojo.k_cilindro is None:
+    if ojo is None:
         return None
-    return abs(ojo.k_cilindro)
+    if ojo.k_cilindro is not None:
+        return abs(ojo.k_cilindro)
+    if ojo.k1_d is not None and ojo.k2_d is not None:
+        return abs(ojo.k1_d - ojo.k2_d)
+    return None
 
 
 def _axis_distance(a: int | None, b: int | None) -> int | None:
@@ -81,7 +85,9 @@ def _keratometry_suggests_corneal_irregularity(ojo) -> bool:
         return True
     if kmax is not None and kmax >= _K_SOSPECHOSA_D and (cyl is None or cyl >= 1.50):
         return True
-    return cyl is not None and cyl >= _CIL_CORNEAL_MUY_ALTO_D
+    if cyl is not None and cyl >= _CIL_CORNEAL_MUY_ALTO_D:
+        return kmax is None or kmax >= _K_SOSPECHOSA_D
+    return False
 
 
 def _req_has_corneal_irregularity(req: ImpresionClinicaRequest) -> bool:
@@ -91,13 +97,24 @@ def _req_has_corneal_irregularity(req: ImpresionClinicaRequest) -> bool:
     )
 
 
+def _k_promedio(ojo) -> float | None:
+    if ojo is None:
+        return None
+    if ojo.k_promedio_d is not None:
+        return ojo.k_promedio_d
+    if ojo.k1_d is not None and ojo.k2_d is not None:
+        return round((ojo.k1_d + ojo.k2_d) / 2.0, 2)
+    return None
+
+
 def _flat_keratometry_parts(req: ImpresionClinicaRequest) -> list[str]:
     parts = []
     for label, side in [("OD", "od"), ("OI", "oi")]:
         ojo = _ojo_akr(req, side)
-        if ojo is None or ojo.k_promedio_d is None or ojo.k_promedio_d >= _K_PLANA_D:
+        k_prom = _k_promedio(ojo)
+        if ojo is None or k_prom is None or k_prom >= _K_PLANA_D:
             continue
-        parts.append(f"{label} (K promedio {ojo.k_promedio_d:.2f}D)")
+        parts.append(f"{label} (K promedio {k_prom:.2f}D)")
     return parts
 
 

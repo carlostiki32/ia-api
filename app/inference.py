@@ -177,9 +177,65 @@ def _ensure_follow_up_last(text: str, recommendation: str | None) -> str:
     final_text = " ".join(s.strip() for s in sentences if s.strip()).strip()
     final_text = MULTISPACE_RE.sub(" ", final_text)
 
+    return final_text
+
+
+_EMERGENCY_RULES = {
+    "fondo_periferico_riesgo": ("desgarro", "desprendimiento", "retinolog", "retina periferica", "lattice"),
+    "glaucoma_asimetrico": ("defecto pupilar", "dpar", "rapd", "marcus gunn", "asimetric", "glaucomatosa"),
+    "horner_o_tercer_par_sospecha": ("horner", "tercer par", "iii par", "ptosis", "neurooftalmol"),
+    "papila_patologica": ("papiledema", "borramiento", "hipertension intracraneal", "atrofia optica"),
+    "fondo_oclusion_vascular_urgente": ("oclusion", "vascular retiniana", "trombosis", "mancha rojo cereza", "arterial o venosa"),
+}
+
+
+def _ensure_emergency_preserved(text: str, payload: ImpresionClinicaRequest) -> str:
+    """
+    Salvaguarda determinista de seguridad clinica (H5):
+    Garantiza que si el paciente presenta un hallazgo urgente (desgarro retiniano,
+    DPAR, sospecha de Horner/III par, papiledema u oclusion vascular), dicha
+    advertencia no haya sido diluida u omitida por el LLM ante el limite de oraciones.
+    Si el modelo omitio la advertencia, se anexa de forma determinista antes del follow-up.
+    """
+    from app.correlaciones.registry import evaluar_correlaciones_con_nombres
+
+    activas = evaluar_correlaciones_con_nombres(payload)
+    if not activas:
+        return text
+
+    normalized_output = text.lower()
+    missing_urgent_texts = []
+
+    for nombre, texto_corr in activas:
+        keywords = _EMERGENCY_RULES.get(nombre)
+        if not keywords:
+            continue
+        # En fondo_periferico y papila, solo aplica si es un hallazgo de urgencia manifiesta
+        if nombre == "fondo_periferico_riesgo" and not any(k in texto_corr.lower() for k in ("desgarro", "desprendimiento", "urgente")):
+            continue
+        if nombre == "papila_patologica" and not any(k in texto_corr.lower() for k in ("urgente", "papiledema", "borramiento")):
+            continue
+
+        if not any(k in normalized_output for k in keywords):
+            logger.warning(
+                "Hallazgo urgente '%s' omitido por el LLM en la redaccion final; inyectando deterministamente.",
+                nombre,
+            )
+            missing_urgent_texts.append(texto_corr.strip())
+
+    if not missing_urgent_texts:
+        return text
+
+    sentences = _split_sentences(text)
+    for missing_text in missing_urgent_texts:
+        if not missing_text.endswith("."):
+            missing_text += "."
+        sentences.append(missing_text)
+
+    final_text = " ".join(s.strip() for s in sentences if s.strip()).strip()
+    final_text = MULTISPACE_RE.sub(" ", final_text)
     if final_text and not final_text.endswith("."):
         final_text += "."
-
     return final_text
 
 
@@ -245,5 +301,6 @@ async def run_inference(
         raise
 
     text = clean_impresion(text)  # ← aquí, después de postprocess y antes de follow-up
+    text = _ensure_emergency_preserved(text, payload)
 
     return _ensure_follow_up_last(text, payload.clinica.recomendacion_seguimiento)

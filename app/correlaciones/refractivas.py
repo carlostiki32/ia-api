@@ -12,6 +12,7 @@ from app.correlaciones.queratometria import (
     _format_corneal_irregularity,
     _format_flat_keratometry,
     _has_keratometry,
+    _k_promedio,
     _keratometry_axis_matches,
     _keratometry_suggests_corneal_irregularity,
     _keratometry_supports_astigmatism,
@@ -159,8 +160,8 @@ def _texto_anisometropia(req: ImpresionClinicaRequest) -> str:
     od_akr = _ojo_akr(req, "od")
     oi_akr = _ojo_akr(req, "oi")
     if _has_keratometry(od_akr) and _has_keratometry(oi_akr):
-        od_k = od_akr.k_promedio_d
-        oi_k = oi_akr.k_promedio_d
+        od_k = _k_promedio(od_akr)
+        oi_k = _k_promedio(oi_akr)
         if od_k is not None and oi_k is not None and abs(od_k - oi_k) >= 1.00:
             texto += f" La queratometria agrega asimetria corneal interocular de {abs(od_k - oi_k):.2f}D en K promedio."
         elif (
@@ -248,3 +249,121 @@ def _texto_astig_oblicuo(req: ImpresionClinicaRequest) -> str:
             descripcion += " confirmado por queratometria"
         partes.append(f"{label} ({cil:+.2f} x {eje}): {descripcion}")
     return "; ".join(partes) + "."
+
+
+def _asimetria_k_interocular(req: ImpresionClinicaRequest) -> float | None:
+    od_akr = _ojo_akr(req, "od")
+    oi_akr = _ojo_akr(req, "oi")
+    if od_akr is None or oi_akr is None:
+        return None
+    od_k = _k_promedio(od_akr)
+    oi_k = _k_promedio(oi_akr)
+    if od_k is None or oi_k is None:
+        return None
+    return abs(od_k - oi_k)
+
+
+@_memoize_cond
+def _cond_aniseiconia_queratometrica_severa(req: ImpresionClinicaRequest) -> bool:
+    """Caso clinico: anisometropia con asimetria queratometrica interocular significativa (>= 1.50 D)."""
+    if not _cond_anisometropia(req):
+        return False
+    diff = _asimetria_k_interocular(req)
+    return diff is not None and diff >= 1.50
+
+
+def _texto_aniseiconia_queratometrica_severa(req: ImpresionClinicaRequest) -> str:
+    diff = _asimetria_k_interocular(req)
+    val = f"{diff:.2f}D" if diff is not None else "relevante"
+    return (
+        f"La asimetria queratometrica interocular significativa ({val}) sugiere que la "
+        "anisometropia posee un fuerte componente corneal, lo que predispone a aniseiconia "
+        "sintomatica con lentes aereos; se sugiere considerar la adaptacion de lentes de contacto "
+        "para optimizar la fusion binocular."
+    )
+
+
+def _vertice_parts(req: ImpresionClinicaRequest) -> list[str]:
+    if req.refraccion is None:
+        return []
+    parts = []
+    for label, eye in [("OD", req.refraccion.od), ("OI", req.refraccion.oi)]:
+        if eye is not None and eye.esfera is not None and abs(eye.esfera) >= 4.00:
+            parts.append(f"{label} ({eye.esfera:+.2f}D)")
+    return parts
+
+
+@_memoize_cond
+def _cond_distancia_vertice_alta_ametropia(req: ImpresionClinicaRequest) -> bool:
+    """Caso clinico: ametropia esferica >= 4.00 D hace que la distancia al vertice sea clinicamente relevante."""
+    return bool(_vertice_parts(req))
+
+
+def _texto_distancia_vertice_alta_ametropia(req: ImpresionClinicaRequest) -> str:
+    partes = _vertice_parts(req)
+    ojos = ", ".join(partes) if partes else "la refraccion prescrita"
+    return (
+        f"La magnitud de la ametropia en {ojos} (|esfera| >= 4.00D) hace que la distancia al vertice "
+        "tenga impacto optico clinicamente significativo; se recomienda registrar la distancia al vertice "
+        "de examen para la elaboracion del lente aereo o calcular la potencia efectiva compensada en caso "
+        "de adaptacion de lentes de contacto."
+    )
+
+
+@_memoize_cond
+def _cond_antimetropia_pura_acomodativa(req: ImpresionClinicaRequest) -> bool:
+    """Caso clinico: un ojo miopico (EE <= -0.75 D) y contralateral hipermetropico (EE >= +0.75 D)."""
+    if req.refraccion is None:
+        return False
+    od = req.refraccion.od
+    oi = req.refraccion.oi
+    od_ee = _equivalente_esferico(od.esfera, od.cilindro)
+    oi_ee = _equivalente_esferico(oi.esfera, oi.cilindro)
+    if od_ee is None or oi_ee is None:
+        return False
+    return (od_ee <= -0.75 and oi_ee >= 0.75) or (oi_ee <= -0.75 and od_ee >= 0.75)
+
+
+def _texto_antimetropia_pura_acomodativa(req: ImpresionClinicaRequest) -> str:
+    od = req.refraccion.od
+    oi = req.refraccion.oi
+    od_ee = _equivalente_esferico(od.esfera, od.cilindro)
+    oi_ee = _equivalente_esferico(oi.esfera, oi.cilindro)
+    od_str = f"OD ({od_ee:+.2f}D)" if od_ee is not None else "OD"
+    oi_str = f"OI ({oi_ee:+.2f}D)" if oi_ee is not None else "OI"
+    return (
+        f"Se documenta antimetropia ({od_str} vs {oi_str}), condicion con un ojo miope y el contralateral "
+        "hipermetrope que induce demandas acomodativas asimetricas y anisoforia con lentes aereos; se recomienda "
+        "vigilar el balance binocular y considerar lentes de contacto para facilitar la fusion."
+    )
+
+
+def _astig_contra_regla_parts(req: ImpresionClinicaRequest) -> list[str]:
+    if req.refraccion is None or req.paciente is None or req.paciente.edad is None:
+        return []
+    if req.paciente.edad >= 40:
+        return []
+    parts = []
+    for label, eye in [("OD", req.refraccion.od), ("OI", req.refraccion.oi)]:
+        if eye is not None and eye.cilindro is not None and eye.eje is not None:
+            if eye.cilindro <= -1.00 and (70 <= eye.eje <= 110):
+                parts.append(f"{label} ({eye.cilindro:+.2f} x {eye.eje})")
+    return parts
+
+
+@_memoize_cond
+def _cond_astigmatismo_contra_regla_joven(req: ImpresionClinicaRequest) -> bool:
+    """Caso clinico: astigmatismo contra la regla (cilindro <= -1.00 D, eje 70-110) en menor de 40 anos."""
+    return bool(_astig_contra_regla_parts(req))
+
+
+def _texto_astigmatismo_contra_regla_joven(req: ImpresionClinicaRequest) -> str:
+    partes = _astig_contra_regla_parts(req)
+    ojos = ", ".join(partes) if partes else "la refraccion"
+    return (
+        f"Se documenta astigmatismo contra la regla en paciente joven en {ojos}, orientacion no habitual "
+        "para el grupo etario que amerita valoracion del segmento anterior y topografia corneal para descartar "
+        "irregularidad corneal o ectasia incipiente."
+    )
+
+

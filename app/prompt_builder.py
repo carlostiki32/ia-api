@@ -376,8 +376,9 @@ _ACENTOS = {
     "patologia": "patología", "patologias": "patologías",
     "topografia": "topografía", "tomografia": "tomografía",
     "queratometria": "queratometría", "sintomatologia": "sintomatología",
-    "asimetria": "asimetría", "cicloplejia": "cicloplejía", "epiteliopatia": "epiteliopatía",
+    "asimetria": "asimetría", "cicloplejia": "cicloplejía", "ciclopejia": "ciclopejía", "epiteliopatia": "epiteliopatía",
     # -ico / -ica (y plurales; todas acentuadas en este dominio)
+    "subclinico": "subclínico", "subclinica": "subclínica", "subclinicos": "subclínicos", "subclinicas": "subclínicas",
     "astigmatico": "astigmático", "astigmatica": "astigmática", "astigmaticos": "astigmáticos", "astigmaticas": "astigmáticas",
     "sistemico": "sistémico", "sistemica": "sistémica", "sistemicos": "sistémicos", "sistemicas": "sistémicas",
     "biomicroscopico": "biomicroscópico", "biomicroscopica": "biomicroscópica",

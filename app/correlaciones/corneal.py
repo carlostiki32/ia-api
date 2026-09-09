@@ -13,6 +13,7 @@ from app.correlaciones.queratometria import (
     _axis_distance,
     _corneal_cyl_abs,
     _corneal_irregularity_parts,
+    _k_promedio,
     _keratometry_axis,
     _ojo_akr,
     _req_has_corneal_irregularity,
@@ -75,6 +76,8 @@ def _cond_astigmatismo_corneal_vs_refractivo(req: ImpresionClinicaRequest) -> bo
     o a una revision de la transposicion/registro del cilindro."""
     if req.refraccion is None or req.akr is None:
         return False
+    if _cond_astigmatismo_lenticular_puro(req):
+        return False
     return bool(_mismatch_parts(req))
 
 
@@ -86,3 +89,112 @@ def _texto_astigmatismo_corneal_vs_refractivo(req: ImpresionClinicaRequest) -> s
         "componente astigmatico lenticular o ameritar la revision de la transposicion y el "
         "registro del cilindro en la refraccion final."
     )
+
+
+_K_PLANA_EXTREMA_D = 40.00
+
+
+def _cornea_plana_parts(req: ImpresionClinicaRequest) -> list[str]:
+    parts = []
+    for label, side in [("OD", "od"), ("OI", "oi")]:
+        ojo = _ojo_akr(req, side)
+        if ojo is None:
+            continue
+        if ojo.k_promedio_d is not None:
+            k_val = ojo.k_promedio_d
+        elif ojo.k1_d is not None and ojo.k2_d is not None:
+            k_val = min(ojo.k1_d, ojo.k2_d)
+        else:
+            k_val = ojo.k1_d if ojo.k1_d is not None else ojo.k2_d
+        if k_val is not None and k_val < _K_PLANA_EXTREMA_D:
+            parts.append(f"{label} ({k_val:.2f}D)")
+    return parts
+
+
+@_memoize_cond
+def _cond_cornea_plana_extrema(req: ImpresionClinicaRequest) -> bool:
+    """Caso clinico: queratometria marcadamente plana (<40.00 D) indica variante anatomica relevante."""
+    return bool(_cornea_plana_parts(req))
+
+
+def _texto_cornea_plana_extrema(req: ImpresionClinicaRequest) -> str:
+    partes = _cornea_plana_parts(req)
+    ojos = _join_hallazgos(partes) if partes else "la queratometria"
+    return (
+        f"La queratometria revela curvatura corneal marcadamente plana en {ojos}, "
+        "variante anatomica de relevancia refractiva que amerita valoracion del segmento "
+        "anterior y monitorizacion biometrica."
+    )
+
+
+def _lenticular_parts(req: ImpresionClinicaRequest) -> list[str]:
+    parts = []
+    for label, side in [("OD", "od"), ("OI", "oi")]:
+        akr_eye = _ojo_akr(req, side)
+        rx_eye = getattr(req.refraccion, side) if req.refraccion is not None else None
+        if akr_eye is None:
+            continue
+        cyl_cornea = _corneal_cyl_abs(akr_eye)
+        if cyl_cornea is None or cyl_cornea > 0.50:
+            continue
+        cyl_rx = abs(rx_eye.cilindro) if rx_eye is not None and rx_eye.cilindro is not None else 0.0
+        if cyl_rx >= 1.50:
+            parts.append(f"{label} (cilindro refractivo {cyl_rx:.2f}D vs cilindro corneal {cyl_cornea:.2f}D)")
+    return parts
+
+
+@_memoize_cond
+def _cond_astigmatismo_lenticular_puro(req: ImpresionClinicaRequest) -> bool:
+    """Caso clinico: astigmatismo refractivo relevante (>= 1.50 D) con cornea queratometricamente esferica
+    confirma origen lenticular/interno (catarata, subluxacion)."""
+    return bool(_lenticular_parts(req))
+
+
+def _texto_astigmatismo_lenticular_puro(req: ImpresionClinicaRequest) -> str:
+    partes = _lenticular_parts(req)
+    ojos = _join_hallazgos(partes) if partes else "la exploracion"
+    return (
+        f"Se documenta astigmatismo refractivo relevante en presencia de una superficie corneal "
+        f"queratometricamente esferica en {ojos}, lo que confirma un origen cristaliniano/interno "
+        "del defecto y amerita valoracion del segmento anterior para descartar asimetria "
+        "cristaliniana o ectopia lentis."
+    )
+
+
+def _asimetria_k_parts(req: ImpresionClinicaRequest) -> tuple[float, float, float] | None:
+    od = _ojo_akr(req, "od")
+    oi = _ojo_akr(req, "oi")
+    if od is None or oi is None:
+        return None
+    od_k = _k_promedio(od)
+    oi_k = _k_promedio(oi)
+    if od_k is None or oi_k is None:
+        return None
+    diff = abs(od_k - oi_k)
+    return (diff, od_k, oi_k)
+
+
+@_memoize_cond
+def _cond_queratometria_asimetrica_interocular(req: ImpresionClinicaRequest) -> bool:
+    """Caso clinico: asimetria queratometrica interocular significativa (>= 1.00 D)
+    sin queratocono manifiesto activa tamizaje de ectasia incipiente/forme fruste."""
+    if _cond_queratocono_ectasia_sospecha(req):
+        return False
+    datos = _asimetria_k_parts(req)
+    if datos is None:
+        return False
+    diff, _, _ = datos
+    return diff >= 1.00
+
+
+def _texto_queratometria_asimetrica_interocular(req: ImpresionClinicaRequest) -> str:
+    datos = _asimetria_k_parts(req)
+    val = f"{datos[0]:.2f}D (OD {datos[1]:.2f}D vs OI {datos[2]:.2f}D)" if datos else "relevante"
+    return (
+        f"Se documenta asimetria queratometrica interocular significativa ({val}) "
+        "sin ectasia corneal manifiesta en el examen actual, hallazgo que amerita monitorizacion "
+        "biometrica periodica y estudio tomografico/topografico corneal para descarte de ectasia "
+        "asimetrica incipiente o queratocono frustro."
+    )
+
+

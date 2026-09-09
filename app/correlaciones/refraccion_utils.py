@@ -44,6 +44,17 @@ def _av_denominator(av: str | None) -> int | None:
             return None
         return round(20.0 / decimal)
 
+    # Notaciones de baja vision profunda (ceguera legal o sub-Snellen)
+    norm = text.strip().lower()
+    if norm in ("cuenta dedos", "cd", "cf", "counting fingers") or "cuenta dedos" in norm:
+        return 1000
+    if norm in ("mm", "movimiento de manos", "movimiento manos", "hand motion", "hm") or "movimiento de manos" in norm:
+        return 2000
+    if norm in ("pl", "percepcion de luz", "percepcion luz", "lp", "light perception") or "percepcion de luz" in norm:
+        return 4000
+    if norm in ("npl", "no percepcion de luz", "nlp", "no luz"):
+        return 8000
+
     return None
 
 

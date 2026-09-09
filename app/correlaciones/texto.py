@@ -12,16 +12,35 @@ import unicodedata
 
 from app.schemas import ImpresionClinicaRequest
 
-_NEGACIONES = (
+_NEGACIONES_PRE = (
     "sin ",
+    "no ",
     "no se observa",
+    "no se observan",
     "no se documenta",
+    "no se detecta",
+    "no se detectan",
     "no presenta",
     "sin evidencia",
     "negativ",
     "ausenc",
-    "ausente",
+    "niega",
+    "descarte de",
+    "libre de",
 )
+
+_NEGACIONES_POST = (
+    "ausente",
+    "ausentes",
+    "descartad",
+    "negativ",
+    "fisiologic",
+    "normal",
+    "normales",
+    "libre",
+    "libres",
+)
+
 # El SaaS compone cover_test como "OD: Tipo [y Sub] | OI: Tipo [y Sub]"
 # con tipo ∈ {Orto, Endo, Exo, Hiper, Hipo} y sub ∈ {Tropia, Foria}.
 # Las correlaciones buscan keywords unidas (exoforia, endotropia, etc.);
@@ -44,7 +63,7 @@ _WHITESPACE_RE = re.compile(r"\s+")
 _WHOLE_WORD_KEYWORDS = frozenset({
     "mer", "cnv", "mev", "mnvc", "crsc",
     "isnt", "dmre", "cscr", "emq", "rdnp", "rdp", "irma",
-    "dgm", "iol", "rapd", "adie",
+    "dgm", "iol", "rapd", "adie", "papiledema",
 })
 
 
@@ -132,6 +151,46 @@ def _is_word_bounded(text: str, start: int, end: int) -> bool:
     return not before.isalnum() and not after.isalnum()
 
 
+_AFFIRMATIVE_TRANSITIONS = (
+    "se observa", "se observan", "se aprecia", "se aprecian",
+    "se evidencia", "se evidencian", "se constata", "se constat",
+    "se identifica", "se identifican", "se detecta", "se detectan",
+    "se visualiza", "se visualizan", "presenta", "presentan",
+    "muestra", "muestran", "evidencia", "evidencian",
+    "con hallazgo",
+    "pero ", "empero", "sin embargo", "mas bien",
+    "con ",
+)
+
+_CAUSAL_CONNECTORS = (
+    " por ", " debido a ", " secundario a ", " a causa de ",
+    " motivado por ", " por presencia de ",
+)
+
+_EYE_MARKERS_RE = re.compile(r"\b(od|oi|ojo derecho|ojo izquierdo)\b")
+
+_POSITIVE_CONFIRMATIONS = (
+    "positivo", "positiva", "positivos", "positivas",
+    "presente", "presentes", "patologico", "patologica",
+    "alterado", "alterada", "evidente", "evidentes",
+)
+
+_SEVERITY_QUALIFIERS = (
+    "moderado", "moderada", "moderados", "moderadas",
+    "severo", "severa", "severos", "severas",
+    "marcado", "marcada", "marcados", "marcadas",
+    "bilateral", "bilaterales", "leve", "leves",
+    "anterior", "posterior", "profuso", "profusa",
+    "cronico", "cronica", "agudo", "aguda",
+    "temporal", "temporales", "nasal", "nasales",
+    "superior", "superiores", "inferior", "inferiores",
+    "periferico", "periferica", "perifericos", "perifericas", "periferia",
+    "herradura", "retiniano", "retiniana", "retinianos", "retinianas",
+    "macular", "maculares", "foveal", "foveales",
+    "papilar", "papilares",
+)
+
+
 def _keyword_matches(text: str, keyword: str, *, allow_negation_window: bool) -> bool:
     whole_word = keyword in _WHOLE_WORD_KEYWORDS
     for match in _compiled_keyword(keyword).finditer(text):
@@ -139,10 +198,74 @@ def _keyword_matches(text: str, keyword: str, *, allow_negation_window: bool) ->
             continue
         if not allow_negation_window:
             return True
-        sentence_start = max(text.rfind(sep, 0, match.start()) for sep in ".;!?") + 1
+        sentence_start = max(text.rfind(sep, 0, match.start()) for sep in ".;:!?") + 1
         sentence_prefix = text[sentence_start:match.start()]
-        if any(neg in sentence_prefix for neg in _NEGACIONES):
+
+        sentence_end_candidates = [text.find(sep, match.end()) for sep in ".;:!?"]
+        valid_ends = [pos for pos in sentence_end_candidates if pos != -1]
+        sentence_end = min(valid_ends) if valid_ends else len(text)
+        sentence_suffix = text[match.end():sentence_end].strip()
+        suffix_words = sentence_suffix.split()
+
+        # Si el hallazgo esta calificado expresamente como positivo (ej. "dpar positivo"),
+        # anula cualquier prefijo negativo anterior.
+        is_positively_confirmed = any(
+            w.strip(",.;:") in _POSITIVE_CONFIRMATIONS for w in suffix_words[:2]
+        )
+
+        if not is_positively_confirmed:
+            last_neg_pos = -1
+            last_neg_len = 0
+            for neg in _NEGACIONES_PRE:
+                pos = sentence_prefix.rfind(neg)
+                if pos != -1 and (pos > last_neg_pos or (pos == last_neg_pos and len(neg) > last_neg_len)):
+                    last_neg_pos = pos
+                    last_neg_len = len(neg)
+
+            if last_neg_pos != -1:
+                intervening = sentence_prefix[last_neg_pos + last_neg_len:]
+                # 1. Transicion afirmativa posterior al negador
+                has_affirmative_break = any(t in intervening for t in _AFFIRMATIVE_TRANSITIONS)
+                # 2. Conector causal tras "descarte de"
+                neg_text = sentence_prefix[last_neg_pos:last_neg_pos + last_neg_len]
+                has_causal_break = (
+                    "descarte de" in neg_text and any(c in intervening for c in _CAUSAL_CONNECTORS)
+                )
+                # 3. Transicion de ojo interocular (el negador estaba en el otro ojo)
+                has_eye_break = _EYE_MARKERS_RE.search(intervening) is not None
+                # 4. Negacion acotada a un solo sustantivo sin conjuncion y con calificador
+                intervening_words = intervening.split()
+                has_scope_break = (
+                    len(intervening_words) >= 1
+                    and not any(c in intervening_words for c in ("ni", "o", "tampoco"))
+                    and any(w.strip(",.;:") in _SEVERITY_QUALIFIERS for w in suffix_words[:3])
+                )
+                if not (has_affirmative_break or has_causal_break or has_eye_break or has_scope_break):
+                    continue
+
+        # Evaluacion de negacion sufija (hasta 8 palabras)
+        suffix_words_window = suffix_words[:8]
+        negated_post = False
+        for idx, word in enumerate(suffix_words_window):
+            w_clean = word.strip(",.;:")
+            if any(neg in w_clean for neg in _NEGACIONES_POST):
+                # Si hay una coma o punto y coma, o un marcador de cambio de ojo entre el hallazgo
+                # y el negador sufijo, el calificador negativo pertenece a otra clausula u ojo.
+                if any("," in w or ";" in w for w in suffix_words_window[:idx]):
+                    continue
+                prev_words = [w.strip(",.;:") for w in suffix_words_window[:idx]]
+                if any(_EYE_MARKERS_RE.search(pw) for pw in prev_words):
+                    continue
+                # "resto normal" o "demas normal" califica a otras estructuras, no al hallazgo
+                if w_clean.startswith("normal"):
+                    if any(pw in ("resto", "demas", "polo") for pw in prev_words):
+                        continue
+                negated_post = True
+                break
+
+        if negated_post:
             continue
+
         return True
     return False
 
