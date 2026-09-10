@@ -63,8 +63,20 @@ def test_akr_ojo_descarta_keratometria_fuera_de_rango():
     assert AkrOjo(k1_d=24).k1_d is None
     assert AkrOjo(k1_mm=13).k1_mm is None
     assert AkrOjo(k_promedio_d=81).k_promedio_d is None
+    assert AkrOjo(k_cilindro=-31).k_cilindro is None
+    assert AkrOjo(k_cilindro=31).k_cilindro is None
+    assert AkrOjo(k_cilindro=-25.0).k_cilindro == -25.0
     # El eje es ciclico: se normaliza modulo 180 en vez de descartarse.
     assert AkrOjo(k_cilindro_eje=181).k_cilindro_eje == 1
+
+
+def test_akr_snapshot_pd_range():
+    # Rango en SaaS: 0..100 mm.
+    assert AkrSnapshot(pd=63.5).pd == 63.5
+    assert AkrSnapshot(pd=0.0).pd == 0.0
+    assert AkrSnapshot(pd=100.0).pd == 100.0
+    assert AkrSnapshot(pd=-1.0).pd is None
+    assert AkrSnapshot(pd=101.0).pd is None
 
 
 def test_datos_clinica_uso_pantallas_valid():
@@ -151,11 +163,12 @@ def test_akr_ojo_cilindro_positivo_se_transpone():
 
 
 def test_graduacion_ojo_add_cero_o_negativa_se_descarta():
-    # add <= 0 significa "sin adicion": no debe contar como adicion prescrita
-    # (dispararia presbicia_multifocal / suprimiria presbicia_sin_adicion).
+    # add <= 0 significa "sin adicion"; add > 30 es fuera de rango del SaaS (between:0,30).
     assert GraduacionOjo(add=0.0).add is None
     assert GraduacionOjo(add=-1.0).add is None
+    assert GraduacionOjo(add=30.25).add is None
     assert GraduacionOjo(add=2.0).add == 2.0
+    assert GraduacionOjo(add=30.0).add == 30.0
 
 
 def test_graduacion_ojo_av_snellen_se_canoniza():
@@ -170,8 +183,20 @@ def test_graduacion_ojo_av_no_snellen_se_conserva():
 
 
 def test_contexto_paciente_edad_fuera_de_rango_se_descarta():
-    assert ContextoPaciente(edad=121).edad is None
+    # Rango en SaaS: 0..125 (nacidos desde 1900).
+    assert ContextoPaciente(edad=126).edad is None
+    assert ContextoPaciente(edad=125).edad == 125
+    assert ContextoPaciente(edad=0).edad == 0
     assert ContextoPaciente(edad=-1).edad is None
+
+
+def test_contexto_paciente_ocupacion_y_motivo_truncados():
+    # Limites en SaaS: ocupacion max 120, motivo max 1000.
+    p = ContextoPaciente(ocupacion="A" * 150, motivo_consulta="B" * 1200)
+    assert len(p.ocupacion) == 120
+    assert p.ocupacion == "A" * 120
+    assert len(p.motivo_consulta) == 1000
+    assert p.motivo_consulta == "B" * 1000
 
 
 def test_tipo_lente_normaliza_espacios():
@@ -227,3 +252,27 @@ def test_minimal_request():
     assert req.refraccion.od.esfera is None
     assert req.clinica.uso_pantallas is None
     assert req.tipo_lente is None
+
+
+def test_datos_clinica_campos_texto_truncados():
+    long_text = "Observación clínica detallada. " * 30  # ~930 chars
+    clinica = DatosClinica(
+        anexos_oculares=long_text,
+        reflejos_pupilares="  PIRRL   normal  ",
+        motilidad_ocular="Versiones:\n " + ("Normales " * 70),
+        confrontacion_campos_visuales=long_text,
+        fondo_de_ojo=long_text,
+        grid_de_amsler=long_text,
+        cover_test="  Orto   -   Foria  ",
+        recomendacion_seguimiento=long_text,
+    )
+
+    assert len(clinica.anexos_oculares) == 500
+    assert clinica.reflejos_pupilares == "PIRRL normal"
+    assert len(clinica.motilidad_ocular) == 500
+    assert len(clinica.confrontacion_campos_visuales) == 500
+    assert len(clinica.fondo_de_ojo) == 500
+    assert len(clinica.grid_de_amsler) == 500
+    assert " y " in clinica.cover_test  # _COVER_DASH_RE reemplaza " - " por " y "
+    assert len(clinica.recomendacion_seguimiento) == 500
+

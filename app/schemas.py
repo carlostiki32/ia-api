@@ -56,6 +56,22 @@ def _normalize_whitespace(value) -> str | None:
     return value or None
 
 
+_MAX_TEXTO_CLINICO_LEN = 500
+
+
+def _normalize_texto_clinico(value, campo: str, max_len: int = _MAX_TEXTO_CLINICO_LEN) -> str | None:
+    value = _normalize_whitespace(value)
+    if value is None:
+        return None
+    if len(value) > max_len:
+        logger.warning(
+            "%s excede %d caracteres, truncando (recibido: %d)",
+            campo, max_len, len(value),
+        )
+        return value[:max_len].strip()
+    return value
+
+
 def _normalize_av(value) -> str | None:
     value = _normalize_whitespace(value)
     if value is None:
@@ -133,9 +149,10 @@ class GraduacionOjo(BaseModel):
         # hacerlo alteraria el piso de esfera de hipermetropia_alta (el ejemplo
         # +1.00/+8.00 de CORRELACIONES_CLINICAS.md 5.2 debe NO disparar). La
         # transposicion solo aplica al AKR (lectura de dispositivo, ver AkrOjo).
-        # 3) El dropdown no emite add; el input es libre. add <= 0 significa
-        # "sin adicion" (o typo) y no debe contar como adicion prescrita.
-        if self.add is not None and self.add <= 0:
+        # 3) El dropdown no emite add; el input es libre. El SaaS valida between:0,30
+        # y prohibe negativos. add <= 0 significa "sin adicion" (o typo) y add > 30 es corrupto.
+        if self.add is not None and (self.add <= 0 or self.add > 30.0):
+            logger.warning("Add fuera de catalogo descartada: %s", self.add)
             self.add = None
         return self
 
@@ -163,14 +180,14 @@ class AkrOjo(BaseModel):
     @model_validator(mode="after")
     def normaliza_catalogo_saas(self):
         # Rangos fisicos alineados con RecetaValidationRules (mm 4..12,
-        # K promedio 25..80); fuera de rango = lectura corrupta -> se descarta.
+        # K promedio 25..80, k_cilindro -30..30); fuera de rango = lectura corrupta -> se descarta.
         self.k1_d = _rango_o_none(self.k1_d, 25, 80, "akr.k1_d")
         self.k2_d = _rango_o_none(self.k2_d, 25, 80, "akr.k2_d")
         self.k_promedio_d = _rango_o_none(self.k_promedio_d, 25, 80, "akr.k_promedio_d")
         self.k1_mm = _rango_o_none(self.k1_mm, 4, 12, "akr.k1_mm")
         self.k2_mm = _rango_o_none(self.k2_mm, 4, 12, "akr.k2_mm")
         self.k_promedio_mm = _rango_o_none(self.k_promedio_mm, 4, 12, "akr.k_promedio_mm")
-        self.k_cilindro = _rango_o_none(self.k_cilindro, -20, 20, "akr.k_cilindro")
+        self.k_cilindro = _rango_o_none(self.k_cilindro, -30, 30, "akr.k_cilindro")
         # Misma convencion negativa que la Rx final para que las comparaciones
         # AR vs Rx (esfera con esfera) no queden sesgadas por la convencion.
         _transponer_a_cilindro_negativo(self)
@@ -192,6 +209,7 @@ class AkrSnapshot(BaseModel):
 
     @model_validator(mode="after")
     def normaliza_catalogo_saas(self):
+        self.pd = _rango_o_none(self.pd, 0, 100, "akr.pd")
         self.vd = _rango_o_none(self.vd, 0, 30, "akr.vd")
         self.ker_index = _rango_o_none(self.ker_index, 1.3, 1.4, "akr.ker_index")
         return self
@@ -224,12 +242,25 @@ class DatosClinica(BaseModel):
     def normalize_dropdown_1_15(cls, value, info):
         return _rango_o_none(value, _BUT_PPC_MIN, _BUT_PPC_MAX, info.field_name)
 
+    @field_validator(
+        "anexos_oculares",
+        "reflejos_pupilares",
+        "confrontacion_campos_visuales",
+        "fondo_de_ojo",
+        "grid_de_amsler",
+        "recomendacion_seguimiento",
+        mode="before",
+    )
+    @classmethod
+    def normalize_texto_clinico(cls, value, info):
+        return _normalize_texto_clinico(value, info.field_name)
+
     @field_validator("motilidad_ocular", mode="before")
     @classmethod
     def normalize_motilidad_ocular(cls, value):
         # El SaaS compone "Versiones: X\nDucciones: Y\n..." y lo aplana a una
         # linea antes de enviar; se colapsa whitespace por si llega multilinea.
-        return _normalize_whitespace(value)
+        return _normalize_texto_clinico(value, "motilidad_ocular")
 
     @field_validator("cover_test", mode="before")
     @classmethod
@@ -237,7 +268,7 @@ class DatosClinica(BaseModel):
         if value is None:
             return None
         value = _COVER_DASH_RE.sub(" y ", str(value))
-        return _normalize_whitespace(value)
+        return _normalize_texto_clinico(value, "cover_test")
 
 
 class ContextoPaciente(BaseModel):
@@ -248,7 +279,31 @@ class ContextoPaciente(BaseModel):
     @field_validator("edad")
     @classmethod
     def normalize_edad(cls, value):
-        return _rango_o_none(value, 0, 120, "paciente.edad")
+        return _rango_o_none(value, 0, 125, "paciente.edad")
+
+    @field_validator("ocupacion", mode="before")
+    @classmethod
+    def normalize_ocupacion(cls, value):
+        value = _normalize_whitespace(value)
+        if value is None:
+            return None
+        # Limite exacto en SaaS (RecetaValidationRules): max 120 caracteres
+        if len(value) > 120:
+            logger.warning("ocupacion excede 120 caracteres, truncando: len=%d", len(value))
+            return value[:120].strip()
+        return value
+
+    @field_validator("motivo_consulta", mode="before")
+    @classmethod
+    def normalize_motivo_consulta(cls, value):
+        value = _normalize_whitespace(value)
+        if value is None:
+            return None
+        # Limite exacto en SaaS (RecetaValidationRules): max 1000 caracteres
+        if len(value) > 1000:
+            logger.warning("motivo_consulta excede 1000 caracteres, truncando: len=%d", len(value))
+            return value[:1000].strip()
+        return value
 
 
 class ImpresionClinicaRequest(BaseModel):

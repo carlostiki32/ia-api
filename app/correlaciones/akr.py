@@ -15,7 +15,7 @@ from app.correlaciones.queratometria import (
     _keratometry_supports_astigmatism,
     _req_has_corneal_irregularity,
 )
-from app.correlaciones.texto import _join_hallazgos, _normalize_text
+from app.correlaciones.texto import _join_hallazgos, _keyword_matches, _normalize_text
 from app.schemas import ImpresionClinicaRequest
 
 # La red de seguridad de variabilidad inespecifica exige una discrepancia AR-Rx
@@ -74,7 +74,8 @@ def _cond_ar_rx_cambio_cristalino(req: ImpresionClinicaRequest) -> bool:
             textos.append(req.clinica.fondo_de_ojo)
     if textos:
         texto_norm = _normalize_text(" ".join(textos))
-        if any(t in texto_norm for t in ("pseudofaquia", "pseudofaco", "pseudofaquico", "lente intraocular", "lio", "iol", "afaquia", "afaquico")):
+        pseudofaquico_tokens = ("pseudofaquia", "pseudofaco", "pseudofaquico", "lente intraocular", "lio", "iol", "afaquia", "afaquico")
+        if any(_keyword_matches(texto_norm, t, allow_negation_window=True) for t in pseudofaquico_tokens):
             return False
     for ojo in ("od", "oi"):
         esf_ar = getattr(req.akr, ojo).esfera

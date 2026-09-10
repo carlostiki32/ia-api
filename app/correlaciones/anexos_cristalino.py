@@ -123,8 +123,8 @@ def _texto_opacidad_cristaliniana(req: ImpresionClinicaRequest) -> str:
     pseudofaquico_tokens = ("pseudofaquia", "pseudofaco", "pseudofaquico", "lente intraocular", "lio", "iol", "afaquia", "afaquico")
     catarata_tokens = ("catarata", "esclerosis", "facoesclerosis", "nucleoesclerosis", "opacidad del cristalino", "opacidad cristaliniana")
 
-    es_pseudofaquico = any(t in texto_norm for t in pseudofaquico_tokens)
-    es_catarata = any(t in texto_norm for t in catarata_tokens)
+    es_pseudofaquico = any(_keyword_matches(texto_norm, t, allow_negation_window=True) for t in pseudofaquico_tokens)
+    es_catarata = any(_keyword_matches(texto_norm, t, allow_negation_window=True) for t in catarata_tokens)
 
     if es_pseudofaquico and not es_catarata:
         return (

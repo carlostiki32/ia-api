@@ -142,7 +142,7 @@ correlación binocular correspondiente pidiendo precisar foria/tropia (ver §10)
 envíes cadenas sintéticas como `"exoforia en VP"`.
 
 **Reflejos pupilares:** la UI compone `"{opción}: {nota}"`. Opciones fijas:
-`"Reflejo fotomotor, consesual, acomodativo"` (normal) o `"Marcus Gunn"` (dispara DPAR).
+`"Reflejo fotomotor, consensual, acomodativo"` (normal) o `"Marcus Gunn"` (dispara DPAR).
 Documenta otros hallazgos atípicos (anisocoria, midriasis) en la nota.
 
 ---
@@ -153,23 +153,23 @@ La lógica está particionada por dominio clínico en [app/correlaciones/](app/c
 
 | Módulo | Correlaciones | Nº |
 |---|---|---|
-| [fondo_de_ojo.py](app/correlaciones/fondo_de_ojo.py) | periférico, glaucoma asimétrico, glaucomatoso, ISNT violada papila, papila patológica, DMAE, macular otros, hipertensivo, vascular diabético | 9 |
-| [refractivas.py](app/correlaciones/refractivas.py) | miopía magna, hipermetropía alta, anisometropía, aniseiconia queratométrica severa, astig. oblicuo, AV c/c limitada | 6 |
-| [akr.py](app/correlaciones/akr.py) | espasmo acomodativo, cambio cristalino, variabilidad, astig. no prescrito | 4 |
-| [corneal.py](app/correlaciones/corneal.py) | queratocono/ectasia, córnea plana extrema, astigmatismo corneal vs refractivo, astigmatismo lenticular puro | 4 |
-| [anexos_cristalino.py](app/correlaciones/anexos_cristalino.py) | anexos patológicos, opacidad cristaliniana | 2 |
+| [fondo_de_ojo.py](app/correlaciones/fondo_de_ojo.py) | periférico, oclusión vascular urgente, papila patológica, glaucoma asimétrico, glaucomatoso, ISNT violada papila, síntomas tracción, DMAE, macular otros, hipertensivo, vascular diabético | 11 |
+| [refractivas.py](app/correlaciones/refractivas.py) | miopía magna, hipermetropía alta, distancia al vértice alta ametropía, antimetropía pura acomodativa, aniseiconia queratométrica severa, anisometropía, astig. oblicuo, astig. contra la regla joven, AV c/c limitada | 9 |
+| [akr.py](app/correlaciones/akr.py) | espasmo acomodativo, cambio cristalino, variabilidad inespecífica, astig. no prescrito | 4 |
+| [corneal.py](app/correlaciones/corneal.py) | queratocono/ectasia, queratometría asimétrica interocular, córnea plana extrema, astigmatismo lenticular puro, astigmatismo corneal vs refractivo | 5 |
+| [anexos_cristalino.py](app/correlaciones/anexos_cristalino.py) | anexos riesgo glaucoma secundario, anexos patológicos, opacidad cristaliniana | 3 |
 | [pupilas_motilidad.py](app/correlaciones/pupilas_motilidad.py) | Horner / III par sospecha, pupilas alteradas, motilidad alterada | 3 |
 | [campos_amsler.py](app/correlaciones/campos_amsler.py) | campos visuales, Amsler | 2 |
 | [binocularidad.py](app/correlaciones/binocularidad.py) | insuf. convergencia, PPC/exoforia, exoforia sint., endoforia sint., desviación vertical, endotropia lente, exotropia lente | 7 |
 | [superficie_ocular.py](app/correlaciones/superficie_ocular.py) | BUT crítico, ojo seco evaporativo / DGM, BUT pantallas, BUT limítrofe | 4 |
-| [contexto.py](app/correlaciones/contexto.py) | presbicia multifocal, presbicia sin adición, insuficiencia acomodación joven, adición incongruente con la edad, CVS, ambliopía, déficit visual inexplicado refractivo, screening adulto mayor | 8 |
+| [contexto.py](app/correlaciones/contexto.py) | presbicia multifocal, presbicia sin adición, insuficiencia acomodación joven, adición incongruente con la edad, CVS, ambliopía isoametrópica bilateral, ambliopía sospecha, déficit visual inexplicado refractivo, screening adulto mayor | 9 |
 
 Helpers compartidos: `base.py` (memoización + tipo `Correlacion`), `texto.py`
 (normalización y matching), `refraccion_utils.py` (Snellen, equivalente esférico),
 `queratometria.py` (lectura corneal). El orden de evaluación —invariante clínico—
 vive en [registry.py](app/correlaciones/registry.py).
 
-> **Total del registro determinista:** **49 correlaciones clínicas** activas.
+> **Total del registro determinista:** **57 correlaciones clínicas** activas.
 
 > **Queratometría:** el dato corneal (K1/K2/K promedio/cilindro corneal) se usa como
 > **confirmación o matiz** de las correlaciones refractivas y de AR (miopía magna,
@@ -217,8 +217,8 @@ glaucomatosa avanzada y asimétrica. Al tratarse de una urgencia mayor, suprime 
 de neuropatía inicial para evitar contradicciones clínicas. Etiquetada **urgente**.
 
 ### 4.3 `fondo_glaucomatoso`
-**Keywords:** `c/d 0.6`–`0.9`, `cup/disc 0.6`–`0.9`, `e/p 0.6`–`0.9`, `cd 0.6`–`0.9`,
-excavación/excavada/excavado (excluyendo excavaciones fisiológicas normales como 0.1, 0.2, 0.3 o 0.4),
+**Keywords:** `c/d 0.6`–`1.0`, `cup/disc 0.6`–`1.0`, `e/p 0.6`–`1.0`, `cd 0.6`–`1.0` (incluyendo variantes con coma decimal `c/d 0,6`–`1,0`),
+excavación/excavada/excavado (excluyendo excavaciones fisiológicas normales como 0.1, 0.2, 0.3, 0.4 o 0.5 puras),
 papila asimétrica, asimetría c/d, hemorragia peripapilar/en astilla,
 rima neural adelgazada, adelgazamiento del anillo neurorretiniano. **Excluye** frases de normalidad como
 `"regla isnt respetada"`.
@@ -226,8 +226,8 @@ rima neural adelgazada, adelgazamiento del anillo neurorretiniano. **Excluye** f
 **Texto:** *"Se documentan hallazgos papilares con excavacion aumentada y/o
 alteracion del anillo neurorretiniano, ameritando valoracion oftalmologica con
 tonometria y perimetria para descarte de glaucoma."*
-**Fundamento:** relación copa/disco aumentada y asimetría interocular son signos de neuropatía
-glaucomatosa (AAO PPP *Primary Open-Angle Glaucoma*). Excavaciones fisiológicas ≤ 0.4 son la norma
+**Fundamento:** relación copa/disco aumentada (≥ 0.6 hasta 1.0 total), asimetría interocular ≥ 0.2 y adelgazamiento
+del anillo son signos mayores de neuropatía glaucomatosa (AAO PPP *Primary Open-Angle Glaucoma*). Excavaciones fisiológicas ≤ 0.4 son la norma
 poblacional (Blue Mountains / Rotterdam Study) y no disparan sospecha.
 
 ### 4.4 `isnt_violada_papila`
@@ -262,13 +262,14 @@ intracraneal urgente; el pseudopapiledema (variante benigna o por drusas papilar
 excluye para evitar derivaciones erróneas.
 
 ### 4.6 `fondo_macular_dmae`
-**Keywords:** drusas/drusa/drusen (excluyendo drusas de papila o disco óptico), alteración/cambios
-pigmentarios maculares, atrofia del EPR, hiperplasia del EPR, atrofia geográfica, membrana
+**Keywords:** drusas/drusa/drusen (excluyendo drusas aisladas de papila o disco óptico, salvo coexistencia con drusas maculares explícitas),
+alteración/cambios pigmentarios maculares, atrofia del EPR, hiperplasia del EPR, atrofia geográfica, membrana
 neovascular coroidea, mnvc, cnv, mev, epiteliopatía macular, dmae, dmre, degeneración macular senil.
 **Texto:** *"Se documentan hallazgos maculares degenerativos en fondo de ojo,
 ameritando OCT macular para caracterizacion y monitorizacion."*
-**Fundamento:** drusas maculares y alteraciones del EPR definen DMAE (AREDS2); las drusas de papila
-son una entidad del nervio óptico y se excluyen de la maculopatía.
+**Fundamento:** drusas maculares y alteraciones del EPR definen DMAE (AREDS2); las drusas de papila aisladas
+son una anomalía congénita del disco óptico (calcificaciones hialinas acelulares) que no implican degeneración macular.
+Sin embargo, si coexisten drusas de papila con drusas maculares verdaderas en el mismo paciente, la regla conserva activada la sospecha de DMAE.
 
 ### 4.7 `fondo_macular_otros`
 **Keywords:** edema macular, membrana epirretiniana/epiretiniana, mer, gliosis
@@ -305,6 +306,37 @@ valoracion retinologica."*
 signos de retinopatía diabética (escala ETDRS); la neovascularización/rubeosis marca
 la forma proliferativa. Requiere estricta correlación glucémica sistémica. Manchas algodonosas
 aisladas sin signos microvasculares diabéticos no fuerzan la presunción de diabetes descompensada.
+
+### 4.10 `fondo_oclusion_vascular_urgente` (emergencia oftalmológica)
+**Keywords:** ovcr, oacr, obvr, obar, crvo, crao, brvo, brao, oclusion venosa, oclusion arterial,
+trombosis venosa, trombosis retiniana, trombosis de rama, trombosis de vena central, trombosis de arteria,
+trombosis venosa retiniana, trombosis de rama venosa, embolia retiniana, embolia de arteria retiniana,
+infarto retiniano, mancha rojo cereza, mancha cereza, cherry red, oclusion de rama venosa/arterial,
+oclusion de vena/arteria central.
+**Texto:** *"Hallazgo urgente: los hallazgos en fondo de ojo son compatibles con oclusion vascular retiniana
+(arterial o venosa), emergencia oftalmologica que amerita valoracion retinologica urgente y descarte
+sistemico cardiovascular y tromboembolico prioritario."*
+**Fundamento:** las oclusiones vasculares de la retina (arteriales o venosas, de rama o centrales) constituyen
+verdaderas urgencias oftalmológicas (AAO PPP *Retinal Vein Occlusions* y *Retinal Artery Occlusion*).
+La oclusión de la arteria central de la retina (OACR) cursa con pérdida visual súbita e indolora y mancha rojo
+cereza, con una ventana terapéutica hiperaguda; además es equivalente a un ictus embólico que obliga al estudio
+carotídeo y ecocardiográfico urgente. La oclusión venosa (OVCR/OBVR) demanda manejo precoz para mitigar el edema
+macular y vigilar la isquemia retiniana extensa causante de glaucoma neovascular (glaucoma de los 100 días).
+
+### 4.11 `sintomas_alarma_traccion_vitreoretina`
+**Keywords:** fotopsias, fotopsia, flashes, centelleos, luces intermitentes, destellos, destello,
+relampagos, relampago, miodesopsias agudas, miodesopsias de aparicion subita, lluvia de manchas,
+moscas volantes, mosca volante, telaranas, telarana, manchas negras flotantes, puntos negros flotantes,
+cuerpos flotantes, anillo de weiss. Se evalúa tanto en `motivo_consulta` como en `fondo_de_ojo`.
+**Suprimida por:** `fondo_periferico_riesgo` (si la rotura o desprendimiento periférico ya está confirmado en el fondo,
+prevalece la alerta específica del fondo de ojo).
+**Texto:** *"La presencia de fotopsias y/o miodesopsias agudas sugiere traccion vitreorretiniana en el contexto
+de desprendimiento de vitreo posterior en evolucion, ameritando examen bajo midriasis de la retina periferica con
+lente de tres espejos o indentacion escleral para descartar desgarros retinianos subclinicos."*
+**Fundamento:** la aparición aguda de fotopsias (tirones mecánicos sobre la retina neurosensorial) y miodesopsias
+o anillo de Weiss indica desprendimiento de vítreo posterior (DVP) agudo en fase traccional. Los consensos de la
+AAO señalan que entre el 10% y el 15% de los pacientes con DVP sintomático agudo presentan al menos un desgarro
+retiniano periférico subyacente que, si no se trata con láser profiláctico, progresa a desprendimiento de retina regmatógeno.
 
 ---
 
@@ -390,6 +422,39 @@ independencia de la causa; coexiste con la correlación patológica que lo expli
 menciona la AV. El corte en 20/30 evita marcar como déficit una AV de 20/25
 prácticamente normal (y evitar así el screening del adulto mayor por ese motivo).
 
+### 5.7 `distancia_vertice_alta_ametropia`
+**Condición:** componente esférico prescrito `|esfera| ≥ 4.00 D` en al menos un ojo.
+**Texto:** *"La magnitud de la ametropia en {ojos} (|esfera| >= 4.00D) hace que la distancia al vertice
+tenga impacto optico clinicamente significativo; se recomienda registrar la distancia al vertice
+de examen para la elaboracion del lente aereo o calcular la potencia efectiva compensada en caso
+de adaptacion de lentes de contacto."*
+**Fundamento:** por la ley de potencia efectiva en lentes delgados ($F_{ef} = \frac{F}{1 - d \cdot F}$),
+a partir de ±4.00 D cualquier cambio en la distancia al vértice altera sensiblemente el poder que llega al ojo.
+En gafas aéreas, una diferencia de 2 a 3 mm entre el foróptero y la montura altera más de 0.25 D la corrección real;
+y en la adaptación de lentes de contacto (distancia al vértice cero), compensar la potencia es mandatorio para evitar
+hipocorrección en hipermetropía o sobrecorrección en miopía.
+
+### 5.8 `antimetropia_pura_acomodativa`
+**Condición:** un ojo con equivalente esférico miópico (`EE ≤ -0.75 D`) y el contralateral hipermétrope (`EE ≥ +0.75 D`).
+**Texto:** *"Se documenta antimetropia ({OD} vs {OI}), condicion con un ojo miope y el contralateral
+hipermetrope que induce demandas acomodativas asimetricas y anisoforia con lentes aereos; se recomienda
+vigilar el balance binocular y considerar lentes de contacto para facilitar la fusion."*
+**Fundamento:** la antimetropía genera un severo conflicto sensorio-motor: el ojo miope puede enfocar de cerca
+sin acomodar, mientras el hipermétrope debe acomodar constantemente. Con lentes aéreos, las miradas laterales
+e inferiores inducen efectos prismáticos opuestos (anisoforia vertical inducida), provocando astenopia y
+ruptura de la fusión binocular. Los lentes de contacto minimizan el efecto prismático excéntrico y la disparidad acomodativa.
+
+### 5.9 `astigmatismo_contra_regla_joven`
+**Condición:** paciente menor de 40 años (`edad < 40`) con cilindro refractivo prescrito `≤ -1.00 D`
+orientado contra la regla (eje entre 70° y 110°).
+**Texto:** *"Se documenta astigmatismo contra la regla en paciente joven en {ojos}, orientacion no habitual
+para el grupo etario que amerita valoracion del segmento anterior y topografia corneal para descartar
+irregularidad corneal o ectasia incipiente."*
+**Fundamento:** en niños y jóvenes la tensión de los párpados impone normalmente un astigmatismo corneal
+a favor de la regla (eje a 180° ± 20°). Un astigmatismo contra la regla (eje a 90° ± 20°) ≥ 1.00 D en menores
+de 40 años es estadísticamente infrecuente y representa un signo clínico de sospecha de alteración estructural
+de la córnea (astigmatismo irregular o ectasia incipiente/queratocono frustro), ameritando topografía corneal.
+
 ---
 
 ## 6. Autorrefractómetro / queratometría vs refracción final
@@ -399,7 +464,7 @@ primero el patrón específico (espasmo, cristalino), luego la variabilidad.
 
 ### 6.1 `ar_rx_espasmo_acomodativo`
 **Condición:** edad `< 40`, `uso_pantallas ∈ {btw2_6, gt6}`, y en algún ojo
-`esfera_Rx − esfera_AR ≥ 0.50` (el AR mide más miope).
+`esfera_Rx − esfera_AR ≥ 0.75 D` (el AR mide al menos 0.75 D más miope).
 **Texto:** *"El autorrefractometro documenta mayor componente miopico que la
 refraccion subjetiva final en un paciente joven con uso intensivo de pantallas,
 patron compatible con espasmo acomodativo que amerita control posterior y eventual
@@ -510,6 +575,18 @@ Permite identificar tempranamente opacidades corticales o nucleares con asimetr�
 inclinación (*tilt*) cristaliniano o subluxación lenticular precoz (síndrome de Marfan,
 pseudoexfoliación, microesferofaquia).
 
+### 6b.5 `queratometria_asimetrica_interocular`
+**Condición:** diferencia de K promedio interocular **≥ 1.00 D** (`|K_prom_OD − K_prom_OI| ≥ 1.00 D`),
+en ausencia de ectasia manifiesta (suprimida si ya activa `queratocono_ectasia_sospecha`).
+**Texto:** *"Se documenta asimetria queratometrica interocular significativa ({val}) sin ectasia corneal
+manifiesta en el examen actual, hallazgo que amerita monitorizacion biometrica periodica y estudio
+tomografico/topografico corneal para descarte de ectasia asimetrica incipiente o queratocono frustro."*
+**Fundamento:** en la población sana la curvatura corneal entre ambos ojos es altamente enantiomorfa y
+simétrica (asimetría normal < 0.25–0.50 D). Una discrepancia interocular en K promedio ≥ 1.00 D en córneas vírgenes
+es un signo temprano y muy sensible de ectasia corneal unilateral incipiente o queratocono *forme fruste*
+(criterios diagnósticos de Rabinowitz-McDonnell y consensos internacionales de ectasia), ameritando tomografía
+de elevación (Scheimpflug/OCT de segmento anterior).
+
 ---
 
 ## 7. Anexos oculares y cristalino
@@ -532,14 +609,27 @@ palpebrales tienen implicación refractiva y de superficie.
 del registro).
 **Keywords:** catarata(s), opacidad cristaliniana/del cristalino/lenticular/subcapsular,
 facoesclerosis, esclerosis nuclear, nucleoesclerosis, esclerosis del cristalino,
-pseudofaquia, pseudofaco, pseudofáquico, lente intraocular / IOL, afaquia, afáquico.
+pseudofaquia, pseudofaco, pseudofáquico, lente intraocular / IOL / LIO, afaquia, afáquico.
 **Texto (cristalino biológico / catarata):** *"Se documenta alteracion del cristalino, ameritando evaluacion
 biomicroscopica para caracterizacion y estadificacion de la opacidad."*
-**Texto (pseudofaquia / lente intraocular):** *"Se documenta condicion de pseudofaquia/lente intraocular,
-ameritando evaluacion biomicroscopica para verificar la posicion del lente y descartar opacificacion capsular posterior."*
+**Texto (pseudofaquia / lente intraocular):** *"Se documenta condicion de pseudofaquia o presencia de lente intraocular,
+ameritando evaluacion biomicroscopica para verificar la transparencia capsular y la posicion del implante."*
 **Fundamento:** la catarata biológica se gradúa por biomicroscopía (LOCS III); en el ojo pseudofáquico,
-el cristalino ya fue sustituido por un LIO, por lo que la monitorización se orienta a la cápsula posterior
-(perlas de Elsching / fibrosis capsular subsidiaria de capsulotomía láser YAG) y no a "estadificar la opacidad".
+el cristalino ya fue sustituido por un LIO, por lo que la monitorización se orienta a la transparencia de la cápsula
+posterior (opacificación capsular secundaria pasible de capsulotomía láser YAG) y al centrado del implante.
+
+### 7.3 `anexos_riesgo_glaucoma_secundario`
+**Keywords:** krukenberg, huso de krukenberg, dispersion pigmentaria, sindrome de dispersion pigmentaria,
+pseudoexfoliacion, pseudoexfoliativo, material pseudoexfoliativo, pxf, pex, sampaolesi, linea de sampaolesi.
+Evaluado en `anexos_oculares` o `fondo_de_ojo`.
+**Texto:** *"En la biomicroscopia del segmento anterior se documentan signos compatibles con sindrome de
+dispersion pigmentaria o pseudoexfoliacion, entidades con predisposicion al desarrollo de glaucoma secundario
+de angulo abierto que ameritan gonioscopia y control periodico de la presion intraocular."*
+**Fundamento:** el síndrome de pseudoexfoliación (PEX) y el síndrome de dispersión pigmentaria (SDP) son
+las causas más frecuentes y agresivas de glaucoma secundario de ángulo abierto en el adulto (European Glaucoma
+Society / AAO PPP *Primary Open-Angle Glaucoma Suspect*). Ambos causan obstrucción del trabéculo por depósito
+de material fibrilar o gránulos de melanina, con picos de PIO muy elevados y daño campimétrico acelerado;
+su hallazgo biomicroscópico en lámpara de hendidura obliga a realizar gonioscopia diagnóstica y curva tensional.
 
 ---
 
@@ -840,7 +930,22 @@ rango suele delatar una refracción de lejos mal balanceada (hiper subcorregida 
 sobrecorregida) o una distancia de trabajo atípica. Usa `add` + `edad`, datos que ya
 recolectas.
 
-### 12.6 `ambliopia_sospecha`
+### 12.6 `ambliopia_isoametropica_bilateral`
+**Condición:** paciente menor de 18 años (`edad < 18`), con agudeza visual corregida bilateralmente limitada
+(`av_cc ≤ 20/30` en ambos ojos, denominador > 25 en AO), en presencia de alta ametropía bilateral simétrica
+(hipermetropía bilateral `≥ +4.00 D` o astigmatismo bilateral `≤ -2.50 D`), sin anisometropía, sin tropía manifiesta
+en cover test y sin patología orgánica visible en polo posterior ni medios.
+**Suprime a:** `deficit_visual_inexplicado_refractivo` (proporciona la explicación etiológica pediátrica precisa).
+**Texto:** *"En paciente de {edad} anos con agudeza visual corregida bilateralmente limitada (OD {od.av_cc}, OI {oi.av_cc})
+asociada a alta ametropia simetrica en ausencia de patologia organica, el cuadro es compatible con ambliopia
+isoametropica (bilateral refractiva), ameritando prescripcion optica total y valoracion de terapia visual de estimulacion."*
+**Fundamento:** la ambliopía isoametrópica es un déficit bilateral del desarrollo cortical de la fóvea secundario
+a un desenfoque retiniano simétrico y constante durante el periodo crítico de plasticidad visual (AAO PPP *Amblyopia*).
+Se observa típicamente en hipermetropías no corregidas ≥ +4.00 D o astigmatismos ≥ 2.50 D. A diferencia de la ambliopía
+estrábica o anisometrópica, no hay fóveas asimétricas compitiendo, por lo que el pronóstico de recuperación con
+corrección óptica total e intervención oportuna es favorable.
+
+### 12.7 `ambliopia_sospecha`
 **Requiere:** AV con corrección **limitada** (denominador > 25) en algún ojo, **más** un
 factor ambliogénico (**anisometropía** significativa **o** una **tropía** en el cover),
 **y** ausencia de causa orgánica documentada (mismo set de supresores que el screening:
@@ -857,11 +962,12 @@ patrón (AV corregida que no normaliza + factor ambliogénico + fondo/segmento s
 es exactamente el de la ambliopía funcional; el sistema lo señala como diferencial a
 verificar, no como diagnóstico. Revive el campo `av_sc`, hasta ahora sin uso.
 
-### 12.7 `deficit_visual_inexplicado_refractivo` (red de seguridad refractiva)
+### 12.8 `deficit_visual_inexplicado_refractivo` (red de seguridad refractiva)
 **Condición:** paciente no senil (`edad < 60 años` o no especificada) con refracción prescrita
 (esfera o cilindro presentes), AV sin corrección reducida (`av_sc ≤ 20/50`, denominador ≥ 50)
 y agudeza visual con corrección subnormal (`av_cc ≤ 20/40`, denominador ≥ 40), en ausencia de
 causa orgánica visible y sin factor ambliogénico manifiesto.
+**Suprimida por:** `ambliopia_isoametropica_bilateral`.
 **Suprime a:** `adulto_mayor_screening`.
 **Texto:** *"Se registra agudeza visual subnormal en OD con correccion (20/50) (AV sin correccion 20/100)
 sin hallazgos organicos evidentes en el examen actual ni factores ambliogenicos manifiestos;
@@ -875,7 +981,7 @@ alto orden o defecto refractivo no corregido); 2) refracción bajo cicloplejía 
 acomodativo o hipermetropía latente); y 3) evaluación dirigida para descartar distrofia macular precoz,
 ectasia corneal subclínica o neuropatía incipiente.
 
-### 12.8 `adulto_mayor_screening`
+### 12.9 `adulto_mayor_screening`
 **Requiere:** edad ≥ 60 + AV c/c limitada (`av_cc ≤ 20/30`). **Suprimida** si ya hay causa
 específica documentada (opacidad cristaliniana, fondo periférico de riesgo, fondo glaucomatoso,
 DMAE, macular otros, vascular diabético, hipertensivo, miopía magna, papila patológica,
@@ -896,11 +1002,14 @@ buena práctica; si ya hay causa, el mensaje genérico sería redundante.
 | `glaucoma_asimetrico` | `pupilas_alteradas`, `fondo_glaucomatoso`, `isnt_violada_papila` |
 | `horner_o_tercer_par_sospecha` | `pupilas_alteradas` (y purga la ptosis de `anexos_patologicos`) |
 | `isnt_violada_papila` | `fondo_glaucomatoso` (mayor especificidad topográfica focal) |
+| `fondo_periferico_riesgo` | `sintomas_alarma_traccion_vitreoretina` (prevalece hallazgo retiniano periférico comprobado) |
+| `queratocono_ectasia_sospecha` | `queratometria_asimetrica_interocular` (prevalece ectasia manifiesta) |
 | `astigmatismo_lenticular_puro` | `astigmatismo_corneal_vs_refractivo` |
 | `insuficiencia_acomodacion_joven` | `adicion_incongruente_edad` |
 | `insuficiencia_convergencia` | `ppc_exoforia`, `cover_exoforia_sintomatica` |
 | `ar_rx_espasmo_acomodativo` / `ar_rx_cambio_cristalino` | `ar_rx_variabilidad_inespecifica` |
-| causa orgánica (opacidad, periférico, glaucomatoso, DMAE, macular otros, vascular, hipertensivo, papila, miopía magna, irregularidad corneal) | `ambliopia_sospecha`, `deficit_visual_inexplicado_refractivo` |
+| `ambliopia_isoametropica_bilateral` | `deficit_visual_inexplicado_refractivo` |
+| causa orgánica (opacidad, periférico, oclusión vascular, glaucomatoso, DMAE, macular otros, vascular diabético, hipertensivo, papila, miopía magna, irregularidad corneal) | `ambliopia_sospecha`, `deficit_visual_inexplicado_refractivo` |
 | causa orgánica (misma lista) **o** `ambliopia_sospecha` **o** `deficit_visual_inexplicado_refractivo` | `adulto_mayor_screening` |
 
 **Coexistencias intencionadas y cambios clave:**
@@ -922,6 +1031,7 @@ la **segunda o tercera oración** del párrafo (y prohíbe calificar de urgente
 cualquier otro):
 
 - `fondo_periferico_riesgo` (únicamente ante desgarro, rotura, agujero o desprendimiento activo; la degeneración lattice aislada genera texto preventivo)
+- `fondo_oclusion_vascular_urgente` (siempre urgente: emergencia vascular retiniana)
 - `glaucoma_asimetrico` (siempre)
 - `horner_o_tercer_par_sospecha` (siempre)
 - `papila_patologica` (variante papiledema / edema de papila / bordes borrosos)
@@ -954,15 +1064,15 @@ cualquier otro):
 
 ## Resumen ejecutivo
 
-- **49 correlaciones**, 10 dominios clínicos, particionadas en
+- **57 correlaciones**, 10 dominios clínicos, particionadas en
   [app/correlaciones/](app/correlaciones/).
 - **Determinista:** mismos datos → mismas correlaciones.
 - **Jerárquica:** las específicas suprimen a las generales (Apéndice A).
 - **None-safe:** campos vacíos no producen errores.
 - **Texto dinámico:** muchas correlaciones citan ojo, valores y hallazgos exactos.
 - **Queratometría** como confirmación/matiz en las reglas refractivas, y como
-  **disparador propio** en las cuatro correlaciones córneales (`corneal.py`).
+  **disparador propio** en las correlaciones corneales (`corneal.py`).
 - **El LLM no decide** la correlación, solo la integra; los nombres activados se
   devuelven en `correlaciones_activadas`.
-- **Blindaje:** los 49 textos están cubiertos por pruebas *golden* que impiden
+- **Blindaje:** los textos están cubiertos por pruebas que impiden
   regresiones silenciosas del contenido clínico.

@@ -8,7 +8,7 @@ from contextlib import asynccontextmanager
 from typing import Annotated, Any
 
 import httpx
-from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, HTTPException, Request, Response, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.cache import inference_cache
@@ -183,7 +183,8 @@ def verify_api_key(
         raise HTTPException(status_code=401, detail="Token invalido.")
 
 
-async def _acquire_inference_slot(safe_id: str) -> None:
+@asynccontextmanager
+async def _inference_slot(safe_id: str):
     global _queue_waiting
     if _queue_waiting >= settings.max_queue_size:
         raise asyncio.TimeoutError
@@ -200,6 +201,11 @@ async def _acquire_inference_slot(safe_id: str) -> None:
     finally:
         _queue_waiting -= 1
     logger.info("Inference slot acquired [%s]", safe_id)
+    try:
+        yield
+    finally:
+        _inference_semaphore.release()
+        logger.info("Inference slot released [%s]", safe_id)
 
 
 @app.post("/inferencia/impresion-clinica")
@@ -240,7 +246,59 @@ async def crear_impresion_clinica(
         }
 
     try:
-        await _acquire_inference_slot(sid)
+        async with _inference_slot(sid):
+            start_time = time.perf_counter()
+            try:
+                result = await asyncio.wait_for(
+                    run_inference(req, client),
+                    timeout=_INFERENCE_TIMEOUT,
+                )
+                elapsed = time.perf_counter() - start_time
+                logger.info(
+                    "Inferencia completada [%s] en %.1fs (%d chars, %d correlaciones)",
+                    sid, elapsed, len(result), len(correlaciones),
+                )
+                inference_cache.put(req, result, key=cache_key)
+                return {
+                    "status": "ok",
+                    "impresion_clinica": result,
+                    "correlaciones_activadas": correlaciones,
+                }
+
+            except asyncio.TimeoutError:
+                logger.error(
+                    "Timeout de inferencia [%s] -> 504 tras %.0fs (OLLAMA_TIMEOUT=%.0fs). "
+                    "¿Modelo descargado de VRAM o GPU saturada?",
+                    sid, time.perf_counter() - start_time, settings.ollama_timeout,
+                )
+                raise HTTPException(
+                    status_code=504,
+                    detail="Ollama no respondio a tiempo. Intente de nuevo.",
+                )
+            except ValueError as exc:
+                detail = str(exc)
+                if detail.startswith(CONTEXT_OVERFLOW_PREFIX):
+                    # Prompt demasiado grande para num_ctx: 413 Payload Too Large.
+                    # Se strippea el prefijo interno antes de exponer al cliente.
+                    logger.warning("Prompt excede contexto [%s] -> 413: %s", sid, detail)
+                    raise HTTPException(
+                        status_code=413,
+                        detail=detail[len(CONTEXT_OVERFLOW_PREFIX):].strip(),
+                    )
+                logger.exception("ValueError en inferencia [%s] -> 500", sid)
+                raise HTTPException(status_code=500, detail=detail)
+            except httpx.HTTPStatusError as exc:
+                logger.exception("Ollama HTTP error [%s]", sid)
+                raise HTTPException(
+                    status_code=502,
+                    detail=f"Error de Ollama: {exc.response.status_code}",
+                )
+            except HTTPException:
+                raise
+            except Exception:
+                # Los detalles del error ya están en el log — no exponerlos al cliente
+                logger.exception("Inference failed [%s]", sid)
+                raise HTTPException(status_code=500, detail="Error interno del servidor.")
     except asyncio.TimeoutError:
         logger.warning(
             "Cola saturada [%s] -> 503 (en espera: %d, maximo: %d)",
@@ -252,63 +310,12 @@ async def crear_impresion_clinica(
             "Intente de nuevo en unos segundos.",
         )
 
-    start_time = time.perf_counter()
-    try:
-        result = await asyncio.wait_for(
-            run_inference(req, client),
-            timeout=_INFERENCE_TIMEOUT,
-        )
-        elapsed = time.perf_counter() - start_time
-        logger.info(
-            "Inferencia completada [%s] en %.1fs (%d chars, %d correlaciones)",
-            sid, elapsed, len(result), len(correlaciones),
-        )
-        inference_cache.put(req, result, key=cache_key)
-        return {
-            "status": "ok",
-            "impresion_clinica": result,
-            "correlaciones_activadas": correlaciones,
-        }
-
-    except asyncio.TimeoutError:
-        logger.error(
-            "Timeout de inferencia [%s] -> 504 tras %.0fs (OLLAMA_TIMEOUT=%.0fs). "
-            "¿Modelo descargado de VRAM o GPU saturada?",
-            sid, time.perf_counter() - start_time, settings.ollama_timeout,
-        )
-        raise HTTPException(
-            status_code=504,
-            detail="Ollama no respondio a tiempo. Intente de nuevo.",
-        )
-    except ValueError as exc:
-        detail = str(exc)
-        if detail.startswith(CONTEXT_OVERFLOW_PREFIX):
-            # Prompt demasiado grande para num_ctx: 413 Payload Too Large.
-            # Se strippea el prefijo interno antes de exponer al cliente.
-            logger.warning("Prompt excede contexto [%s] -> 413: %s", sid, detail)
-            raise HTTPException(
-                status_code=413,
-                detail=detail[len(CONTEXT_OVERFLOW_PREFIX):].strip(),
-            )
-        logger.exception("ValueError en inferencia [%s] -> 500", sid)
-        raise HTTPException(status_code=500, detail=detail)
-    except httpx.HTTPStatusError as exc:
-        logger.exception("Ollama HTTP error [%s]", sid)
-        raise HTTPException(
-            status_code=502,
-            detail=f"Error de Ollama: {exc.response.status_code}",
-        )
-    except Exception:
-        # Los detalles del error ya están en el log — no exponerlos al cliente
-        logger.exception("Inference failed [%s]", sid)
-        raise HTTPException(status_code=500, detail="Error interno del servidor.")
-    finally:
-        _inference_semaphore.release()
-        logger.info("Inference slot released [%s]", sid)
-
 
 @app.get("/health")
-async def health(client: Annotated[httpx.AsyncClient, Depends(get_http_client)]):
+async def health(
+    client: Annotated[httpx.AsyncClient, Depends(get_http_client)],
+    response: Response,
+):
     ollama_status = "error"
     model_available = False
     model_loaded = False
@@ -338,8 +345,12 @@ async def health(client: Annotated[httpx.AsyncClient, Depends(get_http_client)])
         except Exception:
             pass
 
+    is_ready = (ollama_status == "ok" and model_available)
+    if not is_ready:
+        response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+
     return {
-        "status": "ok" if ollama_status == "ok" else "degraded",
+        "status": "ok" if is_ready else "degraded",
         "ollama": ollama_status,
         "model": settings.ollama_model,
         "model_available": model_available,

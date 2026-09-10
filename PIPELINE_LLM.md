@@ -256,7 +256,7 @@ Desde 2026-07 el SaaS captura tambien la prueba de queratometria en el mismo tic
 |---|---|---|
 | `uso_pantallas` | `"lt2" \| "btw2_6" \| "gt6" \| None` | Enum cerrado |
 | `anexos_oculares` | `str \| None` | Texto libre `max:255` |
-| `reflejos_pupilares` | `str \| None` | `max:255`. **La UI compone** `"{opcion}: {nota}"`. Opciones UI fijas: `"Reflejo fotomotor, consesual, acomodativo"` o `"Marcus Gunn"` |
+| `reflejos_pupilares` | `str \| None` | `max:255`. **La UI compone** `"{opcion}: {nota}"`. Opciones UI fijas: `"Reflejo fotomotor, consensual, acomodativo"` o `"Marcus Gunn"` |
 | `motilidad_ocular` | `str \| None` | `max:255`. **La UI compone** una sola linea: `"Versiones: X Ducciones: Y Sacadicos: Z Seguimiento: W"` (los saltos de linea se colapsan en el SaaS antes de enviar) |
 | `confrontacion_campos_visuales` | `str \| None` | Texto libre `max:255` |
 | `fondo_de_ojo` | `str \| None` | Texto libre `max:255` |

@@ -651,7 +651,7 @@ print(f"\n{sum(r['pass'] for r in resultados)}/{len(resultados)} PASS")
 **Correlaciones esperadas:** `["pupilas_alteradas"]`
 
 ```json
-{"receta_id":"S-07","paciente":{"edad":40,"ocupacion":"empleado","motivo_consulta":"una pupila mas grande"},"clinica":{"reflejos_pupilares":"Reflejo fotomotor, consesual, acomodativo: anisocoria de 2 mm mayor en OD"}}
+{"receta_id":"S-07","paciente":{"edad":40,"ocupacion":"empleado","motivo_consulta":"una pupila mas grande"},"clinica":{"reflejos_pupilares":"Reflejo fotomotor, consensual, acomodativo: anisocoria de 2 mm mayor en OD"}}
 ```
 
 ### CASO S-08
@@ -667,7 +667,7 @@ print(f"\n{sum(r['pass'] for r in resultados)}/{len(resultados)} PASS")
 **Correlaciones esperadas:** `[]`
 
 ```json
-{"receta_id":"S-09","paciente":{"edad":30,"ocupacion":"empleado","motivo_consulta":"revision"},"clinica":{"reflejos_pupilares":"Reflejo fotomotor, consesual, acomodativo: anisocoria fisiologica de 1 mm"}}
+{"receta_id":"S-09","paciente":{"edad":30,"ocupacion":"empleado","motivo_consulta":"revision"},"clinica":{"reflejos_pupilares":"Reflejo fotomotor, consensual, acomodativo: anisocoria fisiologica de 1 mm"}}
 ```
 
 ### CASO S-10
@@ -675,7 +675,7 @@ print(f"\n{sum(r['pass'] for r in resultados)}/{len(resultados)} PASS")
 **Correlaciones esperadas:** `[]`
 
 ```json
-{"receta_id":"S-10","paciente":{"edad":55,"ocupacion":"empleado","motivo_consulta":"fondo de ojo dilatado"},"clinica":{"reflejos_pupilares":"Reflejo fotomotor, consesual, acomodativo: midriasis por tropicamida, examen bajo dilatacion"}}
+{"receta_id":"S-10","paciente":{"edad":55,"ocupacion":"empleado","motivo_consulta":"fondo de ojo dilatado"},"clinica":{"reflejos_pupilares":"Reflejo fotomotor, consensual, acomodativo: midriasis por tropicamida, examen bajo dilatacion"}}
 ```
 
 ### CASO S-11
@@ -1123,7 +1123,7 @@ print(f"\n{sum(r['pass'] for r in resultados)}/{len(resultados)} PASS")
 **Correlaciones esperadas:** `[]`
 
 ```json
-{"receta_id":"X-08","paciente":{"edad":30,"ocupacion":"empleado","motivo_consulta":"chequeo general"},"refraccion":{"od":{"esfera":-1.25,"cilindro":0.0,"av_cc":"20/20"},"oi":{"esfera":-1.25,"cilindro":0.0,"av_cc":"20/20"}},"clinica":{"uso_pantallas":"lt2","anexos_oculares":"Anexos sin alteraciones.","reflejos_pupilares":"Reflejo fotomotor, consesual, acomodativo","motilidad_ocular":"Versiones: normales. Ducciones: normales.","confrontacion_campos_visuales":"Sin defectos perifericos evidentes.","fondo_de_ojo":"Retina aplicada, papila de bordes netos, macula sin lesiones.","grid_de_amsler":"Sin descendencia de patologia aparente.","cover_test":"OD: Orto | OI: Orto","ojo_seco_but_seg":12,"ppc_cm":5},"tipo_lente":"monofocal"}
+{"receta_id":"X-08","paciente":{"edad":30,"ocupacion":"empleado","motivo_consulta":"chequeo general"},"refraccion":{"od":{"esfera":-1.25,"cilindro":0.0,"av_cc":"20/20"},"oi":{"esfera":-1.25,"cilindro":0.0,"av_cc":"20/20"}},"clinica":{"uso_pantallas":"lt2","anexos_oculares":"Anexos sin alteraciones.","reflejos_pupilares":"Reflejo fotomotor, consensual, acomodativo","motilidad_ocular":"Versiones: normales. Ducciones: normales.","confrontacion_campos_visuales":"Sin defectos perifericos evidentes.","fondo_de_ojo":"Retina aplicada, papila de bordes netos, macula sin lesiones.","grid_de_amsler":"Sin descendencia de patologia aparente.","cover_test":"OD: Orto | OI: Orto","ojo_seco_but_seg":12,"ppc_cm":5},"tipo_lente":"monofocal"}
 ```
 
 ### CASO X-09
@@ -1155,7 +1155,7 @@ print(f"\n{sum(r['pass'] for r in resultados)}/{len(resultados)} PASS")
 **Correlaciones esperadas:** `["pupilas_alteradas","fondo_vascular_diabetico","motilidad_alterada","campos_visuales_alterados","av_cc_limitada","amsler_alterado","anexos_patologicos","insuficiencia_convergencia","cvs_sospecha","but_pantallas","presbicia_multifocal"]`
 
 ```json
-{"receta_id":"X-12","paciente":{"edad":63,"ocupacion":"contador","motivo_consulta":"diplopia, cefalea y ardor ocular al leer"},"refraccion":{"od":{"esfera":-0.50,"cilindro":0.0,"add":2.50,"av_cc":"20/50"},"oi":{"esfera":-0.50,"cilindro":0.0,"add":2.50,"av_cc":"20/40"}},"clinica":{"uso_pantallas":"gt6","ppc_cm":12,"cover_test":"OD: Exo y Foria | OI: Exo y Foria","ojo_seco_but_seg":6,"reflejos_pupilares":"Reflejo fotomotor, consesual, acomodativo: anisocoria de 1.5 mm mayor en OD","motilidad_ocular":"Versiones: nistagmo en levoversion.","fondo_de_ojo":"Microaneurismas y exudados duros dispersos.","anexos_oculares":"Pterigion nasal en OD.","confrontacion_campos_visuales":"Escotoma paracentral en OI.","grid_de_amsler":"Metamorfopsia central en OI."},"tipo_lente":"progresivo"}
+{"receta_id":"X-12","paciente":{"edad":63,"ocupacion":"contador","motivo_consulta":"diplopia, cefalea y ardor ocular al leer"},"refraccion":{"od":{"esfera":-0.50,"cilindro":0.0,"add":2.50,"av_cc":"20/50"},"oi":{"esfera":-0.50,"cilindro":0.0,"add":2.50,"av_cc":"20/40"}},"clinica":{"uso_pantallas":"gt6","ppc_cm":12,"cover_test":"OD: Exo y Foria | OI: Exo y Foria","ojo_seco_but_seg":6,"reflejos_pupilares":"Reflejo fotomotor, consensual, acomodativo: anisocoria de 1.5 mm mayor en OD","motilidad_ocular":"Versiones: nistagmo en levoversion.","fondo_de_ojo":"Microaneurismas y exudados duros dispersos.","anexos_oculares":"Pterigion nasal en OD.","confrontacion_campos_visuales":"Escotoma paracentral en OI.","grid_de_amsler":"Metamorfopsia central en OI."},"tipo_lente":"progresivo"}
 ```
 
 ## Bloque 10 — Coerción tolerante y edge cases
@@ -1253,7 +1253,7 @@ print(f"\n{sum(r['pass'] for r in resultados)}/{len(resultados)} PASS")
 **Correlaciones esperadas:** `[]`
 
 ```json
-{"receta_id":"Z-12","paciente":{"edad":38,"ocupacion":"empleado","motivo_consulta":"revision"},"clinica":{"reflejos_pupilares":"Reflejo fotomotor, consesual, acomodativo: sin DPAR"}}
+{"receta_id":"Z-12","paciente":{"edad":38,"ocupacion":"empleado","motivo_consulta":"revision"},"clinica":{"reflejos_pupilares":"Reflejo fotomotor, consensual, acomodativo: sin DPAR"}}
 ```
 
 ---

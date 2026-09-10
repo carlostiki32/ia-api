@@ -28,10 +28,12 @@ _KEYWORDS_VASCULARES_DIABETICOS = (
     "arrosariamiento", "rosario venoso", "arrosariamiento venoso", "irma",
 )
 _KEYWORDS_FONDO_GLAUCOMATOSO = (
-    "c/d 0.6", "c/d 0.7", "c/d 0.8", "c/d 0.9",
-    "cup/disc 0.6", "cup/disc 0.7", "cup/disc 0.8", "cup/disc 0.9",
-    "e/p 0.6", "e/p 0.7", "e/p 0.8", "e/p 0.9",
-    "cd 0.6", "cd 0.7", "cd 0.8", "cd 0.9",
+    "c/d 0.6", "c/d 0.7", "c/d 0.8", "c/d 0.9", "c/d 1.0",
+    "cup/disc 0.6", "cup/disc 0.7", "cup/disc 0.8", "cup/disc 0.9", "cup/disc 1.0",
+    "e/p 0.6", "e/p 0.7", "e/p 0.8", "e/p 0.9", "e/p 1.0",
+    "cd 0.6", "cd 0.7", "cd 0.8", "cd 0.9", "cd 1.0",
+    "c/d 0,6", "c/d 0,7", "c/d 0,8", "c/d 0,9", "c/d 1,0",
+    "e/p 0,6", "e/p 0,7", "e/p 0,8", "e/p 0,9", "e/p 1,0",
     "excavacion", "excavada", "excavado", "papila asimetrica", "asimetria c/d",
     "asimetria de la excavacion", "muesca", "escotadura", "notch",
     "hemorragia peripapilar", "hemorragia en astilla",
@@ -51,8 +53,8 @@ def _es_excavacion_fisiologica_pura(fondo_norm: str) -> bool:
     """Descarta excavacion normal/fisiologica (0.1, 0.2, 0.3, 0.4, 0.5 o calificada de fisiologica)
     cuando no hay signos glaucomatosos patologicos asociados."""
     tokens_patologicos = (
-        "0.6", "0.7", "0.8", "0.9", "asimetr", "muesca", "notch",
-        "astilla", "adelgaz", "violacion", "aumentad",
+        "0.6", "0.7", "0.8", "0.9", "1.0", "0,6", "0,7", "0,8", "0,9", "1,0",
+        "asimetr", "muesca", "notch", "astilla", "adelgaz", "violacion", "aumentad",
     )
     if any(p in fondo_norm for p in tokens_patologicos):
         return False
@@ -248,6 +250,11 @@ _EXCLUSIONES_DRUSAS_NO_MACULARES = (
     "drusas en papila", "drusas del nervio optico", "drusas de nervio optico",
     "drusas en nervio optico", "drusas peripapilares", "drusa peripapilar",
 )
+_DRUSAS_MACULARES_EXPLICITAS = (
+    "drusas maculares", "drusa macular", "drusas en macula", "drusa en macula",
+    "drusas paramaculares", "drusa paramacular", "drusas blandas", "drusa blanda",
+    "drusas duras", "drusa dura",
+)
 
 
 @_memoize_cond
@@ -257,6 +264,9 @@ def _cond_fondo_macular_dmae(req: ImpresionClinicaRequest) -> bool:
         return False
     fondo = _normalize_text(req.clinica.fondo_de_ojo if req.clinica is not None else None)
     if any(dp in fondo for dp in _EXCLUSIONES_DRUSAS_NO_MACULARES):
+        # Si hay drusas maculares explicitas ademas de drusas del disco/papila, se conserva DMAE
+        if any(_keyword_matches(fondo, dm, allow_negation_window=True) for dm in _DRUSAS_MACULARES_EXPLICITAS):
+            return True
         otros_dmae = [k for k in _KEYWORDS_FONDO_DMAE if not k.startswith("drus")]
         return any(_keyword_matches(fondo, k, allow_negation_window=True) for k in otros_dmae)
     return True
@@ -323,9 +333,12 @@ _texto_fondo_vascular_diabetico = (
 
 
 _KEYWORDS_FONDO_OCLUSION_VASCULAR = (
-    "ovcr", "oacr", "obvr", "obar",
+    "ovcr", "oacr", "obvr", "obar", "crvo", "crao", "brvo", "brao",
     "oclusion venosa", "oclusion arterial",
-    "trombosis venosa", "trombosis retiniana",
+    "trombosis venosa", "trombosis retiniana", "trombosis de rama",
+    "trombosis de vena central", "trombosis de arteria",
+    "trombosis venosa retiniana", "trombosis de rama venosa",
+    "embolia retiniana", "embolia de arteria retiniana", "infarto retiniano",
     "mancha rojo cereza", "mancha cereza", "cherry red",
     "oclusion de rama venosa", "oclusion de rama arterial",
     "oclusion de vena central", "oclusion de arteria central",
@@ -347,7 +360,10 @@ _texto_fondo_oclusion_vascular_urgente = (
 
 _KEYWORDS_SINTOMAS_TRACCION = (
     "fotopsias", "fotopsia", "flashes", "centelleos", "luces intermitentes",
+    "destellos", "destello", "relampagos", "relampago",
     "miodesopsias agudas", "miodesopsias de aparicion subita", "lluvia de manchas",
+    "moscas volantes", "mosca volante", "telaranas", "telarana",
+    "manchas negras flotantes", "puntos negros flotantes", "cuerpos flotantes",
     "anillo de weiss",
 )
 

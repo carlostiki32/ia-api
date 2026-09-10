@@ -1311,4 +1311,76 @@ def test_nueva_correlacion_ambliopia_isoametropica_bilateral():
     assert "deficit_visual_inexplicado_refractivo" not in names
 
 
+def test_audit_whole_word_obar_no_falso_positivo_en_comprobar():
+    req = _make_request(
+        clinica=DatosClinica(fondo_de_ojo="se procede a comprobar periferia retinal normal"),
+    )
+    names = _active_names(req)
+    assert "fondo_oclusion_vascular_urgente" not in names
+
+
+def test_audit_whole_word_pex_no_falso_positivo_en_retinopexia():
+    req = _make_request(
+        clinica=DatosClinica(anexos_oculares="paciente con antecedente de retinopexia con laser"),
+    )
+    names = _active_names(req)
+    assert "anexos_riesgo_glaucoma_secundario" not in names
+
+
+def test_audit_whole_word_lio_no_falso_positivo_en_folio():
+    req = _make_request(
+        clinica=DatosClinica(anexos_oculares="folio 987654 de atencion"),
+    )
+    names = _active_names(req)
+    assert "anexos_patologicos" not in names
+    assert "opacidad_cristaliniana" not in names
+
+
+def test_audit_sintomas_alarma_traccion_moscas_volantes_y_destellos():
+    req = _make_request(
+        paciente=ContextoPaciente(motivo_consulta="Refiere moscas volantes y destellos de luz recientes"),
+    )
+    names = _active_names(req)
+    assert "sintomas_alarma_traccion_vitreoretina" in names
+
+
+def test_audit_fondo_glaucomatoso_excavacion_1_0_y_coma_decimal():
+    req1 = _make_request(
+        clinica=DatosClinica(fondo_de_ojo="e/p 1.0 con rechazo nasal de vasos"),
+    )
+    assert "fondo_glaucomatoso" in _active_names(req1)
+
+    req2 = _make_request(
+        clinica=DatosClinica(fondo_de_ojo="c/d 0,7 bilateral con adelgazamiento de rima"),
+    )
+    assert "fondo_glaucomatoso" in _active_names(req2)
+
+
+def test_audit_drusas_papila_y_maculares_coexistentes():
+    # Solo drusas de papila: no debe activar DMAE
+    req_solo_papila = _make_request(
+        clinica=DatosClinica(fondo_de_ojo="drusas de papila en OD"),
+    )
+    assert "fondo_macular_dmae" not in _active_names(req_solo_papila)
+
+    # Coexistencia: drusas de papila + drusas maculares explícitas: DEBE activar DMAE
+    req_coexistencia = _make_request(
+        clinica=DatosClinica(fondo_de_ojo="drusas de papila en OD y drusas maculares en OI"),
+    )
+    assert "fondo_macular_dmae" in _active_names(req_coexistencia)
+
+
+def test_audit_fondo_oclusion_vascular_crvo_y_trombosis():
+    req_crvo = _make_request(
+        clinica=DatosClinica(fondo_de_ojo="cuadro clinico compatible con CRVO en OD"),
+    )
+    assert "fondo_oclusion_vascular_urgente" in _active_names(req_crvo)
+
+    req_trombosis = _make_request(
+        clinica=DatosClinica(fondo_de_ojo="trombosis de rama venosa temporal superior"),
+    )
+    assert "fondo_oclusion_vascular_urgente" in _active_names(req_trombosis)
+
+
+
 

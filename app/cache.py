@@ -64,6 +64,12 @@ class InferenceCache:
             self._store[key] = (result, time.time())
             logger.info("Cache stored key %s (size: %d)", key[:12], len(self._store))
 
+    def clear(self) -> None:
+        with self._lock:
+            self._store.clear()
+            logger.info("Cache cleared")
+
+
 
 inference_cache = InferenceCache(
     max_size=settings.cache_max_size,

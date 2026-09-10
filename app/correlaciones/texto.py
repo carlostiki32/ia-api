@@ -64,6 +64,9 @@ _WHOLE_WORD_KEYWORDS = frozenset({
     "mer", "cnv", "mev", "mnvc", "crsc",
     "isnt", "dmre", "cscr", "emq", "rdnp", "rdp", "irma",
     "dgm", "iol", "rapd", "adie", "papiledema",
+    # Acrónimos vasculares, secundarios y pupilares protegidos contra falsos positivos:
+    "obar", "obvr", "ovcr", "oacr", "crvo", "crao", "brvo", "brao",
+    "pex", "pxf", "dpar", "dmae", "lio",
 })
 
 
