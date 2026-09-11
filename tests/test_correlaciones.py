@@ -862,7 +862,7 @@ def test_nueva_correlacion_isnt_violada_papila():
 
 def test_nueva_correlacion_cornea_plana_extrema():
     req = _make_request(
-        akr=AkrSnapshot(od=AkrOjo(k1_d=38.50, k2_d=39.00))
+        akr=AkrSnapshot(od=AkrOjo(k1_d=37.50, k2_d=37.80))
     )
     names = _active_names(req)
     assert "cornea_plana_extrema" in names
@@ -1200,9 +1200,9 @@ def test_h1_suprime_causa_organica_glaucoma_especifico():
 
 
 def test_h2_cornea_plana_meridiano_invertido():
-    """H2: Si k1_d es 40.50 y k2_d es 38.50 sin promedio, debe detectar cornea plana por el meridiano menor."""
+    """H2: Si k1_d es 40.50 y k2_d es 37.50 sin promedio, debe detectar cornea plana por el meridiano menor."""
     req = _make_request(
-        akr=AkrSnapshot(od=AkrOjo(k1_d=40.50, k2_d=38.50))
+        akr=AkrSnapshot(od=AkrOjo(k1_d=40.50, k2_d=37.50))
     )
     names = _active_names(req)
     assert "cornea_plana_extrema" in names
@@ -1380,6 +1380,298 @@ def test_audit_fondo_oclusion_vascular_crvo_y_trombosis():
         clinica=DatosClinica(fondo_de_ojo="trombosis de rama venosa temporal superior"),
     )
     assert "fondo_oclusion_vascular_urgente" in _active_names(req_trombosis)
+
+
+# ---------------------------------------------------------------------------
+# Tests de Auditoría Clínica Formal (10 Hallazgos Críticos)
+# ---------------------------------------------------------------------------
+
+def test_audit_fondo_glaucomatoso_relacion_copa_disco():
+    """H1: fondo_glaucomatoso debe reconocer 'relacion copa/disco', 'copa/disco', 'copa disco', 'relacion c/d' >= 0.6."""
+    req1 = _make_request(
+        clinica=DatosClinica(fondo_de_ojo="Relacion copa/disco 0.7 en ambos ojos"),
+    )
+    assert "fondo_glaucomatoso" in _active_names(req1)
+
+    req2 = _make_request(
+        clinica=DatosClinica(fondo_de_ojo="copa/disco: 0.8 con palidez temporal"),
+    )
+    assert "fondo_glaucomatoso" in _active_names(req2)
+
+    req3 = _make_request(
+        clinica=DatosClinica(fondo_de_ojo="copa disco 0.6 bilateral"),
+    )
+    assert "fondo_glaucomatoso" in _active_names(req3)
+
+    req4 = _make_request(
+        clinica=DatosClinica(fondo_de_ojo="relacion c/d 0.75"),
+    )
+    assert "fondo_glaucomatoso" in _active_names(req4)
+
+    # Excavacion fisiologica pura no debe activar
+    req_fisiologico = _make_request(
+        clinica=DatosClinica(fondo_de_ojo="Relacion copa/disco 0.3 en ambos ojos"),
+    )
+    assert "fondo_glaucomatoso" not in _active_names(req_fisiologico)
+
+
+def test_audit_adulto_mayor_miopia_magna_no_suprime_screening():
+    """H2: miopia magna es factor de riesgo y NO causa organica; no debe suprimir adulto_mayor_screening."""
+    req = _make_request(
+        paciente=ContextoPaciente(edad=72),
+        refraccion=Refraccion(
+            od=GraduacionOjo(esfera=-7.00, av_cc="20/60"),
+            oi=GraduacionOjo(esfera=-7.00, av_cc="20/60"),
+        ),
+    )
+    names = _active_names(req)
+    assert "miopia_magna" in names
+    assert "adulto_mayor_screening" in names
+
+
+def test_audit_aniseiconia_queratometrica_ley_de_knapp():
+    """H3: aniseiconia_queratometrica_severa solo aplica si la direccion es consistente con Knapp."""
+    # Consistente: ojo mas miope (OI -4.00 vs OD -1.00) tiene cornea mas curva (OI 44.25 vs OD 42.00)
+    req_consistente = _make_request(
+        refraccion=Refraccion(
+            od=GraduacionOjo(esfera=-1.00),
+            oi=GraduacionOjo(esfera=-4.00),
+        ),
+        akr=AkrSnapshot(
+            od=AkrOjo(k_promedio_d=42.00),
+            oi=AkrOjo(k_promedio_d=44.25),
+        ),
+    )
+    assert "aniseiconia_queratometrica_severa" in _active_names(req_consistente)
+
+    # Invertida (Knapp refractado/axial): ojo mas miope (OI -4.00 vs OD -1.00) tiene cornea mas PLANA (OI 42.00 vs OD 44.25)
+    req_invertida = _make_request(
+        refraccion=Refraccion(
+            od=GraduacionOjo(esfera=-1.00),
+            oi=GraduacionOjo(esfera=-4.00),
+        ),
+        akr=AkrSnapshot(
+            od=AkrOjo(k_promedio_d=44.25),
+            oi=AkrOjo(k_promedio_d=42.00),
+        ),
+    )
+    assert "aniseiconia_queratometrica_severa" not in _active_names(req_invertida)
+
+
+def test_audit_sintomas_alarma_traccion_miodesopsias_cronicas():
+    """H4: miodesopsias cronicas/estables sin fotopsias ni inicio agudo no deben activar alarma urgente."""
+    req_cronico = _make_request(
+        paciente=ContextoPaciente(motivo_consulta="Moscas volantes desde hace 10 anos, estables"),
+    )
+    assert "sintomas_alarma_traccion_vitreoretina" not in _active_names(req_cronico)
+
+    # Con fotopsias si debe activar alarma
+    req_fotopsias = _make_request(
+        paciente=ContextoPaciente(motivo_consulta="Moscas volantes desde hace 10 anos, estables pero con fotopsias recientes"),
+    )
+    assert "sintomas_alarma_traccion_vitreoretina" in _active_names(req_fotopsias)
+
+    # Con inicio agudo/subito si debe activar alarma
+    req_agudo = _make_request(
+        paciente=ContextoPaciente(motivo_consulta="Aparicion subita de moscas volantes hace 2 dias"),
+    )
+    assert "sintomas_alarma_traccion_vitreoretina" in _active_names(req_agudo)
+
+
+def test_audit_desambiguacion_marcus_gunn():
+    """H5: distinguir Marcus Gunn mandibulopalpebral de Marcus Gunn pupilar (DPAR)."""
+    # Mandibulopalpebral no es DPAR ni activa glaucoma_asimetrico
+    req_mandibular = _make_request(
+        clinica=DatosClinica(
+            reflejos_pupilares="Fenomeno de Marcus Gunn mandibulopalpebral con ptosis sinaptica",
+            fondo_de_ojo="Excavacion c/d 0.8 en OD.",
+        ),
+    )
+    assert "glaucoma_asimetrico" not in _active_names(req_mandibular)
+
+    # Chip ambiguo Marcus Gunn sin calificacion no activa DPAR urgente
+    req_chip_ambiguo = _make_request(
+        clinica=DatosClinica(
+            reflejos_pupilares="Marcus Gunn",
+        ),
+    )
+    texts = corr.evaluar_correlaciones(req_chip_ambiguo)
+    assert not any("Hallazgo urgente: la presencia de defecto pupilar aferente relativo es indicativa" in t for t in texts)
+
+    # Marcus Gunn pupilar confirmado con fondo patologico activa glaucoma asimetrico
+    req_pupilar = _make_request(
+        clinica=DatosClinica(
+            reflejos_pupilares="Marcus Gunn: DPAR en OD",
+            fondo_de_ojo="Excavacion c/d 0.8 en OD.",
+        ),
+    )
+    assert "glaucoma_asimetrico" in _active_names(req_pupilar)
+
+
+def test_audit_astig_oblicuo_vs_contra_regla_joven_ejes_70_110():
+    """H8: desempate en ejes 70 y 110: pertenecen a contra la regla, no a oblicuo."""
+    req_70 = _make_request(
+        paciente=ContextoPaciente(edad=25),
+        refraccion=Refraccion(od=GraduacionOjo(cilindro=-2.50, eje=70)),
+    )
+    names_70 = _active_names(req_70)
+    assert "astigmatismo_contra_regla_joven" in names_70
+    assert "astig_oblicuo" not in names_70
+
+    req_110 = _make_request(
+        paciente=ContextoPaciente(edad=25),
+        refraccion=Refraccion(od=GraduacionOjo(cilindro=-2.50, eje=110)),
+    )
+    names_110 = _active_names(req_110)
+    assert "astigmatismo_contra_regla_joven" in names_110
+    assert "astig_oblicuo" not in names_110
+
+    # 45 grados sigue siendo oblicuo puro
+    req_45 = _make_request(
+        paciente=ContextoPaciente(edad=25),
+        refraccion=Refraccion(od=GraduacionOjo(cilindro=-2.50, eje=45)),
+    )
+    names_45 = _active_names(req_45)
+    assert "astig_oblicuo" in names_45
+    assert "astigmatismo_contra_regla_joven" not in names_45
+
+
+def test_audit_cornea_plana_no_dispara_con_cola_baja_fisiologica():
+    """H9: cornea_plana_extrema exige K < 38.00 D; 38.50 o 39.50 D no deben disparar."""
+    req_fisiologico = _make_request(
+        akr=AkrSnapshot(od=AkrOjo(k1_d=38.50, k2_d=39.00)),
+    )
+    assert "cornea_plana_extrema" not in _active_names(req_fisiologico)
+
+    req_patologico = _make_request(
+        akr=AkrSnapshot(od=AkrOjo(k1_d=37.20, k2_d=37.50)),
+    )
+    assert "cornea_plana_extrema" in _active_names(req_patologico)
+
+
+def test_audit_lenguaje_no_diagnostico_textos():
+    """LA API NO DIAGNOSTICA: verificar sustitucion de 'confirma', 'configura un cuadro' y 'compatible con ojo seco clinico'."""
+    # astigmatismo_lenticular_puro
+    req_astig = _make_request(
+        akr=AkrSnapshot(od=AkrOjo(k1_d=43.00, k2_d=43.25)),
+        refraccion=Refraccion(od=GraduacionOjo(cilindro=-2.00, eje=180)),
+    )
+    text_astig = corr.evaluar_correlaciones(req_astig)[0]
+    assert "lo que sugiere un componente cristaliniano/interno" in text_astig
+    assert "confirma" not in text_astig
+
+    # but_critico
+    req_but = _make_request(clinica=DatosClinica(ojo_seco_but_seg=3))
+    text_but = corr.evaluar_correlaciones(req_but)[0]
+    assert "compatible con ojo seco clinico" not in text_but
+    assert "sugiriendo sospecha de disfuncion" in text_but
+
+    # ojo_seco_evaporativo_dgm
+    req_dgm = _make_request(clinica=DatosClinica(
+        anexos_oculares="Blefaritis anterior y disfuncion meibomio",
+        ojo_seco_but_seg=6,
+    ))
+    texts_dgm = corr.evaluar_correlaciones(req_dgm)
+    assert not any("configura un cuadro compatible" in t for t in texts_dgm)
+    assert any("orienta a sospecha de ojo seco" in t for t in texts_dgm)
+
+    # ar_rx_variabilidad_inespecifica
+    req_var = _make_request(
+        paciente=ContextoPaciente(edad=45),
+        refraccion=Refraccion(od=GraduacionOjo(esfera=0.50)),
+        akr=AkrSnapshot(od=AkrOjo(esfera=2.00)),
+    )
+    texts_var = corr.evaluar_correlaciones(req_var)
+    assert not any("compatible con variabilidad refractiva" in t for t in texts_var)
+    assert any("lo que sugiere variabilidad refractiva" in t for t in texts_var)
+
+
+def test_audit_barrido_completo_no_diagnostico():
+    """LA API NO DIAGNOSTICA: barrido completo de expresiones 'compatible con' y 'para confirmar el diagnostico'."""
+    from app.correlaciones import (
+        akr,
+        binocularidad,
+        campos_amsler,
+        contexto,
+        corneal,
+        fondo_de_ojo,
+        refractivas,
+    )
+
+    # 1. binocularidad
+    assert "sugiere sospecha de insuficiencia de convergencia" in binocularidad._texto_insuficiencia_convergencia
+    assert "para complementar la evaluacion funcional binocular" in binocularidad._texto_insuficiencia_convergencia
+    assert "compatible con" not in binocularidad._texto_insuficiencia_convergencia
+    assert "confirmar el diagnostico" not in binocularidad._texto_insuficiencia_convergencia
+
+    assert "sugestiva de descompensacion forica" in binocularidad._texto_cover_exoforia_sintomatica
+    assert "compatible con" not in binocularidad._texto_cover_exoforia_sintomatica
+
+    req_endo = _make_request(
+        clinica=DatosClinica(cover_test="OD: Endo y Foria | OI: Orto"),
+        paciente=ContextoPaciente(motivo_consulta="cefalea"),
+    )
+    text_endo = binocularidad._texto_cover_endoforia_sintomatica(req_endo)
+    assert "sugestiva de disfuncion de la vision binocular" in text_endo
+    assert "compatible con" not in text_endo
+
+    # 2. campos_amsler
+    assert "sugestiva de alteracion macular funcional" in campos_amsler._texto_amsler_alterado
+    assert "compatible con" not in campos_amsler._texto_amsler_alterado
+
+    # 3. contexto
+    req_amb = _make_request(refraccion=Refraccion(
+        od=GraduacionOjo(esfera=-0.50, av_cc="20/20"),
+        oi=GraduacionOjo(esfera=-3.00, av_cc="20/60", av_sc="20/200"),
+    ))
+    text_amb = contexto._texto_ambliopia_sospecha(req_amb)
+    assert "patron sugestivo de ambliopia" in text_amb
+    assert "compatible con" not in text_amb
+
+    req_iso = _make_request(
+        paciente=ContextoPaciente(edad=8),
+        refraccion=Refraccion(od=GraduacionOjo(esfera=5.00, av_cc="20/50"), oi=GraduacionOjo(esfera=5.00, av_cc="20/50")),
+    )
+    text_iso = contexto._texto_ambliopia_isoametropica_bilateral(req_iso)
+    assert "el cuadro orienta a sospecha de ambliopia isoametropica" in text_iso
+    assert "compatible con" not in text_iso
+
+    assert "sugestiva de fatiga visual digital / sindrome visual informatico" in contexto._texto_cvs_sospecha
+    assert "compatible con" not in contexto._texto_cvs_sospecha
+
+    # 4. corneal
+    req_qc = _make_request(akr=AkrSnapshot(od=AkrOjo(k2_d=49.00, k_cilindro=-2.00)))
+    text_qc = corneal._texto_queratocono_ectasia_sospecha(req_qc)
+    assert "sugestivo de irregularidad en la curvatura corneal o sospecha de ectasia incipiente" in text_qc
+    assert "compatible con" not in text_qc
+
+    # 5. refractivas
+    req_hip = _make_request(
+        paciente=ContextoPaciente(edad=45),
+        refraccion=Refraccion(od=GraduacionOjo(esfera=5.50)),
+        akr=AkrSnapshot(od=AkrOjo(k_promedio_d=40.00)),
+    )
+    text_hip = refractivas._texto_hipermetropia_alta(req_hip)
+    assert "sugestivo de un componente corneal" in text_hip
+    assert "compatible con" not in text_hip
+
+    req_av = _make_request(
+        refraccion=Refraccion(od=GraduacionOjo(av_cc="20/40")),
+        akr=AkrSnapshot(od=AkrOjo(k2_d=49.00)),
+    )
+    text_av = refractivas._texto_av_cc_limitada(req_av)
+    assert "que orienta a irregularidad de la superficie corneal" in text_av
+    assert "compatible con" not in text_av
+
+    # 6. akr
+    assert "patron sugestivo de sobreacomodacion / espasmo acomodativo" in akr._texto_ar_rx_espasmo_acomodativo
+    assert "compatible con" not in akr._texto_ar_rx_espasmo_acomodativo
+
+    # 7. fondo_de_ojo
+    req_pap = _make_request(clinica=DatosClinica(fondo_de_ojo="Bordes borrosos de papila en AO."))
+    text_pap = fondo_de_ojo._texto_papila_patologica(req_pap)
+    assert "orientan a sospecha de edema de papila" in text_pap
+    assert "compatibles con" not in text_pap
 
 
 

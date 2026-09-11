@@ -55,8 +55,8 @@ GOLDEN: list[tuple[str, ImpresionClinicaRequest, str]] = [
     (
         "papila_patologica_urgente",
         _req(clinica=DatosClinica(fondo_de_ojo="Bordes borrosos de papila en AO.")),
-        "Hallazgo urgente: los hallazgos del nervio optico documentados son compatibles "
-        "con edema de papila, lo que amerita evaluacion neurooftalmologica urgente para "
+        "Hallazgo urgente: los hallazgos del nervio optico documentados orientan a sospecha "
+        "de edema de papila, lo que amerita evaluacion neurooftalmologica urgente para "
         "descarte de hipertension intracraneal.",
     ),
     (
@@ -136,8 +136,8 @@ GOLDEN: list[tuple[str, ImpresionClinicaRequest, str]] = [
     (
         "but_critico",
         _req(clinica=DatosClinica(ojo_seco_but_seg=3)),
-        "El tiempo de ruptura lagrimal de 3s es patologicamente bajo, compatible con ojo "
-        "seco clinico que amerita evaluacion.",
+        "El tiempo de ruptura lagrimal de 3s es marcadamente reducido, sugiriendo sospecha de "
+        "disfuncion de la pelicula lagrimal que amerita evaluacion clinica de la superficie ocular.",
     ),
     (
         "miopia_magna",
@@ -185,7 +185,7 @@ GOLDEN: list[tuple[str, ImpresionClinicaRequest, str]] = [
         ),
         "El autorrefractometro documenta mayor componente miopico que la refraccion "
         "subjetiva final en un paciente joven con uso intensivo de pantallas, patron "
-        "compatible con espasmo acomodativo que amerita control posterior y eventual "
+        "sugestivo de sobreacomodacion / espasmo acomodativo que amerita control posterior y eventual "
         "refraccion bajo cicloplejia.",
     ),
     (
@@ -202,6 +202,7 @@ GOLDEN: list[tuple[str, ImpresionClinicaRequest, str]] = [
     ),
     (
         # Regresion reparada: la clausula "compatible con variabilidad refractiva
+        # Regresion reparada: la clausula "lo que sugiere variabilidad refractiva
         # durante la exploracion" habia sido recortada. Este golden la blinda.
         "ar_rx_variabilidad_inespecifica",
         _req(
@@ -210,7 +211,7 @@ GOLDEN: list[tuple[str, ImpresionClinicaRequest, str]] = [
             akr=AkrSnapshot(od=AkrOjo(esfera=2.00)),
         ),
         "Se documenta discrepancia entre autorrefractometro y refraccion final, "
-        "compatible con variabilidad refractiva durante la exploracion.",
+        "lo que sugiere variabilidad refractiva durante la exploracion.",
     ),
     (
         # Regresion reparada: antes generaba ". lo que" (punto + minuscula). Ahora coma.
@@ -233,8 +234,8 @@ GOLDEN: list[tuple[str, ImpresionClinicaRequest, str]] = [
         "queratocono_ectasia_sospecha",
         _req(akr=AkrSnapshot(od=AkrOjo(k2_d=49.00, k_cilindro=-2.00))),
         "La queratometria documenta curvatura corneal pronunciada o cilindro corneal elevado "
-        "en OD (Kmax 49.00D, cilindro corneal 2.00D), hallazgo compatible con irregularidad de "
-        "la superficie corneal o posible ectasia que amerita topografia/tomografia corneal para "
+        "en OD (Kmax 49.00D, cilindro corneal 2.00D), hallazgo sugestivo de irregularidad en la "
+        "curvatura corneal o sospecha de ectasia incipiente que amerita topografia/tomografia corneal para "
         "descarte de queratocono.",
     ),
     (
@@ -251,7 +252,7 @@ GOLDEN: list[tuple[str, ImpresionClinicaRequest, str]] = [
     (
         "amsler_alterado",
         _req(clinica=DatosClinica(grid_de_amsler="Metamorfopsia central.")),
-        "El test de Amsler revela alteracion compatible con patologia macular funcional "
+        "El test de Amsler revela alteracion sugestiva de alteracion macular funcional "
         "que amerita OCT macular.",
     ),
     (
@@ -266,9 +267,9 @@ GOLDEN: list[tuple[str, ImpresionClinicaRequest, str]] = [
             clinica=DatosClinica(ppc_cm=12, cover_test="OD: Exo y Foria | OI: Orto"),
         ),
         "La combinacion de punto proximo de convergencia alejado, exoforia y "
-        "sintomatologia de vision proxima es compatible con insuficiencia de "
-        "convergencia, ameritando evaluacion binocular completa para confirmar el "
-        "diagnostico y plantear terapia visual si procede.",
+        "sintomatologia de vision proxima sugiere sospecha de insuficiencia de "
+        "convergencia, ameritando evaluacion binocular completa para complementar la evaluacion "
+        "funcional binocular y plantear terapia visual si procede.",
     ),
     (
         "ppc_exoforia",
@@ -281,8 +282,8 @@ GOLDEN: list[tuple[str, ImpresionClinicaRequest, str]] = [
             paciente=ContextoPaciente(motivo_consulta="diplopia intermitente"),
             clinica=DatosClinica(cover_test="OD: Exo y Foria | OI: Orto"),
         ),
-        "Se documenta exoforia con sintomatologia binocular asociada, compatible con "
-        "disfuncion binocular de tipo divergente que amerita evaluacion funcional.",
+        "Se documenta exoforia con sintomatologia binocular asociada, sugestiva de "
+        "descompensacion forica que amerita evaluacion funcional.",
     ),
     (
         "cover_endoforia_sintomatica",
@@ -290,8 +291,8 @@ GOLDEN: list[tuple[str, ImpresionClinicaRequest, str]] = [
             paciente=ContextoPaciente(motivo_consulta="cefalea frontal"),
             clinica=DatosClinica(cover_test="OD: Endo y Foria | OI: Orto"),
         ),
-        "Se documenta endoforia con sintomatologia binocular asociada, compatible con "
-        "exceso de convergencia o disfuncion acomodativa que amerita evaluacion funcional.",
+        "Se documenta endoforia con sintomatologia binocular asociada, sugestiva de "
+        "disfuncion de la vision binocular que amerita evaluacion funcional.",
     ),
     (
         "desviacion_vertical",
@@ -306,7 +307,7 @@ GOLDEN: list[tuple[str, ImpresionClinicaRequest, str]] = [
             clinica=DatosClinica(uso_pantallas="gt6"),
         ),
         "El perfil de uso de pantallas se correlaciona con la sintomatologia visual "
-        "referida, compatible con sindrome visual informatico, ameritando recomendaciones "
+        "referida, sugestiva de fatiga visual digital / sindrome visual informatico, ameritando recomendaciones "
         "ergonomicas y eventual correccion optica para vision intermedia.",
     ),
     (
@@ -369,7 +370,7 @@ GOLDEN: list[tuple[str, ImpresionClinicaRequest, str]] = [
             oi=GraduacionOjo(esfera=-3.00, av_cc="20/60", av_sc="20/200"),
         )),
         "Se documenta agudeza visual con correccion limitada en OI (20/60), con agudeza visual sin "
-        "correccion de 20/200 en presencia de anisometropia significativa, patron compatible con "
+        "correccion de 20/200 en presencia de anisometropia significativa, patron sugestivo de "
         "ambliopia; amerita verificar el antecedente de ambliopia y la fijacion, y descartar una "
         "causa organica no evidente en el examen actual.",
     ),
@@ -399,8 +400,8 @@ GOLDEN: list[tuple[str, ImpresionClinicaRequest, str]] = [
     ),
     (
         "cornea_plana_extrema",
-        _req(akr=AkrSnapshot(od=AkrOjo(k1_d=38.50, k2_d=39.00))),
-        "La queratometria revela curvatura corneal marcadamente plana en OD (38.50D), "
+        _req(akr=AkrSnapshot(od=AkrOjo(k1_d=37.50, k2_d=37.80))),
+        "La queratometria revela curvatura corneal marcadamente plana en OD (37.50D), "
         "variante anatomica de relevancia refractiva que amerita valoracion del segmento anterior "
         "y monitorizacion biometrica.",
     ),
@@ -412,7 +413,7 @@ GOLDEN: list[tuple[str, ImpresionClinicaRequest, str]] = [
         ),
         "Se documenta astigmatismo refractivo relevante en presencia de una superficie corneal "
         "queratometricamente esferica en OD (cilindro refractivo 2.00D vs cilindro corneal 0.25D), "
-        "lo que confirma un origen cristaliniano/interno del defecto y amerita valoracion del "
+        "lo que sugiere un componente cristaliniano/interno del defecto y amerita valoracion del "
         "segmento anterior para descartar asimetria cristaliniana o ectopia lentis.",
     ),
     (
@@ -422,8 +423,8 @@ GOLDEN: list[tuple[str, ImpresionClinicaRequest, str]] = [
             ojo_seco_but_seg=6,
         )),
         "La presencia de alteracion en glandulas de Meibomio o blefaritis asociada a un tiempo de "
-        "ruptura lagrimal reducido configura un cuadro compatible con ojo seco de predominio "
-        "evaporativo, ameritando manejo dirigido a la superficie palpebral y estabilidad lagrimal.",
+        "ruptura lagrimal reducido orienta a sospecha de ojo seco de predominio "
+        "evaporativo, ameritando valoracion dirigida a la superficie palpebral y estabilidad lagrimal.",
     ),
     (
         "aniseiconia_queratometrica_severa",
@@ -538,7 +539,7 @@ GOLDEN: list[tuple[str, ImpresionClinicaRequest, str]] = [
         ),
         "En paciente de 8 anos con agudeza visual corregida bilateralmente limitada "
         "(OD 20/50, OI 20/50) asociada a alta ametropia simetrica en ausencia de patologia organica, "
-        "el cuadro es compatible con ambliopia isoametropica (bilateral refractiva), ameritando prescripcion "
+        "el cuadro orienta a sospecha de ambliopia isoametropica (bilateral refractiva), ameritando prescripcion "
         "optica total y valoracion de terapia visual de estimulacion.",
     ),
 ]

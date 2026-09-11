@@ -27,13 +27,28 @@ _KEYWORDS_VASCULARES_DIABETICOS = (
     "retinopatia diabetica", "rdnp", "rdp",
     "arrosariamiento", "rosario venoso", "arrosariamiento venoso", "irma",
 )
-_KEYWORDS_FONDO_GLAUCOMATOSO = (
-    "c/d 0.6", "c/d 0.7", "c/d 0.8", "c/d 0.9", "c/d 1.0",
-    "cup/disc 0.6", "cup/disc 0.7", "cup/disc 0.8", "cup/disc 0.9", "cup/disc 1.0",
-    "e/p 0.6", "e/p 0.7", "e/p 0.8", "e/p 0.9", "e/p 1.0",
-    "cd 0.6", "cd 0.7", "cd 0.8", "cd 0.9", "cd 1.0",
-    "c/d 0,6", "c/d 0,7", "c/d 0,8", "c/d 0,9", "c/d 1,0",
-    "e/p 0,6", "e/p 0,7", "e/p 0,8", "e/p 0,9", "e/p 1,0",
+_CD_PREFIXES = (
+    "c/d", "cd", "cup/disc", "cup disc", "cup-disc", "e/p",
+    "relacion c/d", "relacion cd",
+    "relacion copa/disco", "relacion copa disco",
+    "copa/disco", "copa disco",
+)
+_CD_SEPARATORS = (" ", ": ", ":", " de ", " del ")
+_CD_PATOLOGICOS_VALS = (
+    "0.6", "0.7", "0.8", "0.9", "1.0",
+    "0,6", "0,7", "0,8", "0,9", "1,0",
+    "6/10", "7/10", "8/10", "9/10",
+)
+
+_KEYWORDS_FONDO_GLAUCOMATOSO: tuple[str, ...] = tuple(
+    f"{p}{s}{v}"
+    for p in _CD_PREFIXES
+    for s in _CD_SEPARATORS
+    for v in _CD_PATOLOGICOS_VALS
+) + (
+    "relacion copa/disco aumentada", "copa/disco aumentada", "copa disco aumentada",
+    "relacion c/d aumentada", "relacion cd aumentada",
+    "relacion copa/disco amplia", "copa/disco amplia", "copa disco amplia", "relacion c/d amplia",
     "excavacion", "excavada", "excavado", "papila asimetrica", "asimetria c/d",
     "asimetria de la excavacion", "muesca", "escotadura", "notch",
     "hemorragia peripapilar", "hemorragia en astilla",
@@ -54,7 +69,8 @@ def _es_excavacion_fisiologica_pura(fondo_norm: str) -> bool:
     cuando no hay signos glaucomatosos patologicos asociados."""
     tokens_patologicos = (
         "0.6", "0.7", "0.8", "0.9", "1.0", "0,6", "0,7", "0,8", "0,9", "1,0",
-        "asimetr", "muesca", "notch", "astilla", "adelgaz", "violacion", "aumentad",
+        "6/10", "7/10", "8/10", "9/10",
+        "asimetr", "muesca", "notch", "astilla", "adelgaz", "violacion", "aumentad", "amplia",
     )
     if any(p in fondo_norm for p in tokens_patologicos):
         return False
@@ -161,16 +177,36 @@ def _texto_fondo_periferico_riesgo(req: ImpresionClinicaRequest) -> str:
     )
 
 
+_TOKENS_MANDIBULOPALPEBRAL = (
+    "mandibulopalpebral", "mandibulo-palpebral", "mandibulo palpebral",
+    "sincinesia", "mandibula", "jaw-winking", "jaw winking",
+    "fenomeno de marcus gunn", "fenomeno marcus gunn",
+)
+
+
 @_memoize_cond
 def _cond_glaucoma_asimetrico(req: ImpresionClinicaRequest) -> bool:
-    """Caso clinico: DPAR + fondo glaucomatoso confirman neuropatia optica glaucomatosa asimetrica con compromiso funcional."""
+    """Caso clinico: DPAR + fondo glaucomatoso sugieren neuropatia optica glaucomatosa asimetrica con compromiso funcional."""
     if req.clinica is None:
         return False
     txt_pupilas = _normalize_text(req.clinica.reflejos_pupilares)
+    if not txt_pupilas:
+        return False
+    if any(m in txt_pupilas for m in _TOKENS_MANDIBULOPALPEBRAL):
+        return False
     hay_dpar = any(
         _keyword_matches(txt_pupilas, k, allow_negation_window=True)
-        for k in ("dpar", "rapd", "marcus gunn", "defecto pupilar aferente")
+        for k in (
+            "dpar", "rapd", "defecto pupilar aferente",
+            "pupila de marcus gunn", "marcus gunn pupilar", "pupila marcus gunn",
+            "signo de marcus gunn",
+        )
     )
+    if not hay_dpar and "marcus gunn" in txt_pupilas:
+        hay_dpar = any(
+            _keyword_matches(txt_pupilas, tok, allow_negation_window=True)
+            for tok in ("positivo", "+", "dpar", "rapd", "defecto", "anormal", "patologic")
+        )
     if not hay_dpar:
         return False
     return _fondo_contains(req, _KEYWORDS_FONDO_GLAUCOMATOSO)
@@ -234,8 +270,8 @@ def _texto_papila_patologica(req: ImpresionClinicaRequest) -> str:
         )
     if es_emergencia:
         return (
-            "Hallazgo urgente: los hallazgos del nervio optico documentados son compatibles "
-            "con edema de papila, lo que amerita evaluacion neurooftalmologica urgente para "
+            "Hallazgo urgente: los hallazgos del nervio optico documentados orientan a sospecha "
+            "de edema de papila, lo que amerita evaluacion neurooftalmologica urgente para "
             "descarte de hipertension intracraneal."
         )
     return (
@@ -358,13 +394,37 @@ _texto_fondo_oclusion_vascular_urgente = (
 )
 
 
-_KEYWORDS_SINTOMAS_TRACCION = (
+_KEYWORDS_FOTOPSIAS_O_URGENTES = (
     "fotopsias", "fotopsia", "flashes", "centelleos", "luces intermitentes",
     "destellos", "destello", "relampagos", "relampago",
+    "anillo de weiss",
     "miodesopsias agudas", "miodesopsias de aparicion subita", "lluvia de manchas",
+)
+
+_KEYWORDS_MIODESOPSIAS_GENERICAS = (
     "moscas volantes", "mosca volante", "telaranas", "telarana",
     "manchas negras flotantes", "puntos negros flotantes", "cuerpos flotantes",
-    "anillo de weiss",
+    "miodesopsias", "miodesopsia",
+)
+
+_MODIFICADORES_CRONICO_ESTABLE = (
+    "cronico", "cronica", "cronicos", "cronicas",
+    "estable", "estables",
+    "desde hace anos", "desde hace meses",
+    "hace anos", "hace 10 anos", "hace varios anos", "hace tiempo",
+    "de larga evolucion",
+    "antiguo", "antigua", "antiguos", "antiguas",
+    "habitual", "habituales",
+    "de siempre", "sin cambios",
+)
+
+_MODIFICADORES_AGUDO_RECIENTE = (
+    "agudo", "aguda", "agudos", "agudas",
+    "subito", "subita", "subitos", "subitas",
+    "reciente", "recientes",
+    "brusco", "brusca", "bruscos", "bruscas",
+    "nuevo", "nueva", "nuevos", "nuevas",
+    "hace dias", "hace unas semanas", "hace una semana", "hace poco",
 )
 
 
@@ -381,7 +441,17 @@ def _cond_sintomas_alarma_traccion_vitreoretina(req: ImpresionClinicaRequest) ->
     if not textos:
         return False
     combinado = _normalize_text(" ".join(textos))
-    return any(_keyword_matches(combinado, k, allow_negation_window=True) for k in _KEYWORDS_SINTOMAS_TRACCION)
+    # 1. Fotopsias, destellos, destellos luminosos o miodesopsias agudas/lluvia activan alarma
+    if any(_keyword_matches(combinado, k, allow_negation_window=True) for k in _KEYWORDS_FOTOPSIAS_O_URGENTES):
+        return True
+    # 2. Miodesopsias genericas (moscas volantes, etc.)
+    if any(_keyword_matches(combinado, k, allow_negation_window=True) for k in _KEYWORDS_MIODESOPSIAS_GENERICAS):
+        es_cronico_estable = any(m in combinado for m in _MODIFICADORES_CRONICO_ESTABLE)
+        es_agudo_reciente = any(m in combinado for m in _MODIFICADORES_AGUDO_RECIENTE)
+        if es_cronico_estable and not es_agudo_reciente:
+            return False
+        return True
+    return False
 
 
 _texto_sintomas_alarma_traccion_vitreoretina = (

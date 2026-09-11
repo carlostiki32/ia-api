@@ -58,6 +58,6 @@ def _cond_amsler_alterado(req: ImpresionClinicaRequest) -> bool:
 
 
 _texto_amsler_alterado = (
-    "El test de Amsler revela alteracion compatible con patologia macular funcional "
+    "El test de Amsler revela alteracion sugestiva de alteracion macular funcional "
     "que amerita OCT macular."
 )

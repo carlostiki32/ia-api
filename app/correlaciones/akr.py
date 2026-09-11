@@ -19,11 +19,12 @@ from app.correlaciones.texto import _join_hallazgos, _keyword_matches, _normaliz
 from app.schemas import ImpresionClinicaRequest
 
 # La red de seguridad de variabilidad inespecifica exige una discrepancia AR-Rx
-# amplia (>= 1.50 D). Los autorrefractometros sobre-miopizan de forma rutinaria
-# ~0.50-1.00 D respecto a la refraccion subjetiva; disparar por debajo de 1.50 D
-# convertiria un comportamiento normal del instrumento en un "hallazgo" y anadiria
-# ruido a casi todos los casos con AKR. Los patrones etarios especificos (espasmo,
-# cambio cristalino) mantienen sus propios umbrales mas sensibles.
+# amplia (>= 1.50 D). La literatura comparativa demuestra que la diferencia media
+# entre autorrefraccion y refraccion subjetiva es modesta (~0.17 a 0.23 D), pero
+# los limites de acuerdo al 95% y la dispersion test-retest alcanzan comunmente
+# ±1.00 a ±1.25 D. El umbral de 1.50 D (~3 DE) se justifica clinicamente para
+# filtrar la dispersion instrumental y fisiologica normal, alertando solo ante
+# discrepancias verdaderamente atipicas que ameriten reevaluacion.
 _UMBRAL_VARIABILIDAD_D = 1.50
 
 
@@ -49,8 +50,8 @@ def _cond_ar_rx_espasmo_acomodativo(req: ImpresionClinicaRequest) -> bool:
 
 _texto_ar_rx_espasmo_acomodativo = (
     "El autorrefractometro documenta mayor componente miopico que la refraccion subjetiva "
-    "final en un paciente joven con uso intensivo de pantallas, patron compatible con "
-    "espasmo acomodativo que amerita control posterior y eventual refraccion bajo cicloplejia."
+    "final en un paciente joven con uso intensivo de pantallas, patron sugestivo de "
+    "sobreacomodacion / espasmo acomodativo que amerita control posterior y eventual refraccion bajo cicloplejia."
 )
 
 
@@ -118,12 +119,12 @@ def _texto_ar_rx_variabilidad_inespecifica(req: ImpresionClinicaRequest) -> str:
     if cornea:
         return (
             "Se documenta discrepancia entre autorrefractometro y refraccion final, "
-            "compatible con variabilidad refractiva durante la exploracion, "
+            "lo que sugiere variabilidad refractiva durante la exploracion, "
             f"con queratometria de curvatura corneal pronunciada en {cornea}."
         )
     return (
         "Se documenta discrepancia entre autorrefractometro y refraccion final, "
-        "compatible con variabilidad refractiva durante la exploracion."
+        "lo que sugiere variabilidad refractiva durante la exploracion."
     )
 
 

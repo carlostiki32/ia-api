@@ -26,7 +26,7 @@ from app.correlaciones.fondo_de_ojo import (
 from app.correlaciones.pupilas_motilidad import _cond_horner_o_tercer_par_sospecha
 from app.correlaciones.queratometria import _req_has_corneal_irregularity
 from app.correlaciones.refraccion_utils import _av_denominator, _av_es_limitada, _equivalente_esferico
-from app.correlaciones.refractivas import _cond_anisometropia, _cond_miopia_magna
+from app.correlaciones.refractivas import _cond_anisometropia
 from app.correlaciones.texto import (
     _contains_keyword,
     _normalize_cover_text,
@@ -37,6 +37,8 @@ from app.schemas import ImpresionClinicaRequest
 # Causas organicas que, si estan documentadas, explican la baja de agudeza y
 # suprimen las redes de seguridad (screening del adulto mayor, sospecha de
 # ambliopia): en ese caso el mensaje generico seria redundante o enganoso.
+# NOTA CLINICA: La miopia magna es factor de riesgo (catarata, glaucoma, maculopatia miopica)
+# y NO una causa organica que deba silenciar el screening del adulto mayor.
 def _suprime_causa_organica(req: ImpresionClinicaRequest) -> bool:
     return any(
         cond(req) for cond in (
@@ -52,7 +54,6 @@ def _suprime_causa_organica(req: ImpresionClinicaRequest) -> bool:
             _cond_fondo_hipertensivo,
             _cond_papila_patologica,
             _cond_horner_o_tercer_par_sospecha,
-            _cond_miopia_magna,
             _cond_astigmatismo_lenticular_puro,
             _req_has_corneal_irregularity,
         )
@@ -286,7 +287,7 @@ def _ojo_av_limitada(req: ImpresionClinicaRequest):
 @_memoize_cond
 def _cond_ambliopia_sospecha(req: ImpresionClinicaRequest) -> bool:
     """Caso clinico: AV con correccion limitada + factor ambliogenico (anisometropia
-    o desviacion manifiesta) sin causa organica documentada, patron compatible con
+    o desviacion manifiesta) sin causa organica documentada, patron sugestivo de
     ambliopia funcional. Usa av_sc/av_cc para caracterizar la respuesta a la Rx."""
     refraccion = req.refraccion
     if refraccion is None:
@@ -306,7 +307,7 @@ def _texto_ambliopia_sospecha(req: ImpresionClinicaRequest) -> str:
         detalle += f", con agudeza visual sin correccion de {av_sc}"
     return (
         f"Se documenta agudeza visual con correccion limitada en {detalle} en presencia de {factor}, "
-        "patron compatible con ambliopia; amerita verificar el antecedente de ambliopia y la fijacion, "
+        "patron sugestivo de ambliopia; amerita verificar el antecedente de ambliopia y la fijacion, "
         "y descartar una causa organica no evidente en el examen actual."
     )
 
@@ -339,7 +340,7 @@ def _texto_ambliopia_isoametropica_bilateral(req: ImpresionClinicaRequest) -> st
     return (
         f"En paciente de {edad} anos con agudeza visual corregida bilateralmente limitada "
         f"(OD {od.av_cc}, OI {oi.av_cc}) asociada a alta ametropia simetrica en ausencia de patologia organica, "
-        "el cuadro es compatible con ambliopia isoametropica (bilateral refractiva), ameritando prescripcion "
+        "el cuadro orienta a sospecha de ambliopia isoametropica (bilateral refractiva), ameritando prescripcion "
         "optica total y valoracion de terapia visual de estimulacion."
     )
 
@@ -355,7 +356,7 @@ def _cond_cvs_sospecha(req: ImpresionClinicaRequest) -> bool:
 
 _texto_cvs_sospecha = (
     "El perfil de uso de pantallas se correlaciona con la sintomatologia visual "
-    "referida, compatible con sindrome visual informatico, ameritando recomendaciones "
+    "referida, sugestiva de fatiga visual digital / sindrome visual informatico, ameritando recomendaciones "
     "ergonomicas y eventual correccion optica para vision intermedia."
 )
 

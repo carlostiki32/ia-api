@@ -106,8 +106,8 @@ def _cond_insuficiencia_convergencia(req: ImpresionClinicaRequest) -> bool:
 
 _texto_insuficiencia_convergencia = (
     "La combinacion de punto proximo de convergencia alejado, exoforia y sintomatologia de "
-    "vision proxima es compatible con insuficiencia de convergencia, ameritando evaluacion "
-    "binocular completa para confirmar el diagnostico y plantear terapia visual si procede."
+    "vision proxima sugiere sospecha de insuficiencia de convergencia, ameritando evaluacion "
+    "binocular completa para complementar la evaluacion funcional binocular y plantear terapia visual si procede."
 )
 
 
@@ -155,8 +155,8 @@ def _cond_cover_exoforia_sintomatica(req: ImpresionClinicaRequest) -> bool:
 
 
 _texto_cover_exoforia_sintomatica = (
-    "Se documenta exoforia con sintomatologia binocular asociada, compatible con "
-    "disfuncion binocular de tipo divergente que amerita evaluacion funcional."
+    "Se documenta exoforia con sintomatologia binocular asociada, sugestiva de "
+    "descompensacion forica que amerita evaluacion funcional."
 )
 
 
@@ -177,8 +177,8 @@ def _texto_cover_endoforia_sintomatica(req: ImpresionClinicaRequest) -> str:
     else:
         hallazgo = "una endodesviacion no clasificada en el cover test"
     return (
-        f"Se documenta {hallazgo} con sintomatologia binocular asociada, compatible con "
-        "exceso de convergencia o disfuncion acomodativa que amerita evaluacion funcional."
+        f"Se documenta {hallazgo} con sintomatologia binocular asociada, sugestiva de "
+        "disfuncion de la vision binocular que amerita evaluacion funcional."
     )
 
 

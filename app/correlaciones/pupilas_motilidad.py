@@ -24,7 +24,10 @@ _KEYWORDS_PUPILAS = {
     "dpar": "defecto pupilar aferente relativo",
     "rapd": "defecto pupilar aferente relativo",
     "defecto pupilar aferente": "defecto pupilar aferente relativo",
-    "marcus gunn": "defecto pupilar aferente relativo",
+    "pupila de marcus gunn": "defecto pupilar aferente relativo",
+    "marcus gunn pupilar": "defecto pupilar aferente relativo",
+    "pupila marcus gunn": "defecto pupilar aferente relativo",
+    "signo de marcus gunn": "defecto pupilar aferente relativo",
     "no reactivo": "pupila no reactiva",
     "no reactiva": "pupila no reactiva",
     "arreactiva": "pupila no reactiva",
@@ -65,17 +68,44 @@ _KEYWORDS_MOTILIDAD = (
 
 
 def _pupilas_hallazgos(clinica) -> list[str]:
-    """Extrae hallazgos pupilares, descartando anisocoria explicitamente calificada
-    de fisiologica/benigna/simple (hallazgo prevalente y benigno, ~15-30% de la
-    poblacion)."""
+    """Extrae hallazgos pupilares, descartando anisocoria fisiologica,
+    desambiguando Marcus Gunn (pupilar/DPAR vs mandibulopalpebral/ambiguo)
+    y excluyendo alteraciones pupilares farmacologicas."""
     if clinica is None:
+        return []
+    texto_norm = _normalize_text(clinica.reflejos_pupilares)
+    if not texto_norm:
         return []
     hallazgos = _extract_normalized_findings(
         clinica.reflejos_pupilares,
         _KEYWORDS_PUPILAS,
         allow_negation_window=True,
     )
-    texto_norm = _normalize_text(clinica.reflejos_pupilares)
+    # Desambiguacion Marcus Gunn
+    if "marcus gunn" in texto_norm:
+        es_mandibulopalpebral = any(
+            m in texto_norm for m in (
+                "mandibulopalpebral", "mandibulo-palpebral", "mandibulo palpebral",
+                "sincinesia", "mandibula", "jaw-winking", "jaw winking",
+                "fenomeno de marcus gunn", "fenomeno marcus gunn",
+            )
+        )
+        if es_mandibulopalpebral:
+            hallazgos = [h for h in hallazgos if h != "defecto pupilar aferente relativo"]
+        else:
+            es_dpar_confirmado = any(
+                _keyword_matches(texto_norm, tok, allow_negation_window=True)
+                for tok in ("pupila", "pupilar", "dpar", "rapd", "defecto", "positivo", "+", "anormal", "patologic")
+            )
+            if es_dpar_confirmado:
+                if "defecto pupilar aferente relativo" not in hallazgos:
+                    hallazgos.append("defecto pupilar aferente relativo")
+            else:
+                hallazgos.append(
+                    "sospecha de alteracion pupilar (registro de Marcus Gunn; requiere desambiguar "
+                    "pupila de Marcus Gunn vs fenomeno mandibulopalpebral)"
+                )
+
     if "anisocoria" in hallazgos:
         if any(term in texto_norm for term in ("fisiologic", "benign", "simple", "esencial")):
             hallazgos = [h for h in hallazgos if h != "anisocoria"]

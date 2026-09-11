@@ -41,8 +41,8 @@ def _texto_queratocono_ectasia_sospecha(req: ImpresionClinicaRequest) -> str:
     detalle = _join_hallazgos(partes) if partes else "la queratometria"
     return (
         f"La queratometria documenta curvatura corneal pronunciada o cilindro corneal elevado "
-        f"en {detalle}, hallazgo compatible con irregularidad de la superficie corneal o posible "
-        "ectasia que amerita topografia/tomografia corneal para descarte de queratocono."
+        f"en {detalle}, hallazgo sugestivo de irregularidad en la curvatura corneal o sospecha de "
+        "ectasia incipiente que amerita topografia/tomografia corneal para descarte de queratocono."
     )
 
 
@@ -91,7 +91,7 @@ def _texto_astigmatismo_corneal_vs_refractivo(req: ImpresionClinicaRequest) -> s
     )
 
 
-_K_PLANA_EXTREMA_D = 40.00
+_K_PLANA_EXTREMA_D = 38.00
 
 
 def _cornea_plana_parts(req: ImpresionClinicaRequest) -> list[str]:
@@ -113,7 +113,8 @@ def _cornea_plana_parts(req: ImpresionClinicaRequest) -> list[str]:
 
 @_memoize_cond
 def _cond_cornea_plana_extrema(req: ImpresionClinicaRequest) -> bool:
-    """Caso clinico: queratometria marcadamente plana (<40.00 D) indica variante anatomica relevante."""
+    """Caso clinico: queratometria marcadamente plana (<38.00 D) indica cornea plana verdadera (CNA1/CNA2)
+    y variante anatomica de relevancia refractiva."""
     return bool(_cornea_plana_parts(req))
 
 
@@ -146,7 +147,7 @@ def _lenticular_parts(req: ImpresionClinicaRequest) -> list[str]:
 @_memoize_cond
 def _cond_astigmatismo_lenticular_puro(req: ImpresionClinicaRequest) -> bool:
     """Caso clinico: astigmatismo refractivo relevante (>= 1.50 D) con cornea queratometricamente esferica
-    confirma origen lenticular/interno (catarata, subluxacion)."""
+    sugiere componente lenticular/interno (catarata, subluxacion)."""
     return bool(_lenticular_parts(req))
 
 
@@ -155,7 +156,7 @@ def _texto_astigmatismo_lenticular_puro(req: ImpresionClinicaRequest) -> str:
     ojos = _join_hallazgos(partes) if partes else "la exploracion"
     return (
         f"Se documenta astigmatismo refractivo relevante en presencia de una superficie corneal "
-        f"queratometricamente esferica en {ojos}, lo que confirma un origen cristaliniano/interno "
+        f"queratometricamente esferica en {ojos}, lo que sugiere un componente cristaliniano/interno "
         "del defecto y amerita valoracion del segmento anterior para descartar asimetria "
         "cristaliniana o ectopia lentis."
     )

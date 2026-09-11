@@ -21,7 +21,7 @@ _KEYWORDS_DGM_BLEFARITIS = (
 
 
 def _cond_but_critico(req: ImpresionClinicaRequest) -> bool:
-    """Caso clinico: BUT menor de 5 segundos activa sospecha de ojo seco clinico."""
+    """Caso clinico: BUT menor de 5 segundos sugiere sospecha de disfuncion lagrimal marcada."""
     clinica = req.clinica
     if clinica is None:
         return False
@@ -32,8 +32,8 @@ def _cond_but_critico(req: ImpresionClinicaRequest) -> bool:
 def _texto_but_critico(req: ImpresionClinicaRequest) -> str:
     but = req.clinica.ojo_seco_but_seg
     return (
-        f"El tiempo de ruptura lagrimal de {but}s es patologicamente bajo, compatible "
-        "con ojo seco clinico que amerita evaluacion."
+        f"El tiempo de ruptura lagrimal de {but}s es marcadamente reducido, sugiriendo sospecha "
+        "de disfuncion de la pelicula lagrimal que amerita evaluacion clinica de la superficie ocular."
     )
 
 
@@ -73,7 +73,7 @@ def _texto_but_limitrofe(req: ImpresionClinicaRequest) -> str:
 @_memoize_cond
 def _cond_ojo_seco_evaporativo_dgm(req: ImpresionClinicaRequest) -> bool:
     """Caso clinico: alteracion en glandulas de Meibomio o blefaritis + BUT reducido (<10s)
-    configura ojo seco evaporativo segun criterios TFOS DEWS II."""
+    orienta a sospecha de ojo seco evaporativo segun criterios TFOS DEWS II."""
     clinica = req.clinica
     if clinica is None or clinica.ojo_seco_but_seg is None:
         return False
@@ -94,7 +94,7 @@ def _cond_ojo_seco_evaporativo_dgm(req: ImpresionClinicaRequest) -> bool:
 
 _texto_ojo_seco_evaporativo_dgm = (
     "La presencia de alteracion en glandulas de Meibomio o blefaritis asociada a un tiempo "
-    "de ruptura lagrimal reducido configura un cuadro compatible con ojo seco de predominio "
-    "evaporativo, ameritando manejo dirigido a la superficie palpebral y estabilidad lagrimal."
+    "de ruptura lagrimal reducido orienta a sospecha de ojo seco de predominio "
+    "evaporativo, ameritando valoracion dirigida a la superficie palpebral y estabilidad lagrimal."
 )
 

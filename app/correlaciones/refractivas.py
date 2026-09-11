@@ -113,7 +113,7 @@ def _texto_hipermetropia_alta(req: ImpresionClinicaRequest) -> str:
     if cornea:
         texto += f" La queratometria documenta curvatura corneal pronunciada en {cornea}, hallazgo que no explica por si solo la hipermetropia alta pero si modifica la interpretacion del astigmatismo asociado."
     elif plana:
-        texto += f" La queratometria muestra curvatura corneal plana en {plana}, compatible con un componente corneal (y no exclusivamente axial) de la hipermetropia."
+        texto += f" La queratometria muestra curvatura corneal plana en {plana}, sugestivo de un componente corneal (y no exclusivamente axial) de la hipermetropia."
     return texto
 
 
@@ -192,7 +192,7 @@ def _texto_av_cc_limitada(req: ImpresionClinicaRequest) -> str:
         ojo_akr = _ojo_akr(req, side)
         if _keratometry_suggests_corneal_irregularity(ojo_akr):
             detalle += (
-                ", con queratometria compatible con irregularidad de la superficie corneal, "
+                ", con queratometria que orienta a irregularidad de la superficie corneal, "
                 "lo que puede explicar la limitacion de la agudeza visual pese a la correccion"
             )
         partes.append(detalle)
@@ -200,7 +200,8 @@ def _texto_av_cc_limitada(req: ImpresionClinicaRequest) -> str:
 
 
 def _es_eje_oblicuo(eje: int) -> bool:
-    return (20 <= eje <= 70) or (110 <= eje <= 160)
+    eje_norm = eje % 180 or 180
+    return (20 < eje_norm < 70) or (110 < eje_norm < 160)
 
 
 def _cond_astig_oblicuo(req: ImpresionClinicaRequest) -> bool:
@@ -265,11 +266,38 @@ def _asimetria_k_interocular(req: ImpresionClinicaRequest) -> float | None:
 
 @_memoize_cond
 def _cond_aniseiconia_queratometrica_severa(req: ImpresionClinicaRequest) -> bool:
-    """Caso clinico: anisometropia con asimetria queratometrica interocular significativa (>= 1.50 D)."""
+    """Caso clinico: anisometropia con asimetria queratometrica interocular significativa (>= 1.50 D),
+    concordante en direccion con la ley de Knapp (la cornea mas curva se encuentra en el ojo
+    con equivalente esferico mas miope / menos hipermetrope)."""
     if not _cond_anisometropia(req):
         return False
-    diff = _asimetria_k_interocular(req)
-    return diff is not None and diff >= 1.50
+    if req.refraccion is None:
+        return False
+    od_rx = req.refraccion.od
+    oi_rx = req.refraccion.oi
+    ee_od = _equivalente_esferico(od_rx.esfera, od_rx.cilindro)
+    ee_oi = _equivalente_esferico(oi_rx.esfera, oi_rx.cilindro)
+    if ee_od is None or ee_oi is None:
+        return False
+    od_akr = _ojo_akr(req, "od")
+    oi_akr = _ojo_akr(req, "oi")
+    if od_akr is None or oi_akr is None:
+        return False
+    od_k = _k_promedio(od_akr)
+    oi_k = _k_promedio(oi_akr)
+    if od_k is None or oi_k is None:
+        return False
+    diff = abs(od_k - oi_k)
+    if diff < 1.50:
+        return False
+    # Ley de Knapp: para que la anisometropia tenga un componente corneal / refractivo
+    # que justifique la adaptacion de lentes de contacto para reducir aniseiconia,
+    # la cornea de mayor poder refractivo (K mas alto) debe corresponder al ojo mas miope
+    # (o menos hipermetrope). Si la cornea mas plana esta en el ojo mas miope,
+    # la diferencia refractiva es preponderantemente axial en direccion contraria.
+    delta_ee = ee_od - ee_oi
+    delta_k = od_k - oi_k
+    return (delta_ee * delta_k) < 0
 
 
 def _texto_aniseiconia_queratometrica_severa(req: ImpresionClinicaRequest) -> str:
