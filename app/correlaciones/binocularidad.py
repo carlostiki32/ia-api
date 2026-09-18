@@ -11,6 +11,7 @@ from app.correlaciones.base import _memoize_cond
 from app.correlaciones.texto import (
     _contains_keyword,
     _cover_desviaciones,
+    _keyword_matches,
     _normalize_cover_text,
 )
 from app.schemas import ImpresionClinicaRequest
@@ -27,14 +28,35 @@ _KEYWORDS_BINOCULAR = (
     "mareo al leer", "mareo con lectura", "sueno al leer",
     "vision borrosa intermitente",
 )
-_KEYWORDS_CERCANIA = (
+# Sintomas astenopicos y de disfuncion binocular en vision proxima / lectura / pantallas.
+# Diferenciados estrictamente de la simple demanda visual u ocupacion.
+_KEYWORDS_SINTOMAS_PROXIMOS = (
+    # Sintomas binoculares clasicos
+    "diplopia", "vision doble", "veo doble", "imagenes dobles",
+    "cefalea", "dolor de cabeza",
+    "astenopia", "fatiga visual", "fatiga ocular", "vista cansada",
+    "cansancio visual", "cansancio ocular", "ojos cansados",
+    "ardor con lectura", "lagrimeo con lectura", "ardor al leer", "dolor al leer",
+    "perdida del renglon", "salto de renglon", "pierde el renglon",
+    "salto de letras", "se juntan las letras", "letras que bailan",
+    "letras se mueven", "dificultad para enfocar",
+    "mareo al leer", "mareo con lectura", "sueno al leer",
+    "vision borrosa intermitente",
+    # Quejas astenopicas directas en vision proxima / lectura / pantallas
+    "fatiga al leer", "fatiga de cerca", "fatiga con lectura", "fatiga al usar",
+    "cansancio al leer", "cansancio de cerca", "cansancio con lectura", "cansancio al usar",
+    "cansancio al usar la computadora", "fatiga en computadora", "cansancio en computadora",
+    "borroso de cerca", "borrosa de cerca", "borroso al leer", "borrosa al leer",
+    "molestia al leer", "molestias al leer", "molestias de cerca",
+    "fatiga", "cansancio", "astenopia",
+)
+_KEYWORDS_TAREAS_CERCANIA = (
     "lectura", "leer", "estudiar", "estudio", "cerca", "vision proxima",
     "vision cercana", "trabajo de cerca", "computadora", "pantalla", "celular",
-    "escribir", "astenopia", "fatiga", "cefalea",
+    "escribir",
 )
-# La demanda de vision proxima tambien puede inferirse de la ocupacion (no solo del
-# motivo de consulta): un trabajo intensivo de cerca es contexto valido para la
-# insuficiencia de convergencia.
+# La demanda de vision proxima por ocupacion representa contexto de exposicion/riesgo,
+# pero no sustituye la existencia de sintomas referidos por el paciente.
 _KEYWORDS_OCUPACION_PROXIMA = (
     "estudiante", "oficina", "oficinista", "programador", "desarrollador",
     "contador", "contabilidad", "capturista", "digitador", "secretaria",
@@ -43,11 +65,11 @@ _KEYWORDS_OCUPACION_PROXIMA = (
 )
 _KEYWORDS_DESVIACION_VERTICAL = ("hiperforia", "hipoforia", "hipertropia", "hipotropia")
 
-# Punto proximo de convergencia (PPC): el corte de "alejado" depende de la edad.
-# La evidencia (criterios CITT) fija el punto de ruptura anormal en >6 cm para el
-# pre-presbita; en el presbita el PPC se aleja fisiologicamente y el corte sube a
-# >10 cm. Sin edad se usa el corte conservador (>10) para no sobre-disparar en un
-# posible presbita no declarado.
+# Punto proximo de convergencia (PPC):
+# - En pre-presbitas (edad < 40): segun la literatura CITT (Convergence Insufficiency
+#   Treatment Trial), el punto de rotura anormal se define en >= 6 cm (receded near point of convergence).
+# - En presbitas (edad >= 40) o sin edad especificada: se aplica un umbral conservador de > 10 cm,
+#   el cual queda formalmente registrado como pendiente de validacion mediante protocolo clinico.
 _PPC_UMBRAL_JOVEN_CM = 6
 _PPC_UMBRAL_PRESBITA_CM = 10
 
@@ -64,7 +86,11 @@ def _ppc_alejado(req: ImpresionClinicaRequest) -> bool:
     clinica = req.clinica
     if clinica is None or clinica.ppc_cm is None:
         return False
-    return clinica.ppc_cm > _ppc_umbral(req)
+    paciente = req.paciente
+    edad = paciente.edad if paciente is not None else None
+    if edad is not None and edad < 40:
+        return clinica.ppc_cm >= _PPC_UMBRAL_JOVEN_CM
+    return clinica.ppc_cm > _PPC_UMBRAL_PRESBITA_CM
 
 
 def _cover_tokens(req: ImpresionClinicaRequest) -> frozenset[str]:
@@ -75,33 +101,61 @@ def _cover_tokens(req: ImpresionClinicaRequest) -> frozenset[str]:
     return _cover_desviaciones(clinica.cover_test if clinica is not None else None)
 
 
+def _cover_has(req: ImpresionClinicaRequest, deviation: str) -> bool:
+    """Verifica si una desviacion del cover test esta presente y afirmada,
+    reconociendo tanto el formato canonico estructurado del SaaS como texto libre
+    con ventana de negacion (ej. 'sin endotropia ni exotropia').
+    """
+    clinica = req.clinica
+    if clinica is None or not clinica.cover_test:
+        return False
+    tokens = _cover_tokens(req)
+    if deviation in tokens:
+        return True
+    cover = _normalize_cover_text(clinica.cover_test)
+    return _keyword_matches(cover, deviation, allow_negation_window=True)
+
+
 def _has_binocular_symptoms(req: ImpresionClinicaRequest) -> bool:
     paciente = req.paciente
     motivo = paciente.motivo_consulta if paciente is not None else None
-    return _contains_keyword(motivo, _KEYWORDS_BINOCULAR, allow_negation_window=True)
+    if not motivo:
+        return False
+    return _contains_keyword(motivo, _KEYWORDS_SINTOMAS_PROXIMOS, allow_negation_window=True)
+
+
+def _has_near_symptoms(req: ImpresionClinicaRequest) -> bool:
+    """Sintomas reales en vision proxima o disfuncion binocular referidos por el paciente."""
+    return _has_binocular_symptoms(req)
 
 
 def _hay_demanda_proxima(req: ImpresionClinicaRequest) -> bool:
-    """Contexto de vision proxima: por sintoma en el motivo o por la ocupacion."""
+    """Contexto de demanda de vision proxima por ocupacion o tareas continuas de cerca."""
     paciente = req.paciente
     if paciente is None:
         return False
-    return _contains_keyword(paciente.motivo_consulta, _KEYWORDS_CERCANIA) or _contains_keyword(
-        paciente.ocupacion, _KEYWORDS_OCUPACION_PROXIMA
+    return _contains_keyword(
+        paciente.motivo_consulta, _KEYWORDS_TAREAS_CERCANIA, allow_negation_window=True
+    ) or _contains_keyword(
+        paciente.ocupacion, _KEYWORDS_OCUPACION_PROXIMA, allow_negation_window=True
     )
 
 
 @_memoize_cond
 def _cond_insuficiencia_convergencia(req: ImpresionClinicaRequest) -> bool:
-    """Caso clinico: PPC alejado, exoforia y sintomas de lectura activan insuficiencia de convergencia."""
+    """Caso clinico: PPC alejado (>= 6 cm en pre-presbita segun umbral de rotura CITT,
+    o > 10 cm en presbita), exoforia en cover test y sintomatologia real de vision proxima.
+
+    Exige sintomas astenopicos/binoculares activos referidos por el paciente; la ocupacion
+    o demanda laboral de cerca por si solas NO constituyen sintomatologia.
+    """
     if req.clinica is None or req.paciente is None:
         return False
     if not _ppc_alejado(req):
         return False
-    cover = _normalize_cover_text(req.clinica.cover_test)
-    if "exoforia" not in cover:
+    if not _cover_has(req, "exoforia"):
         return False
-    return _hay_demanda_proxima(req)
+    return _has_near_symptoms(req)
 
 
 _texto_insuficiencia_convergencia = (
@@ -117,10 +171,7 @@ def _cond_ppc_exoforia(req: ImpresionClinicaRequest) -> bool:
         return False
     if _cond_insuficiencia_convergencia(req):
         return False
-    cover = _normalize_cover_text(clinica.cover_test)
-    # "exo" suelto = el optometrista marco Exo sin clasificar Tropia/Foria:
-    # sigue siendo una exodesviacion documentada que merece mencion.
-    return _ppc_alejado(req) or ("exoforia" in cover) or ("exo" in _cover_tokens(req))
+    return _ppc_alejado(req) or _cover_has(req, "exoforia") or _cover_has(req, "exo")
 
 
 def _texto_ppc_exoforia(req: ImpresionClinicaRequest) -> str:
@@ -130,17 +181,19 @@ def _texto_ppc_exoforia(req: ImpresionClinicaRequest) -> str:
     cover = _normalize_cover_text(clinica.cover_test if clinica is not None else None)
     if _ppc_alejado(req):
         partes.append(f"punto proximo de convergencia alejado ({ppc} cm)")
-    if "exoforia" in cover:
+    if _cover_has(req, "exoforia"):
         if any(token in cover for token in ("vp", "cerca", "proxima")):
             partes.append("exoforia en vision proxima")
         elif any(token in cover for token in ("vl", "lejos")):
             partes.append("exoforia en vision lejana")
         else:
             partes.append("tendencia divergente en el cover test")
-    elif "exo" in _cover_tokens(req):
+    elif _cover_has(req, "exo"):
         partes.append(
             "exodesviacion no clasificada en el cover test (conviene precisar foria o tropia)"
         )
+    if _ppc_alejado(req) and (_cover_has(req, "exoforia") or _cover_has(req, "exo")):
+        return f"El paciente presenta {' y '.join(partes)}, ameritando evaluacion binocular completa."
     return "El paciente presenta " + " y ".join(partes) + "."
 
 
@@ -150,8 +203,7 @@ def _cond_cover_exoforia_sintomatica(req: ImpresionClinicaRequest) -> bool:
         return False
     if _cond_insuficiencia_convergencia(req):
         return False
-    cover = _normalize_cover_text(req.clinica.cover_test)
-    return "exoforia" in cover and _has_binocular_symptoms(req)
+    return _cover_has(req, "exoforia") and _has_binocular_symptoms(req)
 
 
 _texto_cover_exoforia_sintomatica = (
@@ -165,14 +217,13 @@ def _cond_cover_endoforia_sintomatica(req: ImpresionClinicaRequest) -> bool:
     endotropia sugiere exceso de convergencia."""
     if req.clinica is None or req.paciente is None:
         return False
-    cover = _normalize_cover_text(req.clinica.cover_test)
-    hay_endo = "endoforia" in cover or "endo" in _cover_tokens(req)
-    return hay_endo and "endotropia" not in cover and _has_binocular_symptoms(req)
+    hay_endo = _cover_has(req, "endoforia") or _cover_has(req, "endo")
+    hay_tropia = _cover_has(req, "endotropia")
+    return hay_endo and not hay_tropia and _has_binocular_symptoms(req)
 
 
 def _texto_cover_endoforia_sintomatica(req: ImpresionClinicaRequest) -> str:
-    cover = _normalize_cover_text(req.clinica.cover_test if req.clinica is not None else None)
-    if "endoforia" in cover:
+    if _cover_has(req, "endoforia"):
         hallazgo = "endoforia"
     else:
         hallazgo = "una endodesviacion no clasificada en el cover test"
@@ -187,19 +238,16 @@ def _cond_desviacion_vertical(req: ImpresionClinicaRequest) -> bool:
     Un Hiper/Hipo sin clasificar (sin Tropia/Foria) tambien es desviacion vertical
     documentada y dispara con el texto generico."""
     clinica = req.clinica
-    if clinica is None:
+    if clinica is None or not clinica.cover_test:
         return False
-    cover = _normalize_cover_text(clinica.cover_test)
-    if any(keyword in cover for keyword in _KEYWORDS_DESVIACION_VERTICAL):
+    if any(_cover_has(req, keyword) for keyword in _KEYWORDS_DESVIACION_VERTICAL):
         return True
-    tokens = _cover_tokens(req)
-    return "hiper" in tokens or "hipo" in tokens
+    return _cover_has(req, "hiper") or _cover_has(req, "hipo")
 
 
 def _texto_desviacion_vertical(req: ImpresionClinicaRequest) -> str:
-    cover = _normalize_cover_text(req.clinica.cover_test if req.clinica is not None else None)
-    forias = [k for k in _KEYWORDS_DESVIACION_VERTICAL if k in cover and "foria" in k]
-    tropias = [k for k in _KEYWORDS_DESVIACION_VERTICAL if k in cover and "tropia" in k]
+    forias = [k for k in _KEYWORDS_DESVIACION_VERTICAL if _cover_has(req, k) and "foria" in k]
+    tropias = [k for k in _KEYWORDS_DESVIACION_VERTICAL if _cover_has(req, k) and "tropia" in k]
     partes = []
     if forias:
         partes.append(", ".join(forias))
@@ -224,11 +272,7 @@ def _texto_desviacion_vertical(req: ImpresionClinicaRequest) -> str:
 
 
 def _cond_endotropia_lente(req: ImpresionClinicaRequest) -> bool:
-    clinica = req.clinica
-    if clinica is None:
-        return False
-    cover = _normalize_cover_text(clinica.cover_test)
-    return "endotropia" in cover
+    return _cover_has(req, "endotropia")
 
 
 _texto_endotropia_lente = (
@@ -240,11 +284,7 @@ _texto_endotropia_lente = (
 
 def _cond_exotropia_lente(req: ImpresionClinicaRequest) -> bool:
     """Caso clinico: exotropia manifiesta amerita estudio binocular."""
-    clinica = req.clinica
-    if clinica is None:
-        return False
-    cover = _normalize_cover_text(clinica.cover_test)
-    return "exotropia" in cover
+    return _cover_has(req, "exotropia")
 
 
 _texto_exotropia_lente = (

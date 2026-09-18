@@ -1,11 +1,11 @@
-# Diccionario de Datos de la Receta (SaaS `opt`) — Verdad Absoluta para IA-API
+# Diccionario de Datos de la Receta (SaaS `opt`) — Especificación de Catálogo para IA-API
 
-> ## DIRECTIVA OBLIGATORIA PARA CUALQUIER AGENTE / MODELO DE LENGUAJE (LLM)
+> ## ESPECIFICACIÓN NORMATIVA DE INTEGRACIÓN
 > 
-> **ESTE DOCUMENTO ES LA FUENTE DE VERDAD ABSOLUTA, NORMATIVA Y DEFINITIVA** sobre la estructura, tipos de datos, límites, catálogos, presets de interfaz y reglas de validación de los datos que el SaaS de optometría (`c:\Users\Uriel Rojo\Documents\opt`) construye y envía a esta API (`ia-api`).
+> **ESTE DOCUMENTO DEFINE LA ESPECIFICACIÓN TÉCNICA Y DE CATÁLOGO** sobre la estructura, tipos de datos, límites, catálogos, presets de interfaz y reglas de validación de los datos que el SaaS de optometría (`opt`) construye y envía a esta API (`ia-api`).
 > 
-> 1. **Cero Suposiciones:** Ningún LLM, agente o desarrollador debe asumir, inventar o inferir rangos o límites diferentes a los aquí expresados. La lógica del backend de Laravel ya pasó la auditoría clínica y de persistencia en base de datos.
-> 2. **Fidelidad al 100% en Payloads Ficticios:** Cualquier caso de prueba, mock o payload sintético creado para evaluar la IA DEBE cumplir estrictamente con los catálogos y límites de este documento. Si un dato ficticio excede los límites aquí descritos (por ejemplo, una ocupación de 150 caracteres o una K1 de 90 D), es un caso inválido que Laravel jamás permitiría guardar.
+> 1. **Fidelidad al Catálogo:** Ningún modelo o evaluador debe asumir rangos o límites diferentes a los aquí expresados. La lógica del backend del SaaS y los esquemas de persistencia delimitan el dominio de entrada.
+> 2. **Consistencia de Payloads de Prueba:** Los casos de prueba sintéticos deben reflejar los catálogos y límites de este documento para evaluar el comportamiento representativo de la herramienta en consulta real.
 > 3. **Anonimización Estricta (Zero-PII):** Los datos identificativos del paciente (`nombre`, `telefono`, `fecha_nacimiento` exacta, dirección) NUNCA viajan a la IA. Solo viajan edad calculada (entero), ocupación y motivo de consulta.
 
 ---

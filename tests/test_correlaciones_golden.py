@@ -378,7 +378,7 @@ GOLDEN: list[tuple[str, ImpresionClinicaRequest, str]] = [
         "adulto_mayor_screening",
         _req(paciente=ContextoPaciente(edad=72), refraccion=Refraccion(od=GraduacionOjo(av_cc="20/40"))),
         "En paciente de 72 anos con reduccion de agudeza visual sin causa identificada en "
-        "el examen actual, se recomienda descarte activo de catarata, glaucoma y "
+        "los datos disponibles, se recomienda descarte activo de catarata, glaucoma y "
         "maculopatia asociada a la edad mediante exploracion dirigida.",
     ),
     (
@@ -462,7 +462,7 @@ GOLDEN: list[tuple[str, ImpresionClinicaRequest, str]] = [
             ),
         ),
         "Se registra agudeza visual subnormal en OD con correccion (20/50) (AV sin correccion 20/100) "
-        "sin hallazgos organicos evidentes en el examen actual ni factores ambliogenicos manifiestos; "
+        "al no constar una causa organica evidente en los datos disponibles ni factores ambliogenicos manifiestos; "
         "se recomienda prueba con agujero estenopeico, reevaluar refraccion bajo ciclopejia o descartar "
         "patologia corneal o macular subclinica.",
     ),
@@ -545,24 +545,58 @@ GOLDEN: list[tuple[str, ImpresionClinicaRequest, str]] = [
 ]
 
 
+_REGLAS_REGISTRADAS = {c.nombre: c for c in corr.CORRELACIONES}
+
+
+def _resolver_target_regla(caso_id: str) -> str:
+    """Resuelve la correlacion objetivo a partir del identificador del caso golden."""
+    matching = [r for r in _REGLAS_REGISTRADAS.keys() if caso_id == r or caso_id.startswith(r + "_")]
+    if not matching:
+        raise ValueError(f"No se encontro una correlacion registrada para caso_id='{caso_id}'")
+    return max(matching, key=len)
+
+
 @pytest.mark.parametrize("caso_id, req, esperado", GOLDEN, ids=[g[0] for g in GOLDEN])
 def test_texto_clinico_exacto(caso_id, req, esperado):
+    target_regla = _resolver_target_regla(caso_id)
+
+    # 1. Comprobar que la regla objetivo este efectivamente activa para este caso
+    activas = corr.nombres_correlaciones_activas(req)
+    assert target_regla in activas, (
+        f"[{caso_id}] La regla objetivo '{target_regla}' no se activo con este caso.\n"
+        f"Activas: {activas}"
+    )
+
+    # 2. Comprobar que el texto renderizado especificamente por esa regla coincida exactamente
+    c = _REGLAS_REGISTRADAS[target_regla]
+    texto_renderizado = c.render(req)
+    assert texto_renderizado == esperado, (
+        f"[{caso_id}] Discrepancia en texto exacto para '{target_regla}'.\n"
+        f"Esperado:    {esperado!r}\n"
+        f"Renderizado: {texto_renderizado!r}"
+    )
+
+    # 3. Comprobar que este presente en la lista global producida por evaluar_correlaciones
     textos = corr.evaluar_correlaciones(req)
     assert esperado in textos, (
-        f"[{caso_id}] el texto exacto esperado no se genero.\n"
+        f"[{caso_id}] El texto exacto esperado no se encontro en la salida global.\n"
         f"Esperado: {esperado!r}\nProducidos: {textos!r}"
     )
 
 
 def test_golden_cubre_todas_las_correlaciones():
     """Garantiza que cada una de las 57 correlaciones registradas tenga al menos
-    un golden que fije su texto. Si se agrega una correlacion nueva sin golden,
-    esta prueba falla y obliga a documentar su texto exacto."""
-    cubiertas = set()
-    for _caso_id, req, _esperado in GOLDEN:
-        for c in corr.CORRELACIONES:
-            if c.condicion(req):
-                cubiertas.add(c.nombre)
+    un caso golden que audite directamente su activacion y su texto exacto.
+
+    A diferencia de una suma incidental de condiciones secundarias, este test
+    exige cobertura directa: la regla debe ser el target explícito de al menos
+    un fixture golden."""
+    cubiertas_directas = {_resolver_target_regla(caso_id) for caso_id, _req, _esperado in GOLDEN}
     registradas = {c.nombre for c in corr.CORRELACIONES}
-    faltantes = registradas - cubiertas
-    assert not faltantes, f"Correlaciones sin golden que fije su texto: {sorted(faltantes)}"
+    faltantes = registradas - cubiertas_directas
+    assert not faltantes, (
+        f"Existen {len(faltantes)} correlaciones sin prueba golden directa que audite su texto: "
+        f"{sorted(faltantes)}"
+    )
+    assert len(registradas) == 57, f"Se esperaban 57 correlaciones registradas, hay {len(registradas)}"
+

@@ -26,7 +26,23 @@ _NEGACIONES_PRE = (
     "ausenc",
     "niega",
     "descarte de",
+    "se descarta ",
+    "descartar ",
+    "a descartar ",
+    "descarta ",
+    "sospecha descartada de ",
     "libre de",
+    "tampoco ",
+    "ningun ",
+    "ninguno ",
+    "ninguna ",
+    "antecedente familiar de ",
+    "antecedentes familiares de ",
+    "historia familiar de ",
+    "familiar con ",
+    "familiares con ",
+    "madre con ",
+    "padre con ",
 )
 
 _NEGACIONES_POST = (
@@ -39,6 +55,10 @@ _NEGACIONES_POST = (
     "normales",
     "libre",
     "libres",
+    "ninguno",
+    "ninguna",
+    "ningun",
+    "asintomatic",
 )
 
 # El SaaS compone cover_test como "OD: Tipo [y Sub] | OI: Tipo [y Sub]"
@@ -194,6 +214,24 @@ _SEVERITY_QUALIFIERS = (
 )
 
 
+def _find_neg_bounded(prefix: str, neg: str) -> int:
+    """Busca la ultima aparicion de neg en prefix exigiendo limite de palabra previo.
+
+    Evita que 'no ' coincida con la terminacion de palabras como 'retiniano ' o 'alumno ',
+    o que 'niega' coincida dentro de 'despliega'.
+    """
+    start = 0
+    best = -1
+    while True:
+        pos = prefix.find(neg, start)
+        if pos == -1:
+            break
+        if pos == 0 or not prefix[pos - 1].isalnum():
+            best = pos
+        start = pos + 1
+    return best
+
+
 def _keyword_matches(text: str, keyword: str, *, allow_negation_window: bool) -> bool:
     whole_word = keyword in _WHOLE_WORD_KEYWORDS
     for match in _compiled_keyword(keyword).finditer(text):
@@ -220,7 +258,7 @@ def _keyword_matches(text: str, keyword: str, *, allow_negation_window: bool) ->
             last_neg_pos = -1
             last_neg_len = 0
             for neg in _NEGACIONES_PRE:
-                pos = sentence_prefix.rfind(neg)
+                pos = _find_neg_bounded(sentence_prefix, neg)
                 if pos != -1 and (pos > last_neg_pos or (pos == last_neg_pos and len(neg) > last_neg_len)):
                     last_neg_pos = pos
                     last_neg_len = len(neg)

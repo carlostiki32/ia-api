@@ -103,20 +103,19 @@ def _normaliza_eje(value: int | None) -> int | None:
 
 def _transponer_a_cilindro_negativo(ojo) -> None:
     """Normaliza una lectura en convencion plus-cyl a convencion negativa:
-    esf' = esf + cil, cil' = -cil, eje' = (eje + 90) % 180.
+    esf' = esf + cil, cil' = -cil, eje' = (eje + 90) % 180 or 180.
 
-    Solo se aplica al AKR (lectura del autorrefractometro, cuya convencion la
-    fija el dispositivo y puede ser plus-cyl). Asi la comparacion esfera-a-esfera
-    AR vs Rx (ar_rx_espasmo/cambio/variabilidad) queda en la misma convencion que
-    la Rx final (que el dropdown del SaaS ya garantiza negativa). NO se aplica a
-    la Rx final para no alterar el piso de esfera de hipermetropia_alta."""
+    Garantiza invariancia optica universal tanto para el AKR como para la Rx final,
+    asegurando que una misma lente fisica produzca exactamente las mismas correlaciones
+    clinicas independientemente de la convencion de cilindro utilizada (H08).
+    """
     if ojo.cilindro is None or ojo.cilindro <= 0:
         return
-    if ojo.esfera is not None:
-        ojo.esfera = ojo.esfera + ojo.cilindro
+    esf = ojo.esfera if ojo.esfera is not None else 0.0
+    ojo.esfera = esf + ojo.cilindro
     ojo.cilindro = -ojo.cilindro
     if ojo.eje is not None:
-        ojo.eje = (ojo.eje + 90) % 180
+        ojo.eje = ((ojo.eje + 90) % 180) or 180
 
 
 class GraduacionOjo(BaseModel):
@@ -144,11 +143,9 @@ class GraduacionOjo(BaseModel):
         if self.cilindro is not None and abs(self.cilindro) > _CILINDRO_MAX_ABS_D:
             logger.warning("Cilindro fuera de catalogo descartado: %s", self.cilindro)
             self.cilindro = None
-        # 2) La Rx final NO se transpone: el dropdown del SaaS garantiza cilindro
-        # negativo, asi que en produccion nunca hay plus-cyl que transponer, y
-        # hacerlo alteraria el piso de esfera de hipermetropia_alta (el ejemplo
-        # +1.00/+8.00 de CORRELACIONES_CLINICAS.md 5.2 debe NO disparar). La
-        # transposicion solo aplica al AKR (lectura de dispositivo, ver AkrOjo).
+        # 2) Normalizar plus-cylinder a minus-cylinder para garantizar invariancia optica (H08).
+        _transponer_a_cilindro_negativo(self)
+        self.esfera = _rango_o_none(self.esfera, -_ESFERA_MAX_ABS_D, _ESFERA_MAX_ABS_D, "esfera")
         # 3) El dropdown no emite add; el input es libre. El SaaS valida between:0,30
         # y prohibe negativos. add <= 0 significa "sin adicion" (o typo) y add > 30 es corrupto.
         if self.add is not None and (self.add <= 0 or self.add > 30.0):

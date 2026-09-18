@@ -13,9 +13,11 @@ from app.correlaciones.queratometria import (
     _axis_distance,
     _corneal_cyl_abs,
     _corneal_irregularity_parts,
+    _k_flat_d,
     _k_promedio,
     _keratometry_axis,
     _ojo_akr,
+    _queratometria_contradictoria,
     _req_has_corneal_irregularity,
 )
 from app.correlaciones.texto import _join_hallazgos
@@ -51,7 +53,7 @@ def _mismatch_parts(req: ImpresionClinicaRequest) -> list[str]:
     for label, side in [("OD", "od"), ("OI", "oi")]:
         akr_eye = _ojo_akr(req, side)
         rx_eye = getattr(req.refraccion, side) if req.refraccion is not None else None
-        if akr_eye is None or rx_eye is None:
+        if akr_eye is None or rx_eye is None or _queratometria_contradictoria(akr_eye):
             continue
         corneal = _corneal_cyl_abs(akr_eye)
         rx_cyl = rx_eye.cilindro
@@ -98,14 +100,13 @@ def _cornea_plana_parts(req: ImpresionClinicaRequest) -> list[str]:
     parts = []
     for label, side in [("OD", "od"), ("OI", "oi")]:
         ojo = _ojo_akr(req, side)
-        if ojo is None:
+        if ojo is None or _queratometria_contradictoria(ojo):
             continue
-        if ojo.k_promedio_d is not None:
-            k_val = ojo.k_promedio_d
-        elif ojo.k1_d is not None and ojo.k2_d is not None:
-            k_val = min(ojo.k1_d, ojo.k2_d)
-        else:
-            k_val = ojo.k1_d if ojo.k1_d is not None else ojo.k2_d
+        # Se evalua explicitamente el meridiano mas plano (K flat),
+        # o en su defecto K promedio si K1 y K2 individuales no constan.
+        # De este modo, la adicion redundante y coherente de k_promedio_d
+        # no altera la conclusion clinica ni genera falsas discrepancias.
+        k_val = _k_flat_d(ojo)
         if k_val is not None and k_val < _K_PLANA_EXTREMA_D:
             parts.append(f"{label} ({k_val:.2f}D)")
     return parts
@@ -133,7 +134,7 @@ def _lenticular_parts(req: ImpresionClinicaRequest) -> list[str]:
     for label, side in [("OD", "od"), ("OI", "oi")]:
         akr_eye = _ojo_akr(req, side)
         rx_eye = getattr(req.refraccion, side) if req.refraccion is not None else None
-        if akr_eye is None:
+        if akr_eye is None or _queratometria_contradictoria(akr_eye):
             continue
         cyl_cornea = _corneal_cyl_abs(akr_eye)
         if cyl_cornea is None or cyl_cornea > 0.50:
@@ -166,6 +167,8 @@ def _asimetria_k_parts(req: ImpresionClinicaRequest) -> tuple[float, float, floa
     od = _ojo_akr(req, "od")
     oi = _ojo_akr(req, "oi")
     if od is None or oi is None:
+        return None
+    if _queratometria_contradictoria(od) or _queratometria_contradictoria(oi):
         return None
     od_k = _k_promedio(od)
     oi_k = _k_promedio(oi)

@@ -135,6 +135,66 @@ _KEYWORDS_FONDO_PERIFERICO_MAP = {
     "retinosquisis": "retinosquisis",
 }
 _KEYWORDS_FONDO_PERIFERICO = tuple(_KEYWORDS_FONDO_PERIFERICO_MAP)
+_KEYWORDS_FONDO_ROTURA_O_DESGARRO = (
+    "desgarro", "rotura", "ruptura", "dialisis", "agujero operculado",
+    "desprendimiento de retina", "desprendimiento regmatogeno", "desprendimiento neurosensorial",
+)
+
+_KEYWORDS_FOTOPSIAS_O_URGENTES = (
+    "fotopsias", "fotopsia", "flashes", "centelleos", "luces intermitentes",
+    "destellos", "destello", "relampagos", "relampago",
+    "anillo de weiss",
+    "miodesopsias agudas", "miodesopsias de aparicion subita", "lluvia de manchas",
+)
+
+_KEYWORDS_MIODESOPSIAS_GENERICAS = (
+    "moscas volantes", "mosca volante", "telaranas", "telarana",
+    "manchas negras flotantes", "puntos negros flotantes", "cuerpos flotantes",
+    "miodesopsias", "miodesopsia",
+)
+
+_MODIFICADORES_CRONICO_ESTABLE = (
+    "cronico", "cronica", "cronicos", "cronicas",
+    "estable", "estables",
+    "desde hace anos", "desde hace meses",
+    "hace anos", "hace 10 anos", "hace varios anos", "hace tiempo",
+    "de larga evolucion",
+    "antiguo", "antigua", "antiguos", "antiguas",
+    "habitual", "habituales",
+    "de siempre", "sin cambios",
+)
+
+_MODIFICADORES_AGUDO_RECIENTE = (
+    "agudo", "aguda", "agudos", "agudas",
+    "subito", "subita", "subitos", "subitas",
+    "reciente", "recientes",
+    "brusco", "brusca", "bruscos", "bruscas",
+    "nuevo", "nueva", "nuevos", "nuevas",
+    "hace dias", "hace unas semanas", "hace una semana", "hace poco",
+)
+
+
+def _eval_sintomas_traccion_agudos(req: ImpresionClinicaRequest) -> bool:
+    """Evalua si el paciente refiere sintomas agudos de traccion vitreorretiniana."""
+    textos = []
+    if req.paciente is not None and req.paciente.motivo_consulta:
+        textos.append(req.paciente.motivo_consulta)
+    if req.clinica is not None and req.clinica.fondo_de_ojo:
+        textos.append(req.clinica.fondo_de_ojo)
+    if not textos:
+        return False
+    combinado = _normalize_text(" ".join(textos))
+    # 1. Fotopsias, destellos, destellos luminosos o miodesopsias agudas/lluvia activan alarma
+    if any(_keyword_matches(combinado, k, allow_negation_window=True) for k in _KEYWORDS_FOTOPSIAS_O_URGENTES):
+        return True
+    # 2. Miodesopsias genericas (moscas volantes, etc.)
+    if any(_keyword_matches(combinado, k, allow_negation_window=True) for k in _KEYWORDS_MIODESOPSIAS_GENERICAS):
+        es_cronico_estable = any(m in combinado for m in _MODIFICADORES_CRONICO_ESTABLE)
+        es_agudo_reciente = any(m in combinado for m in _MODIFICADORES_AGUDO_RECIENTE)
+        if es_cronico_estable and not es_agudo_reciente:
+            return False
+        return True
+    return False
 
 
 @_memoize_cond
@@ -151,6 +211,18 @@ def _cond_fondo_periferico_riesgo(req: ImpresionClinicaRequest) -> bool:
     return _fondo_contains(req, _KEYWORDS_FONDO_PERIFERICO)
 
 
+@_memoize_cond
+def _cond_fondo_periferico_rotura_o_desgarro(req: ImpresionClinicaRequest) -> bool:
+    """Verifica si en retina periferica hay rotura, desgarro, dialisis o desprendimiento comprobado."""
+    if not _cond_fondo_periferico_riesgo(req):
+        return False
+    fondo_text = _normalize_text(req.clinica.fondo_de_ojo if req.clinica is not None else None)
+    return any(
+        _keyword_matches(fondo_text, k, allow_negation_window=True)
+        for k in _KEYWORDS_FONDO_ROTURA_O_DESGARRO
+    )
+
+
 def _texto_fondo_periferico_riesgo(req: ImpresionClinicaRequest) -> str:
     hallazgos = _extract_normalized_findings(
         req.clinica.fondo_de_ojo if req.clinica is not None else None,
@@ -158,18 +230,16 @@ def _texto_fondo_periferico_riesgo(req: ImpresionClinicaRequest) -> str:
         allow_negation_window=True,
     )
     hallazgo = _join_hallazgos(hallazgos) if hallazgos else "hallazgo periferico de riesgo"
-    fondo_text = _normalize_text(req.clinica.fondo_de_ojo if req.clinica is not None else None)
-    es_rotura_o_desgarro = any(
-        _keyword_matches(fondo_text, k, allow_negation_window=True)
-        for k in (
-            "desgarro", "rotura", "ruptura", "dialisis", "agujero operculado",
-            "desprendimiento de retina", "desprendimiento regmatogeno",
-        )
-    )
-    if es_rotura_o_desgarro:
+    if _cond_fondo_periferico_rotura_o_desgarro(req):
         return (
             f"Hallazgo urgente: en la retina periferica se documenta {hallazgo}, que amerita "
             "valoracion retinologica urgente y posible tratamiento profilactico."
+        )
+    if _eval_sintomas_traccion_agudos(req):
+        return (
+            f"Hallazgo urgente: en la retina periferica se documenta {hallazgo} en asociacion con "
+            "sintomas agudos de traccion vitreorretiniana, lo que incrementa el riesgo de rotura "
+            "retiniana y amerita valoracion retinologica urgente con examen bajo midriasis."
         )
     return (
         f"En la retina periferica se documenta {hallazgo}, que amerita seguimiento retinologico "
@@ -394,64 +464,18 @@ _texto_fondo_oclusion_vascular_urgente = (
 )
 
 
-_KEYWORDS_FOTOPSIAS_O_URGENTES = (
-    "fotopsias", "fotopsia", "flashes", "centelleos", "luces intermitentes",
-    "destellos", "destello", "relampagos", "relampago",
-    "anillo de weiss",
-    "miodesopsias agudas", "miodesopsias de aparicion subita", "lluvia de manchas",
-)
-
-_KEYWORDS_MIODESOPSIAS_GENERICAS = (
-    "moscas volantes", "mosca volante", "telaranas", "telarana",
-    "manchas negras flotantes", "puntos negros flotantes", "cuerpos flotantes",
-    "miodesopsias", "miodesopsia",
-)
-
-_MODIFICADORES_CRONICO_ESTABLE = (
-    "cronico", "cronica", "cronicos", "cronicas",
-    "estable", "estables",
-    "desde hace anos", "desde hace meses",
-    "hace anos", "hace 10 anos", "hace varios anos", "hace tiempo",
-    "de larga evolucion",
-    "antiguo", "antigua", "antiguos", "antiguas",
-    "habitual", "habituales",
-    "de siempre", "sin cambios",
-)
-
-_MODIFICADORES_AGUDO_RECIENTE = (
-    "agudo", "aguda", "agudos", "agudas",
-    "subito", "subita", "subitos", "subitas",
-    "reciente", "recientes",
-    "brusco", "brusca", "bruscos", "bruscas",
-    "nuevo", "nueva", "nuevos", "nuevas",
-    "hace dias", "hace unas semanas", "hace una semana", "hace poco",
-)
-
-
 @_memoize_cond
 def _cond_sintomas_alarma_traccion_vitreoretina(req: ImpresionClinicaRequest) -> bool:
-    """Caso clinico: fotopsias y miodesopsias agudas sugieren traccion vitreorretiniana en evolucion."""
-    if _cond_fondo_periferico_riesgo(req):
+    """Caso clinico: fotopsias y miodesopsias agudas sugieren traccion vitreorretiniana en evolucion.
+
+    Se suprime unicamente ante rotura, desgarro o desprendimiento comprobado en periferia
+    (donde la rotura confirmada prevalece y amerita manejo urgente inmediato).
+    Si la lesion periferica es degeneracion lattice u otra lesion predisponente sin desgarro,
+    los sintomas agudos de traccion NO se silencian.
+    """
+    if _cond_fondo_periferico_rotura_o_desgarro(req):
         return False
-    textos = []
-    if req.paciente is not None and req.paciente.motivo_consulta:
-        textos.append(req.paciente.motivo_consulta)
-    if req.clinica is not None and req.clinica.fondo_de_ojo:
-        textos.append(req.clinica.fondo_de_ojo)
-    if not textos:
-        return False
-    combinado = _normalize_text(" ".join(textos))
-    # 1. Fotopsias, destellos, destellos luminosos o miodesopsias agudas/lluvia activan alarma
-    if any(_keyword_matches(combinado, k, allow_negation_window=True) for k in _KEYWORDS_FOTOPSIAS_O_URGENTES):
-        return True
-    # 2. Miodesopsias genericas (moscas volantes, etc.)
-    if any(_keyword_matches(combinado, k, allow_negation_window=True) for k in _KEYWORDS_MIODESOPSIAS_GENERICAS):
-        es_cronico_estable = any(m in combinado for m in _MODIFICADORES_CRONICO_ESTABLE)
-        es_agudo_reciente = any(m in combinado for m in _MODIFICADORES_AGUDO_RECIENTE)
-        if es_cronico_estable and not es_agudo_reciente:
-            return False
-        return True
-    return False
+    return _eval_sintomas_traccion_agudos(req)
 
 
 _texto_sintomas_alarma_traccion_vitreoretina = (

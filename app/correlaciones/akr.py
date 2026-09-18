@@ -128,14 +128,26 @@ def _texto_ar_rx_variabilidad_inespecifica(req: ImpresionClinicaRequest) -> str:
     )
 
 
+def _eye_has_refraction(eye: GraduacionOjo | None) -> bool:
+    """Verifica si el ojo tiene datos reales de refraccion subjetiva prescrita."""
+    if eye is None:
+        return False
+    return eye.esfera is not None or eye.cilindro is not None
+
+
 def _cond_ar_detecta_astigmatismo_no_prescrito(req: ImpresionClinicaRequest) -> bool:
-    """Caso clinico: AR detecta cilindro relevante y la Rx final no lo prescribe."""
+    """Caso clinico: AR detecta cilindro relevante y la Rx final no lo prescribe.
+    Exige que exista refraccion subjetiva documentada en el mismo ojo; la ausencia
+    de refraccion no equivale a decision clinica de no prescribir cilindro."""
     if req.refraccion is None or req.akr is None:
         return False
     for ojo in ("od", "oi"):
         akr_eye = getattr(req.akr, ojo)
+        rx_eye = getattr(req.refraccion, ojo)
+        if not _eye_has_refraction(rx_eye):
+            continue
         cil_ar = akr_eye.cilindro
-        cil_rx = getattr(req.refraccion, ojo).cilindro
+        cil_rx = rx_eye.cilindro
         if cil_ar is None or abs(cil_ar) < 0.75:
             continue
         if _has_keratometry(akr_eye) and not _keratometry_supports_astigmatism(akr_eye):
@@ -150,6 +162,8 @@ def _texto_ar_detecta_astigmatismo_no_prescrito(req: ImpresionClinicaRequest) ->
     for label, side in [("OD", "od"), ("OI", "oi")]:
         akr_eye = getattr(req.akr, side)
         rx_eye = getattr(req.refraccion, side)
+        if not _eye_has_refraction(rx_eye):
+            continue
         cil_ar = akr_eye.cilindro
         if cil_ar is None or abs(cil_ar) < 0.75:
             continue

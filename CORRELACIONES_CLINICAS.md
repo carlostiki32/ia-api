@@ -6,12 +6,16 @@
 > campo) como al **equipo técnico** (para entender el contrato de datos y el
 > fundamento clínico de cada regla).
 >
-> **Fuente de verdad:** el paquete [app/correlaciones/](app/correlaciones/). Este
-> texto traduce esa lógica a lenguaje clínico y la fundamenta con evidencia. Los
-> textos exactos que genera cada correlación están blindados por pruebas *golden*
+> **Fuente de referencia en código:** el paquete [app/correlaciones/](app/correlaciones/). Este
+> texto traduce esa lógica a lenguaje clínico y documenta sus fundamentos y limitaciones. Los
+> textos exactos que genera cada correlación están auditados por pruebas *golden* directas
 > en [tests/test_correlaciones_golden.py](tests/test_correlaciones_golden.py): si
-> el texto de una regla cambia sin actualizar su prueba, el CI falla. Por eso este
-> documento y el código no pueden divergir en silencio.
+> el texto o condición de una regla cambia sin actualizar su prueba, el CI falla.
+>
+> **Aviso de Soporte a la Decisión Clínica (CDS):** Este sistema asiste al optometrista y al doctor
+> en la identificación y redacción estructurada de hallazgos relevantes en el punto de atención.
+> No constituye un diagnóstico médico autónomo, no reemplaza la exploración física presencial
+> ni sustituye el juicio clínico independiente del doctor responsable.
 
 ---
 
@@ -730,38 +734,45 @@ Jerarquía: `insuficiencia_convergencia` (compuesta) suprime `ppc_exoforia` y
 > reglas de mayor confianza siguen exigiendo el sub explícito. El default
 > `"OD: Orto | OI: Orto"` no dispara nada.
 
-> **Umbral de PPC dependiente de la edad.** El punto próximo de convergencia se aleja
-> fisiológicamente con la edad, así que el corte de "alejado" **no** es fijo: `> 6 cm`
-> si `edad < 40` (criterio CITT para pre-présbitas) y `> 10 cm` si `edad ≥ 40` o si la
-> edad es desconocida (corte conservador para no sobre-disparar en un posible présbita).
-> Esto corrige el punto ciego previo, donde un joven con PPC de 8–9 cm (claramente
-> patológico) no disparaba nada. Aplica a `insuficiencia_convergencia` y `ppc_exoforia`.
+> **Umbral de PPC dependiente de la edad.** El punto proximo de convergencia se aleja
+> fisiologicamente con la edad, asi que el corte de "alejado" **no** es fijo: `≥ 6 cm`
+> si `edad < 40` (umbral de rotura CITT para pre-presbitas) y `> 10 cm` si `edad ≥ 40` o si la
+> edad es desconocida (corte conservador heuristico para no sobre-disparar en un presbita;
+> registrado formalmente como *pendiente de validacion clinica protocolizada*).
+> Esto asegura que un joven con PPC de 6 cm (corte CITT) o intermedio (8-9 cm) sea
+> clasificado adecuadamente. Aplica a `insuficiencia_convergencia` y `ppc_exoforia`.
 
 ### 10.1 `insuficiencia_convergencia` (compuesta)
-**Requiere:** PPC alejado (umbral por edad, ver recuadro), `cover_test` con exoforia, y
-**demanda de visión próxima**, que puede provenir del `motivo_consulta` (lectura, leer,
-estudiar, cerca, visión próxima/cercana, trabajo de cerca, computadora, pantalla,
-celular, escribir, astenopia, fatiga, cefalea) **o de la `ocupacion`** (estudiante,
-oficinista, programador, contador, capturista, diseñador, costurera, relojero,
-dentista…). Así, un trabajo intensivo de cerca aporta el contexto aunque el motivo venga
-genérico.
+**Requiere:** PPC alejado (umbral por edad: `≥ 6 cm` en `<40`, `> 10 cm` en `≥40`/desconocido),
+`cover_test` con exoforia, y **sintomatologia activa de vision proxima o binocular**
+en el `motivo_consulta` (astenopia, fatiga visual/ocular, cansancio al leer/usar computadora,
+cefalea frontal/con lectura, diplopia, perdida o salto de renglon/letras, dificultad para enfocar, etc.),
+respetando ventanas de negacion.
+> **Importante:** La simple **demanda visual de cerca** (ocupacion como programador,
+> estudiante, disenador o uso de pantallas) es contexto de exposicion y riesgo, pero **no**
+> sustituye la existencia de sintomas. Sin sintomas subjetivos referidos, no se afirma
+> sintomatologia ni se concluye sospecha de insuficiencia sintomatica; en su lugar, se
+> describen los signos objetivos mediante `ppc_exoforia`.
 **Texto:** *"La combinacion de punto proximo de convergencia alejado, exoforia y
-sintomatologia de vision proxima es compatible con insuficiencia de convergencia,
-ameritando evaluacion binocular completa para confirmar el diagnostico y plantear
-terapia visual si procede."*
-**Fundamento:** la insuficiencia de convergencia (PPC alejado + exoforia mayor en
-visión próxima + síntomas astenópicos de lectura) responde a terapia visual con
-ejercicios de vergencia (Convergence Insufficiency Treatment Trial, CITT). El criterio
-CITT fija el punto de ruptura del PPC anormal en **≥ 6 cm** para pre-présbitas.
+sintomatologia de vision proxima sugiere sospecha de insuficiencia de convergencia,
+ameritando evaluacion binocular completa para complementar la evaluacion funcional
+binocular y plantear terapia visual si procede."*
+**Fundamento:** La sospecha clinica de insuficiencia de convergencia se apoya en el hallazgo
+de PPC alejado (umbral de rotura CITT ≥ 6 cm) y exoforia asociados a quejas astenopicas.
+Se enfatiza que esta regla constituye una *sospecha de tamizaje funcional*, no el criterio
+diagnostico CITT completo (el cual exige formalmente gradiente de exoforia cerca-lejos ≥ 4Δ,
+reserva fusional positiva reducida y puntuacion formal en la escala de sintomas CISS).
 
 ### 10.2 `ppc_exoforia`
-**Activa con:** PPC alejado (umbral por edad, ver recuadro) **o** `cover_test` con
-exoforia **o** `Exo` sin clasificar. **Suprimida por:** insuf. convergencia.
+**Activa con:** PPC alejado (`≥ 6 cm` en `<40`, `> 10 cm` en `≥40`) **o** `cover_test` con
+exoforia **o** `Exo` sin clasificar. **Suprimida por:** `insuficiencia_convergencia`.
 **Texto:** *"El paciente presenta {punto proximo de convergencia alejado (X cm)}[ y
 {exoforia en vision proxima/lejana | tendencia divergente en el cover test |
-exodesviacion no clasificada en el cover test (conviene precisar foria o tropia)}]."*
-**Fundamento:** un PPC > 10 cm o una exoforia documentada son signos de disfunción de
-vergencia que ameritan mención aun sin el cuadro sintomático completo.
+exodesviacion no clasificada en el cover test (conviene precisar foria o tropia)}][, ameritando evaluacion binocular completa]."*
+**Fundamento:** Cuando se identifican signos de vergencia descompensada o PPC alejado en
+ausencia de sintomas referidos (p. ej. en pacientes asintomaticos o con alta demanda visual laboral),
+se describen unicamente los hallazgos objetivos y se recomienda completar la evaluacion
+sin imputar sintomatologia no declarada.
 
 ### 10.3 `cover_exoforia_sintomatica`
 **Requiere:** exoforia en cover + síntoma binocular (diplopía, visión doble, veo doble,
@@ -1002,7 +1013,7 @@ buena práctica; si ya hay causa, el mensaje genérico sería redundante.
 | `glaucoma_asimetrico` | `pupilas_alteradas`, `fondo_glaucomatoso`, `isnt_violada_papila` |
 | `horner_o_tercer_par_sospecha` | `pupilas_alteradas` (y purga la ptosis de `anexos_patologicos`) |
 | `isnt_violada_papila` | `fondo_glaucomatoso` (mayor especificidad topográfica focal) |
-| `fondo_periferico_riesgo` | `sintomas_alarma_traccion_vitreoretina` (prevalece hallazgo retiniano periférico comprobado) |
+| `fondo_periferico_riesgo` (rotura/desgarro comprobado) | `sintomas_alarma_traccion_vitreoretina` (prevalece rotura/desgarro comprobado; ante lattice u otras lesiones no desgarradas coexiste y activa urgencia si hay sintomas agudos) |
 | `queratocono_ectasia_sospecha` | `queratometria_asimetrica_interocular` (prevalece ectasia manifiesta) |
 | `astigmatismo_lenticular_puro` | `astigmatismo_corneal_vs_refractivo` |
 | `insuficiencia_acomodacion_joven` | `adicion_incongruente_edad` |
@@ -1030,7 +1041,7 @@ LLM a usar lenguaje de urgencia; el system prompt obliga a colocar ese hallazgo 
 la **segunda o tercera oración** del párrafo (y prohíbe calificar de urgente
 cualquier otro):
 
-- `fondo_periferico_riesgo` (únicamente ante desgarro, rotura, agujero o desprendimiento activo; la degeneración lattice aislada genera texto preventivo)
+- `fondo_periferico_riesgo` (ante desgarro, rotura, agujero operculado o desprendimiento activo; o ante lesiones periféricas como degeneración lattice asociadas a síntomas agudos de tracción vitreorretiniana; la degeneración lattice aislada asintomática genera texto preventivo)
 - `fondo_oclusion_vascular_urgente` (siempre urgente: emergencia vascular retiniana)
 - `glaucoma_asimetrico` (siempre)
 - `horner_o_tercer_par_sospecha` (siempre)

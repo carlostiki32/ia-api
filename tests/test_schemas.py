@@ -142,14 +142,13 @@ def test_graduacion_ojo_cilindro_fuera_de_catalogo_se_descarta():
     assert GraduacionOjo(cilindro=-8.0).cilindro == -8.0
 
 
-def test_graduacion_ojo_rx_no_se_transpone():
-    # La Rx final NO se transpone: el dropdown del SaaS garantiza cilindro
-    # negativo, asi que en produccion nunca hay plus-cyl. Transponerla romperia
-    # el piso de esfera de hipermetropia_alta (CORRELACIONES_CLINICAS.md 5.2).
+def test_graduacion_ojo_cilindro_positivo_se_transpone():
+    # H08: La Rx final normaliza plus-cylinder a minus-cylinder para garantizar
+    # invariancia optica universal en todas las reglas clinicas.
     ojo = GraduacionOjo(esfera=1.0, cilindro=2.0, eje=90)
-    assert ojo.esfera == 1.0
-    assert ojo.cilindro == 2.0
-    assert ojo.eje == 90
+    assert ojo.esfera == 3.0
+    assert ojo.cilindro == -2.0
+    assert ojo.eje == 180
 
 
 def test_akr_ojo_cilindro_positivo_se_transpone():

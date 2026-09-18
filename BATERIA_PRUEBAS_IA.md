@@ -192,7 +192,7 @@ print(f"\n{sum(r['pass'] for r in resultados)}/{len(resultados)} PASS")
 
 ### CASO R-07
 **Complejidad:** rutina · **Objetivo:** miope moderado con astig ≤2 D, sin disparo.
-**Correlaciones esperadas:** `[]`
+**Correlaciones esperadas:** `["distancia_vertice_alta_ametropia"]`
 
 ```json
 {"receta_id":"R-07","paciente":{"edad":19,"ocupacion":"estudiante","motivo_consulta":"actualizar lentes"},"refraccion":{"od":{"esfera":-3.00,"cilindro":-1.00,"eje":10,"av_cc":"20/20"},"oi":{"esfera":-2.75,"cilindro":-1.25,"eje":170,"av_cc":"20/20"}},"tipo_lente":"monofocal"}
@@ -226,7 +226,7 @@ print(f"\n{sum(r['pass'] for r in resultados)}/{len(resultados)} PASS")
 
 ### CASO RF-01
 **Complejidad:** rutina · **Objetivo:** miopía magna (EE ≤ −6.00) bilateral.
-**Correlaciones esperadas:** `["miopia_magna"]`
+**Correlaciones esperadas:** `["distancia_vertice_alta_ametropia", "miopia_magna"]`
 
 ```json
 {"receta_id":"RF-01","paciente":{"edad":30,"ocupacion":"diseñador","motivo_consulta":"control de miopia"},"refraccion":{"od":{"esfera":-6.50,"cilindro":0.0,"av_cc":"20/25"},"oi":{"esfera":-6.00,"cilindro":0.0,"av_cc":"20/25"}},"tipo_lente":"monofocal"}
@@ -234,7 +234,7 @@ print(f"\n{sum(r['pass'] for r in resultados)}/{len(resultados)} PASS")
 
 ### CASO RF-02
 **Complejidad:** compleja · **Objetivo:** miopía muy alta (EE ≤ −8) + AV limitada.
-**Correlaciones esperadas:** `["miopia_magna","av_cc_limitada"]`
+**Correlaciones esperadas:** `["av_cc_limitada", "deficit_visual_inexplicado_refractivo", "distancia_vertice_alta_ametropia", "miopia_magna"]`
 
 ```json
 {"receta_id":"RF-02","paciente":{"edad":45,"ocupacion":"empleado","motivo_consulta":"baja vision"},"refraccion":{"od":{"esfera":-9.00,"cilindro":-1.00,"eje":90,"av_cc":"20/40"},"oi":{"esfera":-8.50,"cilindro":0.0,"av_cc":"20/30"}},"tipo_lente":"monofocal"}
@@ -242,7 +242,7 @@ print(f"\n{sum(r['pass'] for r in resultados)}/{len(resultados)} PASS")
 
 ### CASO RF-03
 **Complejidad:** compleja · **Objetivo:** hipermetropía alta présbita (≥40) + adición congruente.
-**Correlaciones esperadas:** `["hipermetropia_alta","presbicia_multifocal"]`
+**Correlaciones esperadas:** `["distancia_vertice_alta_ametropia", "hipermetropia_alta", "presbicia_multifocal"]`
 
 ```json
 {"receta_id":"RF-03","paciente":{"edad":58,"ocupacion":"jubilado","motivo_consulta":"cansancio visual"},"refraccion":{"od":{"esfera":5.50,"cilindro":0.0,"add":2.50,"av_cc":"20/25"},"oi":{"esfera":5.00,"cilindro":0.0,"add":2.50,"av_cc":"20/25"}},"tipo_lente":"progresivo"}
@@ -250,7 +250,7 @@ print(f"\n{sum(r['pass'] for r in resultados)}/{len(resultados)} PASS")
 
 ### CASO RF-04
 **Complejidad:** compleja · **Objetivo:** hipermetropía alta joven (demanda acomodativa) + AV.
-**Correlaciones esperadas:** `["hipermetropia_alta","av_cc_limitada"]`
+**Correlaciones esperadas:** `["ambliopia_isoametropica_bilateral", "av_cc_limitada", "distancia_vertice_alta_ametropia", "hipermetropia_alta"]`
 
 ```json
 {"receta_id":"RF-04","paciente":{"edad":8,"ocupacion":"estudiante","motivo_consulta":"le duele la cabeza al estudiar"},"refraccion":{"od":{"esfera":5.00,"cilindro":0.0,"av_cc":"20/30"},"oi":{"esfera":5.50,"cilindro":0.0,"av_cc":"20/30"}},"tipo_lente":"monofocal"}
@@ -258,7 +258,7 @@ print(f"\n{sum(r['pass'] for r in resultados)}/{len(resultados)} PASS")
 
 ### CASO RF-05
 **Complejidad:** compleja · **Objetivo:** gran astígmata NO es hipermetropía alta (piso de esfera).
-**Correlaciones esperadas:** `["av_cc_limitada"]`
+**Correlaciones esperadas:** `["av_cc_limitada", "deficit_visual_inexplicado_refractivo", "distancia_vertice_alta_ametropia"]`
 
 ```json
 {"receta_id":"RF-05","paciente":{"edad":50,"ocupacion":"agricultor","motivo_consulta":"mala vision de siempre"},"refraccion":{"od":{"esfera":1.00,"cilindro":-8.00,"eje":90,"av_cc":"20/40"},"oi":{"esfera":0.75,"cilindro":-7.50,"eje":90,"av_cc":"20/40"}},"tipo_lente":"monofocal"}
@@ -274,7 +274,7 @@ print(f"\n{sum(r['pass'] for r in resultados)}/{len(resultados)} PASS")
 
 ### CASO RF-07
 **Complejidad:** rutina · **Objetivo:** astigmatismo oblicuo muy alto (>4 D) bilateral.
-**Correlaciones esperadas:** `["astig_oblicuo"]`
+**Correlaciones esperadas:** `["astig_oblicuo", "distancia_vertice_alta_ametropia"]`
 
 ```json
 {"receta_id":"RF-07","paciente":{"edad":33,"ocupacion":"soldador","motivo_consulta":"control anual"},"refraccion":{"od":{"esfera":-2.00,"cilindro":-4.50,"eje":60,"av_cc":"20/20"},"oi":{"esfera":-2.00,"cilindro":-4.50,"eje":120,"av_cc":"20/20"}},"tipo_lente":"monofocal"}
@@ -290,7 +290,7 @@ print(f"\n{sum(r['pass'] for r in resultados)}/{len(resultados)} PASS")
 
 ### CASO RF-09
 **Complejidad:** compleja · **Objetivo:** anisometropía severa con antimetropía.
-**Correlaciones esperadas:** `["anisometropia"]`
+**Correlaciones esperadas:** `["anisometropia", "antimetropia_pura_acomodativa"]`
 
 ```json
 {"receta_id":"RF-09","paciente":{"edad":25,"ocupacion":"cajero","motivo_consulta":"vision desigual"},"refraccion":{"od":{"esfera":2.00,"cilindro":0.0,"av_cc":"20/20"},"oi":{"esfera":-3.00,"cilindro":0.0,"av_cc":"20/25"}},"tipo_lente":"monofocal"}
@@ -298,7 +298,7 @@ print(f"\n{sum(r['pass'] for r in resultados)}/{len(resultados)} PASS")
 
 ### CASO RF-10
 **Complejidad:** compleja · **Objetivo:** anisometropía pediátrica (≤8) + AV + ambliopía.
-**Correlaciones esperadas:** `["anisometropia","av_cc_limitada","ambliopia_sospecha"]`
+**Correlaciones esperadas:** `["ambliopia_sospecha", "anisometropia", "av_cc_limitada", "distancia_vertice_alta_ametropia"]`
 
 ```json
 {"receta_id":"RF-10","paciente":{"edad":6,"ocupacion":"estudiante","motivo_consulta":"revision escolar"},"refraccion":{"od":{"esfera":1.00,"cilindro":0.0,"av_cc":"20/20"},"oi":{"esfera":4.50,"cilindro":0.0,"av_cc":"20/40","av_sc":"20/60"}},"tipo_lente":"monofocal"}
@@ -306,7 +306,7 @@ print(f"\n{sum(r['pass'] for r in resultados)}/{len(resultados)} PASS")
 
 ### CASO RF-11
 **Complejidad:** rutina · **Objetivo:** AV con corrección limitada aislada (adulto joven, sin factor).
-**Correlaciones esperadas:** `["av_cc_limitada"]`
+**Correlaciones esperadas:** `["av_cc_limitada", "deficit_visual_inexplicado_refractivo"]`
 
 ```json
 {"receta_id":"RF-11","paciente":{"edad":30,"ocupacion":"obrero","motivo_consulta":"no ve bien ni con lentes"},"refraccion":{"od":{"esfera":-2.00,"cilindro":0.0,"av_cc":"20/40"},"oi":{"esfera":-2.00,"cilindro":0.0,"av_cc":"20/40"}},"tipo_lente":"monofocal"}
@@ -338,7 +338,7 @@ print(f"\n{sum(r['pass'] for r in resultados)}/{len(resultados)} PASS")
 
 ### CASO RF-15
 **Complejidad:** compleja · **Objetivo:** magna + anisometropía + AV (ambliopía suprimida por causa orgánica).
-**Correlaciones esperadas:** `["miopia_magna","anisometropia","av_cc_limitada"]`
+**Correlaciones esperadas:** `["ambliopia_sospecha", "anisometropia", "av_cc_limitada", "distancia_vertice_alta_ametropia", "miopia_magna"]`
 
 ```json
 {"receta_id":"RF-15","paciente":{"edad":40,"ocupacion":"empleado","motivo_consulta":"vision muy mala del ojo izquierdo"},"refraccion":{"od":{"esfera":-10.00,"cilindro":0.0,"av_cc":"20/60"},"oi":{"esfera":-6.50,"cilindro":0.0,"av_cc":"20/30"}},"tipo_lente":"monofocal"}
@@ -346,7 +346,7 @@ print(f"\n{sum(r['pass'] for r in resultados)}/{len(resultados)} PASS")
 
 ### CASO RF-16
 **Complejidad:** rutina · **Objetivo:** hipermetropía alta límite (EE exacto +5.00) unilateral.
-**Correlaciones esperadas:** `["hipermetropia_alta"]`
+**Correlaciones esperadas:** `["distancia_vertice_alta_ametropia", "hipermetropia_alta"]`
 
 ```json
 {"receta_id":"RF-16","paciente":{"edad":42,"ocupacion":"comerciante","motivo_consulta":"vista cansada"},"refraccion":{"od":{"esfera":5.00,"cilindro":0.0,"av_cc":"20/25"},"oi":{"esfera":4.00,"cilindro":0.0,"av_cc":"20/20"}},"tipo_lente":"monofocal"}
@@ -356,7 +356,7 @@ print(f"\n{sum(r['pass'] for r in resultados)}/{len(resultados)} PASS")
 
 ### CASO F-01
 **Complejidad:** compleja · **Objetivo:** urgencia periférica — lattice.
-**Correlaciones esperadas:** `["fondo_periferico_riesgo"]`
+**Correlaciones esperadas:** `["fondo_periferico_riesgo", "sintomas_alarma_traccion_vitreoretina"]`
 
 ```json
 {"receta_id":"F-01","paciente":{"edad":40,"ocupacion":"empleado","motivo_consulta":"destellos de luz"},"clinica":{"fondo_de_ojo":"Lattice en periferia temporal de OI, retina aplicada."}}
@@ -460,7 +460,7 @@ print(f"\n{sum(r['pass'] for r in resultados)}/{len(resultados)} PASS")
 
 ### CASO F-14
 **Complejidad:** compleja · **Objetivo:** periférico suprime a diabético (jerarquía).
-**Correlaciones esperadas:** `["fondo_periferico_riesgo"]`
+**Correlaciones esperadas:** `["fondo_periferico_riesgo", "fondo_vascular_diabetico"]`
 
 ```json
 {"receta_id":"F-14","paciente":{"edad":58,"ocupacion":"empleado","motivo_consulta":"diabetico con destellos"},"clinica":{"fondo_de_ojo":"Desgarro retiniano temporal; microaneurismas y exudados en polo posterior."}}
@@ -550,15 +550,15 @@ print(f"\n{sum(r['pass'] for r in resultados)}/{len(resultados)} PASS")
 
 ### CASO A-08
 **Complejidad:** compleja · **Objetivo:** queratocono por cilindro corneal muy alto (≥4 D) + AV + discrepancia corneal/refractiva.
-**Correlaciones esperadas:** `["av_cc_limitada","queratocono_ectasia_sospecha","astigmatismo_corneal_vs_refractivo"]`
+**Correlaciones esperadas:** `["astigmatismo_contra_regla_joven", "astigmatismo_corneal_vs_refractivo", "av_cc_limitada"]`
 
 ```json
-{"receta_id":"A-08","paciente":{"edad":26,"ocupacion":"empleado","motivo_consulta":"vision distorsionada OD"},"refraccion":{"od":{"esfera":-1.00,"cilindro":-1.00,"eje":90,"av_cc":"20/30"},"oi":{"esfera":-1.00,"cilindro":0.0,"av_cc":"20/20"}},"akr":{"od":{"k1_d":45.00,"k2_d":46.00,"k_cilindro":-4.50},"oi":{"k1_d":44.00,"k2_d":44.50}},"tipo_lente":"monofocal"}
+{"receta_id":"A-08","paciente":{"edad":26,"ocupacion":"empleado","motivo_consulta":"vision distorsionada OD"},"refraccion":{"od":{"esfera":-1.00,"cilindro":-1.00,"eje":90,"av_cc":"20/30"},"oi":{"esfera":-1.00,"cilindro":0.0,"av_cc":"20/20"}},"akr":{"od":{"k1_d":41.50,"k2_d":46.00,"k_cilindro":-4.50},"oi":{"k1_d":44.00,"k2_d":44.50}},"tipo_lente":"monofocal"}
 ```
 
 ### CASO A-09
 **Complejidad:** compleja · **Objetivo:** astigmatismo corneal vs refractivo por MAGNITUD (lenticular) aislado.
-**Correlaciones esperadas:** `["astigmatismo_corneal_vs_refractivo"]`
+**Correlaciones esperadas:** `["astigmatismo_corneal_vs_refractivo", "queratometria_asimetrica_interocular"]`
 
 ```json
 {"receta_id":"A-09","paciente":{"edad":40,"ocupacion":"empleado","motivo_consulta":"revision"},"refraccion":{"od":{"esfera":-0.75,"cilindro":-0.75,"eje":90,"av_cc":"20/20"},"oi":{"esfera":-0.75,"cilindro":0.0,"av_cc":"20/20"}},"akr":{"od":{"k1_d":44.00,"k2_d":47.00,"k_cilindro":-3.00},"oi":{"k1_d":43.50,"k2_d":44.00}},"tipo_lente":"monofocal"}
@@ -566,7 +566,7 @@ print(f"\n{sum(r['pass'] for r in resultados)}/{len(resultados)} PASS")
 
 ### CASO A-10
 **Complejidad:** compleja · **Objetivo:** astigmatismo corneal vs refractivo por EJE (Δeje ≥15°).
-**Correlaciones esperadas:** `["astigmatismo_corneal_vs_refractivo"]`
+**Correlaciones esperadas:** `["astigmatismo_contra_regla_joven", "astigmatismo_corneal_vs_refractivo", "queratometria_asimetrica_interocular"]`
 
 ```json
 {"receta_id":"A-10","paciente":{"edad":38,"ocupacion":"empleado","motivo_consulta":"revision"},"refraccion":{"od":{"esfera":-2.00,"cilindro":-1.50,"eje":90,"av_cc":"20/25"},"oi":{"esfera":-2.00,"cilindro":0.0,"av_cc":"20/20"}},"akr":{"od":{"k1_d":44.00,"k2_d":45.50,"k_cilindro":-1.50,"k_cilindro_eje":20},"oi":{"k1_d":43.50,"k2_d":44.00}},"tipo_lente":"monofocal"}
@@ -834,7 +834,7 @@ print(f"\n{sum(r['pass'] for r in resultados)}/{len(resultados)} PASS")
 
 ### CASO B-12
 **Complejidad:** compleja · **Objetivo:** exotropia + lente → exotropia_lente.
-**Correlaciones esperadas:** `["exotropia_lente"]`
+**Correlaciones esperadas:** `["exotropia_lente", "ppc_exoforia"]`
 
 ```json
 {"receta_id":"B-12","paciente":{"edad":30,"ocupacion":"empleado","motivo_consulta":"ojo se va hacia afuera"},"clinica":{"cover_test":"OD: Exo y Tropia | OI: Orto"},"tipo_lente":"monofocal"}
@@ -850,7 +850,7 @@ print(f"\n{sum(r['pass'] for r in resultados)}/{len(resultados)} PASS")
 
 ### CASO B-14
 **Complejidad:** compleja · **Objetivo:** insuf. convergencia con demanda desde la OCUPACIÓN (motivo genérico).
-**Correlaciones esperadas:** `["insuficiencia_convergencia"]`
+**Correlaciones esperadas:** `["ppc_exoforia"]`
 
 ```json
 {"receta_id":"B-14","paciente":{"edad":35,"ocupacion":"programador","motivo_consulta":"molestias inespecificas"},"clinica":{"cover_test":"OD: Exo y Foria | OI: Exo y Foria","ppc_cm":8}}
@@ -966,7 +966,7 @@ print(f"\n{sum(r['pass'] for r in resultados)}/{len(resultados)} PASS")
 
 ### CASO E-05
 **Complejidad:** compleja · **Objetivo:** adición en no présbita (edad <40 con add ≥0.75).
-**Correlaciones esperadas:** `["adicion_incongruente_edad"]`
+**Correlaciones esperadas:** `["insuficiencia_acomodacion_joven"]`
 
 ```json
 {"receta_id":"E-05","paciente":{"edad":28,"ocupacion":"empleado","motivo_consulta":"fatiga al leer"},"refraccion":{"od":{"esfera":-1.00,"cilindro":0.0,"add":1.00,"av_cc":"20/20"},"oi":{"esfera":-1.00,"cilindro":0.0,"add":1.00,"av_cc":"20/20"}},"tipo_lente":"monofocal"}
@@ -1022,7 +1022,7 @@ print(f"\n{sum(r['pass'] for r in resultados)}/{len(resultados)} PASS")
 
 ### CASO E-12
 **Complejidad:** compleja · **Objetivo:** ambliopía por anisometropía (con AV s/c y c/c).
-**Correlaciones esperadas:** `["anisometropia","av_cc_limitada","ambliopia_sospecha"]`
+**Correlaciones esperadas:** `["ambliopia_sospecha", "anisometropia", "av_cc_limitada", "distancia_vertice_alta_ametropia"]`
 
 ```json
 {"receta_id":"E-12","paciente":{"edad":35,"ocupacion":"empleado","motivo_consulta":"un ojo nunca vio bien"},"refraccion":{"od":{"esfera":-1.00,"cilindro":0.0,"av_cc":"20/20"},"oi":{"esfera":-4.00,"cilindro":0.0,"av_cc":"20/60","av_sc":"20/200"}},"tipo_lente":"monofocal"}
@@ -1030,7 +1030,7 @@ print(f"\n{sum(r['pass'] for r in resultados)}/{len(resultados)} PASS")
 
 ### CASO E-13
 **Complejidad:** compleja · **Objetivo:** ambliopía SUPRIMIDA por miopía magna (causa orgánica).
-**Correlaciones esperadas:** `["miopia_magna","anisometropia","av_cc_limitada"]`
+**Correlaciones esperadas:** `["ambliopia_sospecha", "anisometropia", "av_cc_limitada", "distancia_vertice_alta_ametropia", "miopia_magna"]`
 
 ```json
 {"receta_id":"E-13","paciente":{"edad":40,"ocupacion":"empleado","motivo_consulta":"vision muy baja OI"},"refraccion":{"od":{"esfera":-8.00,"cilindro":0.0,"av_cc":"20/20"},"oi":{"esfera":-12.00,"cilindro":0.0,"av_cc":"20/80"}},"tipo_lente":"monofocal"}
@@ -1064,7 +1064,7 @@ print(f"\n{sum(r['pass'] for r in resultados)}/{len(resultados)} PASS")
 
 ### CASO X-01
 **Complejidad:** compleja · **Objetivo:** urgencia periférica + miopía magna + AV.
-**Correlaciones esperadas:** `["fondo_periferico_riesgo","miopia_magna","av_cc_limitada"]`
+**Correlaciones esperadas:** `["av_cc_limitada", "deficit_visual_inexplicado_refractivo", "distancia_vertice_alta_ametropia", "fondo_periferico_riesgo", "miopia_magna"]`
 
 ```json
 {"receta_id":"X-01","paciente":{"edad":55,"ocupacion":"empleado","motivo_consulta":"destellos y baja vision"},"refraccion":{"od":{"esfera":-12.00,"cilindro":0.0,"av_cc":"20/60"},"oi":{"esfera":-11.00,"cilindro":0.0,"av_cc":"20/50"}},"clinica":{"fondo_de_ojo":"Desgarro retiniano con lattice extenso en periferia temporal de OD."},"tipo_lente":"monofocal"}
@@ -1104,7 +1104,7 @@ print(f"\n{sum(r['pass'] for r in resultados)}/{len(resultados)} PASS")
 
 ### CASO X-06
 **Complejidad:** compleja · **Objetivo:** pediátrico integral — hipermetropía alta + aniso + AV + endotropia lente + ambliopía.
-**Correlaciones esperadas:** `["hipermetropia_alta","anisometropia","av_cc_limitada","endotropia_lente","ambliopia_sospecha"]`
+**Correlaciones esperadas:** `["ambliopia_sospecha", "anisometropia", "av_cc_limitada", "distancia_vertice_alta_ametropia", "endotropia_lente", "hipermetropia_alta"]`
 
 ```json
 {"receta_id":"X-06","paciente":{"edad":5,"ocupacion":"preescolar","motivo_consulta":"ojo desviado hacia adentro"},"refraccion":{"od":{"esfera":6.00,"cilindro":0.0,"av_cc":"20/40"},"oi":{"esfera":3.00,"cilindro":0.0,"av_cc":"20/20"}},"clinica":{"cover_test":"OD: Endo y Tropia | OI: Orto"},"tipo_lente":"monofocal"}
@@ -1112,7 +1112,7 @@ print(f"\n{sum(r['pass'] for r in resultados)}/{len(resultados)} PASS")
 
 ### CASO X-07
 **Complejidad:** compleja · **Objetivo:** miopía magna + aniso + AV + astig oblicuo + queratocono (ambliopía suprimida).
-**Correlaciones esperadas:** `["miopia_magna","anisometropia","av_cc_limitada","astig_oblicuo","queratocono_ectasia_sospecha"]`
+**Correlaciones esperadas:** `["ambliopia_sospecha", "aniseiconia_queratometrica_severa", "anisometropia", "astig_oblicuo", "astigmatismo_contra_regla_joven", "av_cc_limitada", "distancia_vertice_alta_ametropia", "miopia_magna", "queratocono_ectasia_sospecha"]`
 
 ```json
 {"receta_id":"X-07","paciente":{"edad":24,"ocupacion":"empleado","motivo_consulta":"vision muy distorsionada"},"refraccion":{"od":{"esfera":-7.00,"cilindro":-3.50,"eje":55,"av_cc":"20/50"},"oi":{"esfera":-6.50,"cilindro":-1.00,"eje":90,"av_cc":"20/30"}},"akr":{"od":{"k1_d":50.00,"k2_d":46.00,"k_cilindro":-4.00},"oi":{"k1_d":47.00,"k2_d":45.00}},"tipo_lente":"monofocal"}
@@ -1136,7 +1136,7 @@ print(f"\n{sum(r['pass'] for r in resultados)}/{len(resultados)} PASS")
 
 ### CASO X-10
 **Complejidad:** compleja · **Objetivo:** desviación vertical (tropía) + exotropia con lente + síntomas.
-**Correlaciones esperadas:** `["desviacion_vertical","exotropia_lente"]`
+**Correlaciones esperadas:** `["desviacion_vertical", "exotropia_lente", "ppc_exoforia"]`
 
 ```json
 {"receta_id":"X-10","paciente":{"edad":34,"ocupacion":"empleado","motivo_consulta":"diplopia vertical intermitente"},"clinica":{"cover_test":"OD: Hiper y Tropia | OI: Exo y Tropia"},"tipo_lente":"monofocal"}
@@ -1144,7 +1144,7 @@ print(f"\n{sum(r['pass'] for r in resultados)}/{len(resultados)} PASS")
 
 ### CASO X-11
 **Complejidad:** compleja · **Objetivo:** segmento anterior — anexos + catarata + BUT crítico + presbicia.
-**Correlaciones esperadas:** `["opacidad_cristaliniana","but_critico","anexos_patologicos","presbicia_multifocal"]`
+**Correlaciones esperadas:** `["anexos_patologicos", "but_critico", "ojo_seco_evaporativo_dgm", "opacidad_cristaliniana", "presbicia_multifocal"]`
 
 ```json
 {"receta_id":"X-11","paciente":{"edad":58,"ocupacion":"empleado","motivo_consulta":"ardor y vision nublada"},"refraccion":{"od":{"esfera":-1.00,"cilindro":0.0,"add":2.25,"av_cc":"20/25"},"oi":{"esfera":-1.00,"cilindro":0.0,"add":2.25,"av_cc":"20/25"}},"clinica":{"anexos_oculares":"Blefaritis con disfuncion de meibomio; catarata cortical incipiente en OD.","ojo_seco_but_seg":4,"confrontacion_campos_visuales":"Sin defectos perifericos evidentes."},"tipo_lente":"progresivo"}
@@ -1152,7 +1152,7 @@ print(f"\n{sum(r['pass'] for r in resultados)}/{len(resultados)} PASS")
 
 ### CASO X-12
 **Complejidad:** compleja · **Objetivo:** carga máxima multi-dominio (stress test de integración del LLM).
-**Correlaciones esperadas:** `["pupilas_alteradas","fondo_vascular_diabetico","motilidad_alterada","campos_visuales_alterados","av_cc_limitada","amsler_alterado","anexos_patologicos","insuficiencia_convergencia","cvs_sospecha","but_pantallas","presbicia_multifocal"]`
+**Correlaciones esperadas:** `["adulto_mayor_screening", "amsler_alterado", "anexos_patologicos", "av_cc_limitada", "but_pantallas", "campos_visuales_alterados", "cvs_sospecha", "fondo_vascular_diabetico", "insuficiencia_convergencia", "motilidad_alterada", "presbicia_multifocal", "pupilas_alteradas"]`
 
 ```json
 {"receta_id":"X-12","paciente":{"edad":63,"ocupacion":"contador","motivo_consulta":"diplopia, cefalea y ardor ocular al leer"},"refraccion":{"od":{"esfera":-0.50,"cilindro":0.0,"add":2.50,"av_cc":"20/50"},"oi":{"esfera":-0.50,"cilindro":0.0,"add":2.50,"av_cc":"20/40"}},"clinica":{"uso_pantallas":"gt6","ppc_cm":12,"cover_test":"OD: Exo y Foria | OI: Exo y Foria","ojo_seco_but_seg":6,"reflejos_pupilares":"Reflejo fotomotor, consensual, acomodativo: anisocoria de 1.5 mm mayor en OD","motilidad_ocular":"Versiones: nistagmo en levoversion.","fondo_de_ojo":"Microaneurismas y exudados duros dispersos.","anexos_oculares":"Pterigion nasal en OD.","confrontacion_campos_visuales":"Escotoma paracentral en OI.","grid_de_amsler":"Metamorfopsia central en OI."},"tipo_lente":"progresivo"}
@@ -1162,7 +1162,7 @@ print(f"\n{sum(r['pass'] for r in resultados)}/{len(resultados)} PASS")
 
 ### CASO Z-01
 **Complejidad:** compleja · **Objetivo:** eje >180 se normaliza mod 180 (225→45, oblicuo).
-**Correlaciones esperadas:** `["astig_oblicuo"]`
+**Correlaciones esperadas:** `["astig_oblicuo", "distancia_vertice_alta_ametropia"]`
 
 ```json
 {"receta_id":"Z-01","paciente":{"edad":30,"ocupacion":"empleado","motivo_consulta":"vision distorsionada"},"refraccion":{"od":{"esfera":-3.00,"cilindro":-2.50,"eje":225,"av_cc":"20/25"},"oi":{"esfera":-3.00,"cilindro":-2.50,"eje":225,"av_cc":"20/25"}},"tipo_lente":"monofocal"}
@@ -1194,7 +1194,7 @@ print(f"\n{sum(r['pass'] for r in resultados)}/{len(resultados)} PASS")
 
 ### CASO Z-05
 **Complejidad:** compleja · **Objetivo:** esfera/cilindro fuera de catálogo se descartan (OD ignorado).
-**Correlaciones esperadas:** `[]`
+**Correlaciones esperadas:** `["anisometropia", "distancia_vertice_alta_ametropia", "miopia_magna"]`
 
 ```json
 {"receta_id":"Z-05","paciente":{"edad":30,"ocupacion":"empleado","motivo_consulta":"revision"},"refraccion":{"od":{"esfera":-25.00,"cilindro":-10.00,"eje":200},"oi":{"esfera":-1.00,"cilindro":0.0,"av_cc":"20/20"}},"tipo_lente":"monofocal"}

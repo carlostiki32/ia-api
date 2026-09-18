@@ -380,8 +380,8 @@ en la respuesta HTTP), con la misma logica de supresion.
 - Ordenado: la posicion en `CORRELACIONES` (en `registry.py`) define el orden del
   bloque que recibe el LLM; es un invariante clinico cubierto por tests.
 - Textual: las correlaciones generan texto final, no instrucciones.
-- Blindado: los 41 textos exactos estan cubiertos por pruebas *golden*
-  (`tests/test_correlaciones_golden.py`) que impiden regresiones de contenido.
+- Verificación determinista: los 57 textos exactos están cubiertos por pruebas *golden*
+  (`tests/test_correlaciones_golden.py`) que auditan su activación y contenido exacto.
 
 ### Helpers clinicos relevantes
 
@@ -484,20 +484,20 @@ exigiendo el sub `Tropia` explicito. El detalle clinico esta en
 
 ## 7. Correlaciones activas actuales
 
-El registro contiene **41 correlaciones**, particionadas por dominio clinico en el
+El registro contiene **57 correlaciones**, particionadas por dominio clinico en el
 paquete `app/correlaciones/` (ver estructura en la seccion 6).
 
-> **Fuente unica de verdad clinica:** el catalogo completo de las 41 correlaciones
+> **Fuente de referencia clinica:** el catalogo completo de las 57 correlaciones
 > —campos que las disparan, umbrales, keywords, texto exacto generado y **fundamento
 > clinico con evidencia**— vive en [CORRELACIONES_CLINICAS.md](CORRELACIONES_CLINICAS.md).
 > Este documento ya no lo duplica, para evitar la divergencia que existia entre ambos.
-> Los textos exactos estan ademas blindados por pruebas *golden* en
+> Los textos exactos estan auditados por pruebas *golden* en
 > `tests/test_correlaciones_golden.py`: si una regla cambia su texto sin actualizar la
 > prueba, el CI falla.
 
 El **orden de evaluacion** es un invariante clinico (los hallazgos urgentes van
 primero) definido explicitamente en `app/correlaciones/registry.py` y cubierto por
-tests (`test_registro_tiene_41_correlaciones_con_nombres_unicos`,
+tests (`test_registro_tiene_57_correlaciones_con_nombres_unicos`,
 `test_but_critico_esta_antes_que_correlaciones_contextuales`).
 
 Trazabilidad: la respuesta HTTP incluye `correlaciones_activadas` con los nombres de

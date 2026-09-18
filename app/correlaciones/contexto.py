@@ -8,10 +8,18 @@ explique la reduccion visual (de ahi los imports de otros dominios).
 """
 from __future__ import annotations
 
+import re
+
 from app.correlaciones.base import _memoize_cond
-from app.correlaciones.anexos_cristalino import _cond_opacidad_cristaliniana
+from app.correlaciones.anexos_cristalino import _KEYWORDS_OPACIDAD_CRISTALINO, _cond_opacidad_cristaliniana
 from app.correlaciones.corneal import _cond_astigmatismo_lenticular_puro
 from app.correlaciones.fondo_de_ojo import (
+    _KEYWORDS_FONDO_DMAE,
+    _KEYWORDS_FONDO_GLAUCOMATOSO,
+    _KEYWORDS_FONDO_MACULAR_OTROS,
+    _KEYWORDS_FONDO_OCLUSION_VASCULAR,
+    _KEYWORDS_ISNT_VIOLADA,
+    _KEYWORDS_PAPILA_NO_GLAUCOMA,
     _cond_fondo_glaucomatoso,
     _cond_fondo_hipertensivo,
     _cond_fondo_macular_dmae,
@@ -28,36 +36,217 @@ from app.correlaciones.queratometria import _req_has_corneal_irregularity
 from app.correlaciones.refraccion_utils import _av_denominator, _av_es_limitada, _equivalente_esferico
 from app.correlaciones.refractivas import _cond_anisometropia
 from app.correlaciones.texto import (
+    _AFFIRMATIVE_TRANSITIONS,
+    _NEGACIONES_PRE,
+    _WHOLE_WORD_KEYWORDS,
+    _compiled_keyword,
     _contains_keyword,
+    _cover_desviaciones,
+    _find_neg_bounded,
+    _is_word_bounded,
+    _keyword_matches,
     _normalize_cover_text,
     _normalize_text,
 )
 from app.schemas import ImpresionClinicaRequest
 
-# Causas organicas que, si estan documentadas, explican la baja de agudeza y
-# suprimen las redes de seguridad (screening del adulto mayor, sospecha de
-# ambliopia): en ese caso el mensaje generico seria redundante o enganoso.
-# NOTA CLINICA: La miopia magna es factor de riesgo (catarata, glaucoma, maculopatia miopica)
-# y NO una causa organica que deba silenciar el screening del adulto mayor.
-def _suprime_causa_organica(req: ImpresionClinicaRequest) -> bool:
-    return any(
-        cond(req) for cond in (
-            _cond_opacidad_cristaliniana,
-            _cond_fondo_periferico_riesgo,
-            _cond_fondo_oclusion_vascular_urgente,
-            _cond_fondo_glaucomatoso,
-            _cond_glaucoma_asimetrico,
-            _cond_isnt_violada_papila,
-            _cond_fondo_macular_dmae,
-            _cond_fondo_macular_otros,
-            _cond_fondo_vascular_diabetico,
-            _cond_fondo_hipertensivo,
-            _cond_papila_patologica,
-            _cond_horner_o_tercer_par_sospecha,
-            _cond_astigmatismo_lenticular_puro,
-            _req_has_corneal_irregularity,
-        )
+_EYE_MARKERS_EXPLICIT_RE = re.compile(
+    r"\b(ao|ambos ojos|bilateral|bilaterales|od|oi|ojo derecho|ojo izquierdo)\b"
+)
+_AO_MARKERS_RE = re.compile(r"\b(ao|ambos ojos|bilateral|bilaterales)\b")
+_OD_MARKERS_RE = re.compile(r"\b(od|ojo derecho)\b")
+_OI_MARKERS_RE = re.compile(r"\b(oi|ojo izquierdo)\b")
+
+
+def _finding_applies_to_eye(
+    text: str | None,
+    keywords: tuple[str, ...] | list[str],
+    target_eye: str,
+) -> bool:
+    """Determina si alguna de las keywords coincide afirmativamente en text y corresponde
+    clinicamente al ojo objetivo (target_eye: 'OD' o 'OI').
+    
+    Respeta lateralidad por ojo, clausulas, cabeceras y ventanas de negacion.
+    """
+    if not text:
+        return False
+    target = target_eye.upper()
+    if target not in ("OD", "OI"):
+        return False
+
+    norm = _normalize_text(text)
+    if not norm:
+        return False
+
+    has_any_laterality_marker = _EYE_MARKERS_EXPLICIT_RE.search(norm) is not None
+
+    for kw in keywords:
+        whole_word = kw in _WHOLE_WORD_KEYWORDS
+        for m in _compiled_keyword(kw).finditer(norm):
+            if whole_word and not _is_word_bounded(norm, m.start(), m.end()):
+                continue
+
+            # Verificar negacion en la oracion local del match
+            sentence_start = max([norm.rfind(sep, 0, m.start()) for sep in ".;:!?"] or [-1]) + 1
+            sentence_prefix = norm[sentence_start:m.start()]
+            sentence_end_candidates = [norm.find(sep, m.end()) for sep in ".;:!?"]
+            valid_ends = [pos for pos in sentence_end_candidates if pos != -1]
+            sentence_end = min(valid_ends) if valid_ends else len(norm)
+            sentence_suffix = norm[m.end():sentence_end].strip()
+
+            is_neg = False
+            for neg in _NEGACIONES_PRE:
+                pos = _find_neg_bounded(sentence_prefix, neg)
+                if pos != -1:
+                    intervening = sentence_prefix[pos + len(neg):]
+                    if not any(t in intervening for t in _AFFIRMATIVE_TRANSITIONS):
+                        is_neg = True
+                        break
+            if is_neg:
+                continue
+
+            # Si el texto clinico carece completamente de cualquier marcador de lateralidad
+            # (ej. "catarata senil nuclear"), el hallazgo es global/indeterminado y puede
+            # comprometer a cualquiera de los dos ojos.
+            if not has_any_laterality_marker:
+                return True
+
+            # Delimitar la clausula local entre separadores clinicos (.;|\n)
+            clause_start = max([norm.rfind(sep, 0, m.start()) for sep in ".;|\n"] or [-1]) + 1
+            clause_prefix = norm[clause_start:m.start()]
+            ends = [pos for pos in [norm.find(sep, m.end()) for sep in ".;|\n"] if pos != -1]
+            clause_end = min(ends) if ends else len(norm)
+            clause_suffix = norm[m.end():clause_end]
+
+            # 1. Marcador bilateral explicito en la clausula
+            if _AO_MARKERS_RE.search(clause_prefix) or _AO_MARKERS_RE.search(clause_suffix[:30]):
+                return True
+
+            # 2. Marcador de ojo especifico en la clausula
+            if target == "OD":
+                has_target = bool(_OD_MARKERS_RE.search(clause_prefix) or _OD_MARKERS_RE.search(clause_suffix[:30]))
+                has_contra = bool(_OI_MARKERS_RE.search(clause_prefix) or _OI_MARKERS_RE.search(clause_suffix[:30]))
+            else:
+                has_target = bool(_OI_MARKERS_RE.search(clause_prefix) or _OI_MARKERS_RE.search(clause_suffix[:30]))
+                has_contra = bool(_OD_MARKERS_RE.search(clause_prefix) or _OD_MARKERS_RE.search(clause_suffix[:30]))
+
+            if has_target and not has_contra:
+                return True
+            if has_contra and not has_target:
+                continue
+
+            # 3. Si no hay marcador en la clausula inmediata, buscar el marcador anterior mas cercano
+            prev_markers = list(_EYE_MARKERS_EXPLICIT_RE.finditer(norm[:m.start()]))
+            if prev_markers:
+                last_marker = prev_markers[-1].group(1)
+                if last_marker in ("ao", "ambos ojos", "bilateral", "bilaterales"):
+                    return True
+                if target == "OD" and last_marker in ("od", "ojo derecho"):
+                    return True
+                if target == "OI" and last_marker in ("oi", "ojo izquierdo"):
+                    return True
+                continue
+
+            return True
+
+    return False
+
+
+# Categorias de causas con capacidad fisiopatologica demostrada para explicar
+# una reduccion de agudeza visual central (<= 20/40).
+_KEYWORDS_OPACIDADES_MEDIOS = _KEYWORDS_OPACIDAD_CRISTALINO + (
+    "leucoma", "opacidad corneal", "edema corneal", "queratopatia bullosa", "nubecula",
+    "hemorragia vitrea", "turbidez vitrea", "opacidad vitrea",
+)
+
+_KEYWORDS_MACULOPATIA_EXPLICATIVA = _KEYWORDS_FONDO_DMAE + _KEYWORDS_FONDO_MACULAR_OTROS
+
+_KEYWORDS_NEUROPATIA_OPTICA_EXPLICATIVA = _KEYWORDS_PAPILA_NO_GLAUCOMA
+
+_KEYWORDS_GLAUCOMA_PATOLOGICO = _KEYWORDS_ISNT_VIOLADA + tuple(
+    f"{p}{s}{v}"
+    for p in (
+        "c/d", "cd", "cup/disc", "cup disc", "cup-disc", "e/p",
+        "relacion c/d", "relacion cd",
+        "relacion copa/disco", "relacion copa disco",
+        "copa/disco", "copa disco",
     )
+    for s in (" ", ": ", ":", " de ", " del ")
+    for v in (
+        "0.6", "0.7", "0.8", "0.9", "1.0",
+        "0,6", "0,7", "0,8", "0,9", "1,0",
+        "6/10", "7/10", "8/10", "9/10",
+    )
+) + (
+    "relacion copa/disco aumentada", "copa/disco aumentada", "copa disco aumentada",
+    "relacion c/d aumentada", "relacion cd aumentada",
+    "relacion copa/disco amplia", "copa/disco amplia", "copa disco amplia", "relacion c/d amplia",
+    "muesca", "escotadura", "notch",
+    "hemorragia peripapilar", "hemorragia en astilla",
+    "rima neural adelgazada", "anillo neurorretiniano adelgazado",
+    "adelgazamiento del anillo", "adelgazamiento neurorretiniano",
+    "neuropatia glaucomatosa", "glaucoma avanzado",
+)
+
+_KEYWORDS_VASCULARES_CENTRALES_EXPLICATIVAS = _KEYWORDS_FONDO_OCLUSION_VASCULAR + (
+    "edema macular diabetico", "emq", "neovasos", "rubeosis",
+    "retinopatia diabetica proliferativa", "rdp", "estrella macular",
+)
+
+
+def _ojo_tiene_causa_organica_explicativa(req: ImpresionClinicaRequest, eye: str) -> bool:
+    """Determina si el ojo especificado ('OD' o 'OI') presenta una causa organica
+    documentada con capacidad demostrada para explicar la perdida de agudeza visual
+    central (<= 20/40).
+
+    Causas con capacidad explicativa central demostrada:
+    1. Opacidad de medios (cristalino, cornea, vitreo).
+    2. Maculopatias (DMAE, MER, agujero macular, edema macular, CSCR).
+    3. Neuropatia optica / alteracion papilar (papiledema, atrofia, neuritis,
+       neuropatia glaucomatosa con excavacion patologica o regla ISNT violada).
+    4. Oclusiones vasculares retinianas o retinopatia proliferativa/macular severa.
+
+    Causas que NO explican la perdida central Snellen (no suprimen):
+    - Lesiones de retina periferica (lattice, baba de caracol, desgarro periferico sin desprendimiento macular).
+    - Sindromes pupilares o de motilidad (Horner, III par).
+    - Astigmatismo lenticular compensado en prescripcion.
+    - Sospecha queratometrica en AKR (3 mm).
+    """
+    clinica = req.clinica
+    if clinica is None:
+        return False
+    target = eye.upper()
+    if target not in ("OD", "OI"):
+        return False
+
+    # 1. Opacidad de medios (anexos o fondo)
+    texto_medios = " ".join(filter(None, [clinica.anexos_oculares, clinica.fondo_de_ojo]))
+    if _finding_applies_to_eye(texto_medios, _KEYWORDS_OPACIDADES_MEDIOS, target):
+        return True
+
+    # 2. Maculopatia
+    if _finding_applies_to_eye(clinica.fondo_de_ojo, _KEYWORDS_MACULOPATIA_EXPLICATIVA, target):
+        return True
+
+    # 3. Neuropatia optica / papila no glaucoma
+    if _finding_applies_to_eye(clinica.fondo_de_ojo, _KEYWORDS_NEUROPATIA_OPTICA_EXPLICATIVA, target):
+        return True
+
+    # 4. Neuropatia glaucomatosa
+    if _finding_applies_to_eye(clinica.fondo_de_ojo, _KEYWORDS_GLAUCOMA_PATOLOGICO, target):
+        return True
+
+    # 5. Oclusiones vasculares y retinopatia central severa
+    if _finding_applies_to_eye(clinica.fondo_de_ojo, _KEYWORDS_VASCULARES_CENTRALES_EXPLICATIVAS, target):
+        return True
+
+    return False
+
+
+def _suprime_causa_organica(req: ImpresionClinicaRequest) -> bool:
+    """Helper de compatibilidad legacy: retorna True si alguno de los ojos presenta
+    una causa organica explicativa demostrada."""
+    return _ojo_tiene_causa_organica_explicativa(req, "OD") or _ojo_tiene_causa_organica_explicativa(req, "OI")
 
 # La adicion no rebasa este techo fisiologico en la practica optometrica; por
 # encima conviene revisar la distancia de trabajo o la refraccion de lejos.
@@ -218,7 +407,11 @@ def _cond_insuficiencia_acomodacion_joven(req: ImpresionClinicaRequest) -> bool:
     add = _add_maximo(req)
     if add is None or add < 0.75:
         return False
-    return _contains_keyword(paciente.motivo_consulta, _KEYWORDS_ASTENOPIA_JOVEN)
+    return _contains_keyword(
+        paciente.motivo_consulta,
+        _KEYWORDS_ASTENOPIA_JOVEN,
+        allow_negation_window=True,
+    )
 
 
 def _texto_insuficiencia_acomodacion_joven(req: ImpresionClinicaRequest) -> str:
@@ -271,13 +464,23 @@ def _texto_adicion_incongruente_edad(req: ImpresionClinicaRequest) -> str:
 
 def _hay_tropia(req: ImpresionClinicaRequest) -> bool:
     clinica = req.clinica
-    cover = _normalize_cover_text(clinica.cover_test if clinica is not None else None)
-    return any(keyword in cover for keyword in _KEYWORDS_TROPIA)
+    if clinica is None or not clinica.cover_test:
+        return False
+    tokens = _cover_desviaciones(clinica.cover_test)
+    if any(keyword in tokens for keyword in _KEYWORDS_TROPIA):
+        return True
+    cover = _normalize_cover_text(clinica.cover_test)
+    return any(_keyword_matches(cover, keyword, allow_negation_window=True) for keyword in _KEYWORDS_TROPIA)
 
 
 def _ojo_av_limitada(req: ImpresionClinicaRequest):
-    """(label, av_cc, av_sc) del primer ojo con AV con correccion limitada."""
+    """(label, av_cc, av_sc) del primer ojo con AV con correccion limitada (preferentemente sin causa organica)."""
     refraccion = req.refraccion
+    if refraccion is None:
+        return None
+    for label, ojo in (("OD", refraccion.od), ("OI", refraccion.oi)):
+        if _av_es_limitada(ojo.av_cc) and not _ojo_tiene_causa_organica_explicativa(req, label):
+            return label, ojo.av_cc, ojo.av_sc
     for label, ojo in (("OD", refraccion.od), ("OI", refraccion.oi)):
         if _av_es_limitada(ojo.av_cc):
             return label, ojo.av_cc, ojo.av_sc
@@ -287,24 +490,40 @@ def _ojo_av_limitada(req: ImpresionClinicaRequest):
 @_memoize_cond
 def _cond_ambliopia_sospecha(req: ImpresionClinicaRequest) -> bool:
     """Caso clinico: AV con correccion limitada + factor ambliogenico (anisometropia
-    o desviacion manifiesta) sin causa organica documentada, patron sugestivo de
+    o desviacion manifiesta) sin causa organica documentada en ese ojo, patron sugestivo de
     ambliopia funcional. Usa av_sc/av_cc para caracterizar la respuesta a la Rx."""
     refraccion = req.refraccion
     if refraccion is None:
         return False
-    if not (_av_es_limitada(refraccion.od.av_cc) or _av_es_limitada(refraccion.oi.av_cc)):
+
+    ojos_limitados = []
+    for label, ojo in (("OD", refraccion.od), ("OI", refraccion.oi)):
+        if ojo and _av_es_limitada(ojo.av_cc):
+            ojos_limitados.append(label)
+    if not ojos_limitados:
         return False
+
     if not (_cond_anisometropia(req) or _hay_tropia(req)):
         return False
-    return not _suprime_causa_organica(req)
+
+    # Si todos los ojos con deficit visual presentan una causa organica explicativa
+    # demostrada en ese ojo (ej. catarata u atrofia optica), el deficit es organico.
+    if all(_ojo_tiene_causa_organica_explicativa(req, eye) for eye in ojos_limitados):
+        return False
+
+    return True
 
 
 def _texto_ambliopia_sospecha(req: ImpresionClinicaRequest) -> str:
-    label, av_cc, av_sc = _ojo_av_limitada(req)
+    ojo_info = _ojo_av_limitada(req)
+    if ojo_info is not None:
+        label, av_cc, av_sc = ojo_info
+        detalle = f"{label} ({av_cc})"
+        if av_sc is not None:
+            detalle += f", con agudeza visual sin correccion de {av_sc}"
+    else:
+        detalle = "el ojo afectado"
     factor = "anisometropia significativa" if _cond_anisometropia(req) else "una desviacion ocular manifiesta"
-    detalle = f"{label} ({av_cc})"
-    if av_sc is not None:
-        detalle += f", con agudeza visual sin correccion de {av_sc}"
     return (
         f"Se documenta agudeza visual con correccion limitada en {detalle} en presencia de {factor}, "
         "patron sugestivo de ambliopia; amerita verificar el antecedente de ambliopia y la fijacion, "
@@ -326,7 +545,7 @@ def _cond_ambliopia_isoametropica_bilateral(req: ImpresionClinicaRequest) -> boo
         return False
     if _cond_anisometropia(req) or _hay_tropia(req):
         return False
-    if _suprime_causa_organica(req):
+    if _ojo_tiene_causa_organica_explicativa(req, "OD") or _ojo_tiene_causa_organica_explicativa(req, "OI"):
         return False
     ambos_hiper = (od.esfera is not None and od.esfera >= 4.00) and (oi.esfera is not None and oi.esfera >= 4.00)
     ambos_astig = (od.cilindro is not None and od.cilindro <= -2.50) and (oi.cilindro is not None and oi.cilindro <= -2.50)
@@ -351,7 +570,7 @@ def _cond_cvs_sospecha(req: ImpresionClinicaRequest) -> bool:
         return False
     if req.clinica.uso_pantallas not in ("btw2_6", "gt6"):
         return False
-    return _contains_keyword(req.paciente.motivo_consulta, _KEYWORDS_CVS)
+    return _contains_keyword(req.paciente.motivo_consulta, _KEYWORDS_CVS, allow_negation_window=True)
 
 
 _texto_cvs_sospecha = (
@@ -361,15 +580,17 @@ _texto_cvs_sospecha = (
 )
 
 
-def _ojo_deficit_inexplicado(req: ImpresionClinicaRequest):
-    """(label, av_cc, av_sc) del primer ojo con:
+def _ojos_deficit_inexplicado(req: ImpresionClinicaRequest) -> list[tuple[str, str, str | None]]:
+    """(label, av_cc, av_sc) de todos los ojos con:
     - refraccion prescrita (esfera o cilindro no nulos),
     - AV c/c subnormal (denominador >= 40, i.e. 20/40 o peor),
-    - AV s/c no contradictoria (si existe dato, denominador >= 50).
+    - AV s/c no contradictoria (si existe dato, denominador >= 50),
+    - y sin causa organica explicativa demostrada para ese ojo.
     """
     refraccion = req.refraccion
     if refraccion is None:
-        return None
+        return []
+    ojos = []
     for label, ojo in (("OD", refraccion.od), ("OI", refraccion.oi)):
         if ojo.esfera is None and ojo.cilindro is None:
             continue
@@ -379,39 +600,58 @@ def _ojo_deficit_inexplicado(req: ImpresionClinicaRequest):
         denom_sc = _av_denominator(ojo.av_sc)
         if denom_sc is not None and denom_sc < 50:
             continue
-        return label, ojo.av_cc, ojo.av_sc
-    return None
+        if _ojo_tiene_causa_organica_explicativa(req, label):
+            continue
+        ojos.append((label, ojo.av_cc, ojo.av_sc))
+    return ojos
+
+
+def _ojo_deficit_inexplicado(req: ImpresionClinicaRequest):
+    """Compatibilidad: tupla (label, av_cc, av_sc) del primer ojo inexplicado, o None."""
+    ojos = _ojos_deficit_inexplicado(req)
+    return ojos[0] if ojos else None
 
 
 @_memoize_cond
 def _cond_deficit_visual_inexplicado_refractivo(req: ImpresionClinicaRequest) -> bool:
     """Caso clinico: reduccion de agudeza visual con correccion (<= 20/40) en paciente
     no senil (< 60 anos o edad no especificada) en ausencia de causa organica documentada
-    o factor ambliogenico (anisometropia/estrabismo). Sugiere patologia subclinica,
+    en ese ojo o factor ambliogenico (anisometropia/estrabismo). Sugiere patologia subclinica,
     astigmatismo irregular o defecto refractivo no corregido que amerita estenopeico
     o ciclopejia."""
     if req.refraccion is None:
         return False
     if req.paciente is not None and req.paciente.edad is not None and req.paciente.edad >= 60:
         return False
-    if _ojo_deficit_inexplicado(req) is None:
+    if not _ojos_deficit_inexplicado(req):
         return False
     if _cond_ambliopia_sospecha(req) or _cond_ambliopia_isoametropica_bilateral(req):
         return False
-    return not _suprime_causa_organica(req)
+    return True
 
 
 def _texto_deficit_visual_inexplicado_refractivo(req: ImpresionClinicaRequest) -> str:
-    ojo_info = _ojo_deficit_inexplicado(req)
-    if ojo_info is not None:
-        label, av_cc, av_sc = ojo_info
+    ojos = _ojos_deficit_inexplicado(req)
+    if not ojos:
+        ojo_info = _ojo_deficit_inexplicado(req)
+        ojos = [ojo_info] if ojo_info is not None else []
+
+    if len(ojos) == 1:
+        label, av_cc, av_sc = ojos[0]
         sc_detalle = f" (AV sin correccion {av_sc})" if av_sc is not None else ""
         detalle = f"en {label} con correccion ({av_cc}){sc_detalle}"
+    elif len(ojos) > 1:
+        partes = []
+        for label, av_cc, av_sc in ojos:
+            sc_detalle = f" (AV sin correccion {av_sc})" if av_sc is not None else ""
+            partes.append(f"{label} ({av_cc}){sc_detalle}")
+        detalle = f"en {' y '.join(partes)} con correccion"
     else:
-        detalle = "con la mejor correccion optica"
+        detalle = "con correccion"
+
     return (
-        f"Se registra agudeza visual subnormal {detalle} sin hallazgos organicos evidentes en el examen "
-        "actual ni factores ambliogenicos manifiestos; se recomienda prueba con agujero estenopeico, "
+        f"Se registra agudeza visual subnormal {detalle} al no constar una causa organica evidente en los datos "
+        "disponibles ni factores ambliogenicos manifiestos; se recomienda prueba con agujero estenopeico, "
         "reevaluar refraccion bajo ciclopejia o descartar patologia corneal o macular subclinica."
     )
 
@@ -423,11 +663,21 @@ def _cond_adulto_mayor_screening(req: ImpresionClinicaRequest) -> bool:
     edad = req.paciente.edad
     if edad is None or edad < 60:
         return False
-    if not (_av_es_limitada(req.refraccion.od.av_cc) or _av_es_limitada(req.refraccion.oi.av_cc)):
+
+    ojos_limitados = []
+    for label, ojo in (("OD", req.refraccion.od), ("OI", req.refraccion.oi)):
+        if ojo and _av_es_limitada(ojo.av_cc):
+            ojos_limitados.append(label)
+    if not ojos_limitados:
         return False
+
+    # Si todos los ojos que presentan deficit visual ya tienen una causa organica explicativa
+    # documentada en ese ojo, el screening general ("sin causa identificada") no procede.
+    if all(_ojo_tiene_causa_organica_explicativa(req, eye) for eye in ojos_limitados):
+        return False
+
     return not (
-        _suprime_causa_organica(req)
-        or _cond_ambliopia_sospecha(req)
+        _cond_ambliopia_sospecha(req)
         or _cond_ambliopia_isoametropica_bilateral(req)
         or _cond_deficit_visual_inexplicado_refractivo(req)
     )
@@ -436,8 +686,8 @@ def _cond_adulto_mayor_screening(req: ImpresionClinicaRequest) -> bool:
 def _texto_adulto_mayor_screening(req: ImpresionClinicaRequest) -> str:
     edad = req.paciente.edad
     return (
-        f"En paciente de {edad} anos con reduccion de agudeza visual sin causa "
-        "identificada en el examen actual, se recomienda descarte activo de catarata, "
-        "glaucoma y maculopatia asociada a la edad mediante exploracion dirigida."
+        f"En paciente de {edad} anos con reduccion de agudeza visual sin causa identificada en "
+        "los datos disponibles, se recomienda descarte activo de catarata, glaucoma y "
+        "maculopatia asociada a la edad mediante exploracion dirigida."
     )
 

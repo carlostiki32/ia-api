@@ -6,16 +6,28 @@ activa glaucoma_asimetrico (que integra el DPAR en su propio enunciado).
 """
 from __future__ import annotations
 
+import re
+
 from app.correlaciones.base import _memoize_cond
 from app.correlaciones.fondo_de_ojo import _cond_glaucoma_asimetrico
 from app.correlaciones.texto import (
+    _EYE_MARKERS_RE,
+    _compiled_keyword,
     _contains_keyword,
+    _dedupe,
     _extract_normalized_findings,
     _join_hallazgos,
     _keyword_matches,
     _normalize_text,
 )
 from app.schemas import ImpresionClinicaRequest
+
+_EYE_MARKERS_EXPLICIT_RE = re.compile(
+    r"\b(ao|ambos ojos|bilateral|bilaterales|od|oi|ojo derecho|ojo izquierdo|derecho|derecha|izquierdo|izquierda)\b"
+)
+_AO_MARKERS_RE = re.compile(r"\b(ao|ambos ojos|bilateral|bilaterales)\b")
+_OD_MARKERS_RE = re.compile(r"\b(od|ojo derecho|derecho|derecha)\b")
+_OI_MARKERS_RE = re.compile(r"\b(oi|ojo izquierdo|izquierdo|izquierda)\b")
 
 _KEYWORDS_PUPILAS = {
     "anisocoria": "anisocoria",
@@ -44,6 +56,11 @@ _KEYWORDS_PUPILAS = {
     "fotomotor ausente": "respuesta pupilar ausente",
 }
 _KEYWORDS_PTOSIS = ("ptosis", "blefaroptosis", "caida del parpado", "parpado caido")
+_KEYWORDS_PTOSIS_CONGENITA_O_CRONICA = (
+    "congenit", "de nacimiento", "desde nin", "desde la infancia",
+    "cronica", "cronico", "antigua", "antiguo", "larga evolucion",
+    "senil", "aponeurotic", "involutiv",
+)
 _KEYWORDS_ANISOCORIA_BENIGNA = (
     "anisocoria fisiologica", "anisocoria benigna", "anisocoria simple",
     "anisocoria esencial",
@@ -67,10 +84,134 @@ _KEYWORDS_MOTILIDAD = (
 )
 
 
+def _clause_has_qualifier(
+    text_norm: str,
+    match_start: int,
+    match_end: int,
+    qualifiers: tuple[str, ...],
+) -> bool:
+    """Verifica si en la clausula local del match existe algun calificador,
+    sin que medie un marcador de cambio de ojo entre ellos."""
+    clause_start = max([text_norm.rfind(sep, 0, match_start) for sep in ".;:|\n"] or [-1]) + 1
+    ends = [pos for pos in [text_norm.find(sep, match_end) for sep in ".;:|\n"] if pos != -1]
+    clause_end = min(ends) if ends else len(text_norm)
+
+    clause_before = text_norm[clause_start:match_start]
+    clause_after = text_norm[match_end:clause_end]
+
+    # Revisar calificadores antes del match (sin cambio de ojo intermedio)
+    for q in qualifiers:
+        pos = clause_before.rfind(q)
+        if pos != -1:
+            intervening = clause_before[pos + len(q):]
+            if not _EYE_MARKERS_RE.search(intervening):
+                return True
+
+    # Revisar calificadores despues del match (sin cambio de ojo intermedio)
+    for q in qualifiers:
+        pos = clause_after.find(q)
+        if pos != -1:
+            intervening = clause_after[:pos]
+            if not _EYE_MARKERS_RE.search(intervening):
+                return True
+
+    return False
+
+
+def _extract_finding_eye(
+    text: str | None,
+    finding_keywords: tuple[str, ...] | list[str],
+) -> str | None:
+    """Extrae el ojo ('OD', 'OI', 'AO', 'AMBOS', o None) al que corresponde
+    el hallazgo clinico en el texto. Si el texto compara ambos ojos (ej. 'OD > OI')
+    o no especifica lateralidad, devuelve 'AMBOS' o None."""
+    if not text:
+        return None
+    norm = _normalize_text(text)
+    if not norm:
+        return None
+
+    for kw in finding_keywords:
+        for m in _compiled_keyword(kw).finditer(norm):
+            if not _keyword_matches(norm, kw, allow_negation_window=True):
+                continue
+
+            # Delimitar la clausula local del match
+            clause_start = max([norm.rfind(sep, 0, m.start()) for sep in ".;:|\n"] or [-1]) + 1
+            ends = [pos for pos in [norm.find(sep, m.end()) for sep in ".;:|\n"] if pos != -1]
+            clause_end = min(ends) if ends else len(norm)
+            clause_text = norm[clause_start:clause_end]
+
+            # Comparacion explicita entre ojos (ej. 'od > oi', 'od mayor que oi')
+            if (">" in clause_text or "<" in clause_text or "mayor" in clause_text or "menor" in clause_text) and (
+                _OD_MARKERS_RE.search(clause_text) and _OI_MARKERS_RE.search(clause_text)
+            ):
+                return "AMBOS"
+
+            # Marcador bilateral explicito en la clausula
+            if _AO_MARKERS_RE.search(clause_text):
+                return "AO"
+
+            # Marcadores especificos en la clausula
+            has_od = bool(_OD_MARKERS_RE.search(clause_text))
+            has_oi = bool(_OI_MARKERS_RE.search(clause_text))
+            if has_od and not has_oi:
+                return "OD"
+            if has_oi and not has_od:
+                return "OI"
+            if has_od and has_oi:
+                return "AMBOS"
+
+            # Buscar marcador anterior mas cercano si la clausula no tenia marcador
+            prev_markers = list(_EYE_MARKERS_EXPLICIT_RE.finditer(norm[:m.start()]))
+            if prev_markers:
+                last_marker = prev_markers[-1].group(1)
+                if last_marker in ("ao", "ambos ojos", "bilateral", "bilaterales"):
+                    return "AO"
+                if last_marker in ("od", "ojo derecho", "derecho", "derecha"):
+                    return "OD"
+                if last_marker in ("oi", "ojo izquierdo", "izquierdo", "izquierda"):
+                    return "OI"
+
+    return None
+
+
+def _son_hallazgos_contralaterales(ojo1: str | None, ojo2: str | None) -> bool:
+    """Determina si dos hallazgos estan en ojos estrictamente opuestos
+    (uno en OD y el otro en OI), lo que excluye un sindrome neurooftalmico
+    ipsilateral como Horner o paresia del III par."""
+    if not ojo1 or not ojo2:
+        return False
+    o1, o2 = ojo1.upper(), ojo2.upper()
+    return (o1 == "OD" and o2 == "OI") or (o1 == "OI" and o2 == "OD")
+
+
+def _es_ptosis_congenita_o_cronica(text: str | None) -> bool:
+    """Determina si las manifestaciones de ptosis palpebral en el texto estan
+    identificadas como congenitas, seniles, aponeuroticas o cronicas de larga evolucion,
+    lo que descarta la presentacion de una emergencia neurooftalmica aguda."""
+    if not text:
+        return False
+    norm = _normalize_text(text)
+    if not norm:
+        return False
+    matches_ptosis = []
+    for kw in _KEYWORDS_PTOSIS:
+        for m in _compiled_keyword(kw).finditer(norm):
+            if _keyword_matches(norm, kw, allow_negation_window=True):
+                matches_ptosis.append(m)
+    if not matches_ptosis:
+        return False
+    return all(
+        _clause_has_qualifier(norm, m.start(), m.end(), _KEYWORDS_PTOSIS_CONGENITA_O_CRONICA)
+        for m in matches_ptosis
+    )
+
+
 def _pupilas_hallazgos(clinica) -> list[str]:
     """Extrae hallazgos pupilares, descartando anisocoria fisiologica,
     desambiguando Marcus Gunn (pupilar/DPAR vs mandibulopalpebral/ambiguo)
-    y excluyendo alteraciones pupilares farmacologicas."""
+    y excluyendo alteraciones pupilares farmacologicas acotadas a su clausula."""
     if clinica is None:
         return []
     texto_norm = _normalize_text(clinica.reflejos_pupilares)
@@ -107,29 +248,73 @@ def _pupilas_hallazgos(clinica) -> list[str]:
                 )
 
     if "anisocoria" in hallazgos:
-        if any(term in texto_norm for term in ("fisiologic", "benign", "simple", "esencial")):
+        ocurrencias_patologicas = []
+        for kw in ("anisocoria",):
+            for m in _compiled_keyword(kw).finditer(texto_norm):
+                if _keyword_matches(texto_norm, kw, allow_negation_window=True):
+                    if not _clause_has_qualifier(texto_norm, m.start(), m.end(), _KEYWORDS_ANISOCORIA_BENIGNA):
+                        ocurrencias_patologicas.append(m)
+        if not ocurrencias_patologicas:
             hallazgos = [h for h in hallazgos if h != "anisocoria"]
-    # Midriasis/miosis inducida por farmacos o dilatacion no es un hallazgo clinico.
-    if any(k in texto_norm for k in _KEYWORDS_PUPILA_FARMACOLOGICA):
-        hallazgos = [h for h in hallazgos if h not in ("midriasis", "miosis")]
+
+    # Midriasis/miosis inducida por farmacos o dilatacion: filtrar por clausula
+    # evitando contaminar hallazgos del ojo contralateral
+    for pupila_kw, norm_h in (("midriasis", "midriasis"), ("miosis", "miosis")):
+        if norm_h in hallazgos:
+            ocurrencias_clinicas = []
+            for m in _compiled_keyword(pupila_kw).finditer(texto_norm):
+                if _keyword_matches(texto_norm, pupila_kw, allow_negation_window=True):
+                    if not _clause_has_qualifier(texto_norm, m.start(), m.end(), _KEYWORDS_PUPILA_FARMACOLOGICA):
+                        ocurrencias_clinicas.append(m)
+            if not ocurrencias_clinicas:
+                hallazgos = [h for h in hallazgos if h != norm_h]
+
     return hallazgos
 
 
 @_memoize_cond
 def _cond_horner_o_tercer_par_sospecha(req: ImpresionClinicaRequest) -> bool:
-    """Caso clinico urgente: alteracion pupilar (anisocoria) y ptosis palpebral combinadas
-    sugieren compromiso simpatico (sindrome de Horner) o del III par craneal."""
+    """Caso clinico urgente: alteracion pupilar (anisocoria, midriasis o miosis)
+    y ptosis palpebral combinadas ipsilaterales sugieren compromiso de la
+    inervacion simpatica (sindrome de Horner) o del III par craneal.
+
+    Descarta:
+    1. Ptosis congenita, senil, aponeurotica o cronica (no urgente).
+    2. Hallazgos contralaterales demostrados (ej. miosis en OD con ptosis en OI,
+       anatomicamente incompatibles con sindrome ipsilateral agudo).
+    """
     if req.clinica is None:
         return False
     hallazgos = _pupilas_hallazgos(req.clinica)
     hay_pupila = any(h in hallazgos for h in ("anisocoria", "midriasis", "miosis"))
     if not hay_pupila:
         return False
-    return _contains_keyword(
+
+    hay_ptosis = _contains_keyword(
         req.clinica.anexos_oculares,
         _KEYWORDS_PTOSIS,
         allow_negation_window=True,
     )
+    if not hay_ptosis:
+        return False
+
+    # Ptosis congenita o cronica no constituye emergencia neurooftalmica aguda
+    if _es_ptosis_congenita_o_cronica(req.clinica.anexos_oculares):
+        return False
+
+    # Verificar correspondencia de ojo (deben ser ipsilaterales o indeterminados)
+    pupil_eye = _extract_finding_eye(
+        req.clinica.reflejos_pupilares,
+        ("anisocoria", "midriasis", "miosis"),
+    )
+    ptosis_eye = _extract_finding_eye(
+        req.clinica.anexos_oculares,
+        _KEYWORDS_PTOSIS,
+    )
+    if _son_hallazgos_contralaterales(pupil_eye, ptosis_eye):
+        return False
+
+    return True
 
 
 _texto_horner_o_tercer_par_sospecha = (

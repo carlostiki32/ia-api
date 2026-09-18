@@ -316,14 +316,20 @@ def _vertice_parts(req: ImpresionClinicaRequest) -> list[str]:
         return []
     parts = []
     for label, eye in [("OD", req.refraccion.od), ("OI", req.refraccion.oi)]:
-        if eye is not None and eye.esfera is not None and abs(eye.esfera) >= 4.00:
-            parts.append(f"{label} ({eye.esfera:+.2f}D)")
+        if eye is None or (eye.esfera is None and eye.cilindro is None):
+            continue
+        m1 = eye.esfera or 0.0
+        m2 = m1 + (eye.cilindro or 0.0)
+        max_p = m1 if abs(m1) >= abs(m2) else m2
+        if abs(max_p) >= 4.00:
+            parts.append(f"{label} ({max_p:+.2f}D)")
     return parts
 
 
 @_memoize_cond
 def _cond_distancia_vertice_alta_ametropia(req: ImpresionClinicaRequest) -> bool:
-    """Caso clinico: ametropia esferica >= 4.00 D hace que la distancia al vertice sea clinicamente relevante."""
+    """Caso clinico: ametropia relevante en al menos un meridiano principal (|potencia| >= 4.00 D)
+    hace que la distancia al vertice sea clinicamente significativa."""
     return bool(_vertice_parts(req))
 
 
