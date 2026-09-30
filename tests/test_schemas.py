@@ -137,8 +137,9 @@ def test_graduacion_ojo_esfera_fuera_de_catalogo_se_descarta():
 
 
 def test_graduacion_ojo_cilindro_fuera_de_catalogo_se_descarta():
-    # Catalogo del SaaS: dropdown 0.00..-8.00 en pasos de 0.25.
-    assert GraduacionOjo(cilindro=-9.0).cilindro is None
+    # El contrato persistido admite ±30 D aunque el dropdown termine en -8 D.
+    assert GraduacionOjo(cilindro=-30.01).cilindro is None
+    assert GraduacionOjo(cilindro=-9.0).cilindro == -9.0
     assert GraduacionOjo(cilindro=-8.0).cilindro == -8.0
 
 
@@ -273,5 +274,5 @@ def test_datos_clinica_campos_texto_truncados():
     assert len(clinica.fondo_de_ojo) == 500
     assert len(clinica.grid_de_amsler) == 500
     assert " y " in clinica.cover_test  # _COVER_DASH_RE reemplaza " - " por " y "
-    assert len(clinica.recomendacion_seguimiento) == 500
+    assert clinica.recomendacion_seguimiento == long_text.strip()
 

@@ -1,0 +1,160 @@
+{
+  "numero": 1,
+  "nombre": "fondo_periferico_riesgo",
+  "veredicto": "PARCIAL",
+  "requisitos": [
+    [
+      "Clasificar DR/ROTURA/VITREO/PREDISPONENTE/ANTECEDENTE, plurales",
+      "AUDITORIA_CORRELACIONES.md:839-848",
+      "app/correlaciones/fondo_de_ojo.py:154,467",
+      "Implementado; controles C01/T9"
+    ],
+    [
+      "Excluir blanco con presion, neurosensorial/EPR/Bruch y schisis macular",
+      "AUDITORIA_CORRELACIONES.md:850-852",
+      "app/correlaciones/fondo_de_ojo.py:421",
+      "Implementado; F01-03"
+    ],
+    [
+      "Antecedente local, actual prevalece; no asumir asintomatico",
+      "AUDITORIA_CORRELACIONES.md:853-855,860-862,885-888",
+      "app/correlaciones/fondo_de_ojo.py:444,518",
+      "Implementado; corpus C01-13..17"
+    ],
+    [
+      "Escalar predisponente con sintomas recientes o alarma de #2",
+      "AUDITORIA_CORRELACIONES.md:856-859",
+      "app/correlaciones/fondo_de_ojo.py:538,335",
+      "Implementado; moscas sin tiempo no escalan"
+    ],
+    [
+      "Prioridad y seis textos exactos; sin profilaxis/ubicacion inventada",
+      "AUDITORIA_CORRELACIONES.md:860-875",
+      "app/correlaciones/fondo_de_ojo.py:519-562",
+      "Implementado para hallazgos afirmados"
+    ],
+    [
+      "Suprimir #2 niveles urgentes y H01 por prefijo/metadatos",
+      "AUDITORIA_CORRELACIONES.md:876-881",
+      "app/correlaciones/fondo_de_ojo.py:2553; app/inference.py:213,470",
+      "Implementado; controles deduplicacion/urgencia"
+    ],
+    [
+      "Periferia no adjudica causa organica de AV central",
+      "AUDITORIA_CORRELACIONES.md:882-883",
+      "app/correlaciones/contexto.py:_has_organic_cause_for_low_av",
+      "Sin atribucion central desde periferia"
+    ],
+    [
+      "Negacion T1/T9/T11/T13; sospecha T10 y fidelidad de certeza",
+      "AUDITORIA_CORRELACIONES.md:234-255; T1/T9/T10/T11/T13",
+      "app/correlaciones/fondo_de_ojo.py:494,527; texto.py:_is_match_negated",
+      "PARCIAL: F01-01 convierte posible en se documenta"
+    ],
+    [
+      "Negacion con marcador ocular entre negador y signo",
+      "AUDITORIA_CORRELACIONES.md:T1/T13",
+      "texto.py:_is_match_negated has_eye_break; app/correlaciones/fondo_de_ojo.py:494",
+      "NO CUMPLE: F01-06/07 activan desgarro/DR negados y H01; tambien transversal-casos.json de raiz"
+    ],
+    [
+      "Neurosensorial explicitamente periferico debe retornar ruta1, revision9 posterior",
+      "AUDITORIA_CORRELACIONES.md:2145-2146",
+      "app/correlaciones/fondo_de_ojo.py:430",
+      "NO CUMPLE: F09-02 y F01-08; exclusion universalneurosensorial"
+    ]
+  ],
+  "casos": [
+    {
+      "entrada": {
+        "fondo": "Posible desgarro en herradura OD."
+      },
+      "esperado": {
+        "activa": true,
+        "urgente": true,
+        "contiene": [
+          "posible"
+        ]
+      },
+      "motivo": "Pierde posible y afirma desgarro documentado."
+    },
+    {
+      "entrada": {
+        "fondo": "Madre con desgarro en herradura OD; paciente sin hallazgos."
+      },
+      "esperado": {
+        "activa": false,
+        "h01": false
+      }
+    },
+    {
+      "entrada": {
+        "fondo": "Retinosquisis macular OD."
+      },
+      "esperado": {
+        "activa": false,
+        "h01": false,
+        "activas": [
+          "fondo_macular_otros"
+        ]
+      }
+    },
+    {
+      "entrada": {
+        "fondo": "Desgarro: ausente en OD."
+      },
+      "esperado": {
+        "activa": false,
+        "h01": false
+      }
+    },
+    {
+      "entrada": {
+        "fondo": "No se evidencia desgarro OD, lattice OI."
+      },
+      "esperado": {
+        "activa": true,
+        "urgente": false,
+        "h01": false,
+        "no_contiene": [
+          "desgarro retiniano"
+        ]
+      }
+    },
+    {
+      "entrada": {
+        "fondo": "No se observa en OD desgarro retiniano"
+      },
+      "esperado": {
+        "activa": false,
+        "h01": false
+      },
+      "motivo": "Negacion con OD interpuesto activa desgarro urgente/H01."
+    },
+    {
+      "entrada": {
+        "fondo": "Sin evidencia en OD de desprendimiento de retina"
+      },
+      "esperado": {
+        "activa": false,
+        "h01": false
+      },
+      "motivo": "Negacion con OD interpuesto activa desprendimiento urgente/H01."
+    },
+    {
+      "entrada": {
+        "fondo": "Desprendimiento neurosensorial de retina periferica OD.",
+        "edad": 40
+      },
+      "esperado": {
+        "activa": true,
+        "urgente": true,
+        "h01": true
+      },
+      "motivo": "No enruta desprendimiento neurosensorial periferico a #1 conforme revision9."
+    }
+  ],
+  "cobertura": "Corrida agrupada real de 13 archivos de aceptacion/integracion: 1496 aprobadas, 0 fallos, 0 errores, 0 omitidas; JUnit suite-existente.xml. Comando: .venv/Scripts/python.exe -m pytest tests/test_auditoria_correlaciones.py tests/test_revalidacion_ajustes.py tests/test_revalidacion_papila_macula.py tests/test_revalidacion_sintomas_oclusiones.py tests/test_ajuste_c12.py tests/test_ajuste_c13.py tests/test_ajuste_c14.py tests/test_ajuste_c15.py tests/test_ajuste_c16.py tests/test_ajuste_c17.py tests/test_ajuste_c18.py tests/test_ajuste_c19.py tests/test_correlaciones.py -q -p no:cacheprovider --junitxml=auditoria/conformidad-2026-09-29/fondo/suite-existente.xml",
+  "conclusion": "Los niveles y textos prescritos estan implementados. F01-01 pierde la certeza: Posible desgarro se presenta como se documenta desgarro; conserva prioridad conservadora pero transforma una sospecha en hecho. Otros cuatro controles nuevos pasan. F01-06/07 confirman dos falsos positivos urgentes: el marcador OD rompe la negacion del propio hallazgo. Referencia adicional: ../transversal-casos.json, T1-OD-negacion-*. Revision posterior9C4 obliga a ruta1cuando neurosensorial incluye retina/periferia: F01-08/f09-02 contradicen esa exigencia.",
+  "recomendaciones": "Conservar el calificador de sospecha en hechos renderizados/reinyectados H01. Añadir aceptacion afirmado/posible/descartado, sin cambiar prioridad solo por redaccion. Verificar combinaciones y fidelidad de ojos al deduplicar. Restringir cambio ocular a ojos realmente diferentes; conservar negacion cuando OD solo identifica el hallazgo negado. Probar OD/OI antes y despues de negador sin anular transiciones afirmativas independientes. Completar la distincion neurosensorial macular vs periferico conforme9C4, sin convertir CSCmacular en DR."
+}

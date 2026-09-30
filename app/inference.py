@@ -23,8 +23,11 @@ ABBREVIATIONS = {
     "c.c.":  "__ABBR_CC__",
 }
 _TOKEN_TO_ABBR = {token: abbr for abbr, token in ABBREVIATIONS.items()}
+# «D.» (dioptrias) no debe protegerse dentro de «OD.»: el punto tras OD/OI cierra la oracion.
 _ABBR_RE = re.compile(
-    "|".join(re.escape(abbr) for abbr in sorted(ABBREVIATIONS, key=len, reverse=True))
+    r"(?<![A-Za-zÁÉÍÓÚÑáéíóúñ])(?:"
+    + "|".join(re.escape(abbr) for abbr in sorted(ABBREVIATIONS, key=len, reverse=True))
+    + ")"
 )
 _TOKEN_RE = re.compile("|".join(re.escape(token) for token in _TOKEN_TO_ABBR))
 
@@ -45,6 +48,60 @@ _CHARS_PER_TOKEN_ES = 3.3
 # Prefijo que marca ValueError de oversized prompt para que main.py
 # lo pueda distinguir de otros ValueError y responder 413 en vez de 500.
 CONTEXT_OVERFLOW_PREFIX = "context_overflow:"
+
+
+class GeneracionIncompletaError(ValueError):
+    """La generacion no es un resultado valido: cortada por longitud o vacia tras la depuracion."""
+
+
+def _terminada_por_longitud(data) -> bool:
+    return isinstance(data, dict) and data.get("done_reason") == "length"
+
+
+# Fidelidad minima con el payload (no sustituye una verificacion clinica de la salida):
+# 1. Toda cifra con unidad de riesgo (PIO, espesores, porcentajes, mm) debe existir en los datos
+#    que recibio el modelo; una PIO «inventada» no es un dato del paciente.
+# 2. Un tratamiento, farmaco o cirugia que el payload no menciona no puede introducirse.
+_CIFRA_RIESGO_RE = re.compile(
+    r"(?<![\w/.,])[+-]?(\d+(?:[.,]\d+)?)\s*(?:mm\s?hg|mmhg|µm|um|micras?|%|mm)(?![a-z])", re.IGNORECASE)
+_TERAPEUTICO_RE = re.compile(
+    r"\b(cirugi\w*|quirurgic\w*|operar\w*|trabeculectomi\w*|facoemulsificaci\w*|vitrectomi\w*|fotocoagulaci\w*|"
+    r"laser|antibiotic\w*|corticoide\w*|esteroide\w*|colirio\w*|gotas|prescrib\w*|iniciar tratamiento|"
+    r"tratamiento (?:medico|farmacologico|quirurgico|inmediato))\b")
+
+
+# Diagnosticos graves: una oracion que afirma o menciona uno que ni el payload ni las correlaciones
+# (lo que recibio el modelo) contienen es un diagnostico inventado, no un hallazgo del paciente.
+_DIAGNOSTICO_RE = re.compile(
+    r"\b(glaucoma\w*|catarata\w*|queratocono|ectasia\w*|ambliopi\w*|desprendimiento\w*|retinopati\w*|"
+    r"degeneracion macular|maculopati\w*|edema macular|neuritis|papiledema|uveitis|endoftalmitis|retinoblastoma|"
+    r"melanoma|tumor\w*|cancer|diabetes|hipertension arterial|esclerosis multiple|infarto|"
+    r"cierre angular|oclusion vascular|hemorragia vitrea)\b")
+
+
+def _numeros_de(texto: str) -> set[float]:
+    return {round(float(n.replace(",", ".")), 2) for n in re.findall(r"\d+(?:[.,]\d+)?", texto)}
+
+
+def _purgar_no_sustentado(text: str, entrada: str) -> str:
+    """Elimina oraciones con cifras de riesgo o terapias que no estan en lo que recibio el modelo."""
+    from app.correlaciones.texto import _normalize_text
+
+    permitidas = _numeros_de(entrada)
+    entrada_norm = _normalize_text(entrada)
+    conservadas = []
+    for oracion in _split_sentences(text):
+        norm = _normalize_text(oracion)
+        sin_cifra = any(round(float(m.group(1).replace(",", ".")), 2) not in permitidas
+                        for m in _CIFRA_RIESGO_RE.finditer(norm))
+        sin_terapia = any(m.group(1)[:8] not in entrada_norm for m in _TERAPEUTICO_RE.finditer(norm))
+        sin_diagnostico = any(m.group(1)[:8] not in entrada_norm for m in _DIAGNOSTICO_RE.finditer(norm))
+        if sin_cifra or sin_terapia or sin_diagnostico:
+            logger.warning("Fidelidad: oracion omitida por contener %s no presente en los datos recibidos",
+                           "una cifra" if sin_cifra else "una terapia" if sin_terapia else "un diagnostico")
+            continue
+        conservadas.append(oracion)
+    return " ".join(conservadas)
 
 
 def _estimate_tokens(text: str) -> int:
@@ -154,16 +211,28 @@ def _ensure_follow_up_last(
     if not recommendation:
         return text
 
-    if payload is not None and _has_active_emergencies(payload):
+    alertas = _get_active_emergency_alerts(payload) if payload is not None else []
+    if alertas:
         from app.correlaciones.texto import _normalize_text
         norm_rec = _normalize_text(recommendation)
         if _INCOMPATIBLE_TIMEFRAME_RE.search(norm_rec):
+            # El texto clinico del seguimiento no se registra en logs (contenido del paciente).
             logger.warning(
-                "Recomendacion de seguimiento rutinaria '%s' suprimida "
-                "por colisionar con alerta de urgencia activa (H01).",
-                recommendation,
+                "Recomendacion de seguimiento rutinaria suprimida por colisionar con alerta de urgencia activa (H01)."
             )
             return text
+        # «No requiere acudir a urgencias.» no puede convivir con una urgencia activa: el texto
+        # de seguimiento se anade despues de H01 y no debe anularlo.
+        oraciones = _split_sentences(recommendation)
+        conservadas = [s for s in oraciones if not any(_is_sentence_contradictory(s, a) for a in alertas)]
+        if len(conservadas) != len(oraciones):
+            logger.warning(
+                "Seguimiento: %d oracion(es) omitida(s) por contradecir una urgencia activa (H01).",
+                len(oraciones) - len(conservadas),
+            )
+            recommendation = " ".join(conservadas)
+            if not recommendation.strip():
+                return text
 
     follow_up = MULTISPACE_RE.sub(" ", recommendation.strip())
     if not follow_up:
@@ -213,66 +282,167 @@ _EMERGENCY_SPECS = {
     "fondo_periferico_riesgo": {
         "hallazgo_keywords": (
             "desgarro", "desprendimiento", "rotura", "ruptura", "dialisis", "agujero operculado",
-            "lattice", "empalizada", "palizada", "caracol", "retinosquisis", "schisis",
-            "retina periferica", "agujero atrofico", "agujero retiniano",
+            "lattice", "empalizada", "palizada", "vitreo", "herradura",
+            "retina periferica", "agujero retiniano",
         ),
         "accion_keywords": ("urgente", "urgencia", "retinolog", "inmediat", "midriasis"),
         "field_getter": lambda req: req.clinica.fondo_de_ojo if req.clinica else None,
-        "is_manifest_urgent": lambda texto_corr: any(
-            k in texto_corr.lower() for k in ("desgarro", "desprendimiento", "rotura", "ruptura", "dialisis", "urgente")
-        ),
-    },
-    "glaucoma_asimetrico": {
-        "hallazgo_keywords": (
-            "defecto pupilar", "dpar", "rapd", "marcus gunn", "asimetric", "glaucomatosa"
-        ),
-        "accion_keywords": ("urgente", "urgencia", "prioritari", "oftalmol", "evaluacion"),
-        "field_getter": lambda req: f"{req.clinica.reflejos_pupilares or ''} {req.clinica.fondo_de_ojo or ''}" if req.clinica else None,
-        "is_manifest_urgent": lambda texto_corr: True,
     },
     "horner_o_tercer_par_sospecha": {
-        "hallazgo_keywords": ("horner", "tercer par", "iii par", "ptosis"),
-        "accion_keywords": ("urgente", "urgencia", "neurooftalmol"),
+        "hallazgo_keywords": ("ptosis", "blefaroptosis", "alteracion pupilar", "miosis", "midriasis", "anisocoria", "diplopia", "motilidad"),
+        "accion_keywords": ("urgente", "urgencia", "mismo dia", "neurooftalmol"),
         "field_getter": lambda req: f"{req.clinica.reflejos_pupilares or ''} {req.clinica.anexos_oculares or ''}" if req.clinica else None,
-        "is_manifest_urgent": lambda texto_corr: True,
     },
     "papila_patologica": {
-        "hallazgo_keywords": (
-            "papiledema", "borramiento", "hipertension intracraneal", "atrofia optica", "edema de papila"
-        ),
-        "accion_keywords": ("urgente", "urgencia", "neurolog", "neurooftalmol", "oftalmol"),
+        "hallazgo_keywords": ("edema de papila", "nervio optico", "papila"),
+        "accion_keywords": ("24 horas", "neurooftalmol", "oftalmolog"),
         "field_getter": lambda req: req.clinica.fondo_de_ojo if req.clinica else None,
-        "is_manifest_urgent": lambda texto_corr: any(
-            k in texto_corr.lower() for k in ("urgente", "papiledema", "borramiento")
-        ),
+    },
+    "fondo_macular_dmae": {
+        "hallazgo_keywords": ("macular", "neovascular", "drusas", "metamorfopsia", "distorsion", "exudativ", "hemorragia"),
+        "accion_keywords": ("1 dia habil", "prioritaria", "retina", "oct macular"),
+        "field_getter": lambda req: req.clinica.fondo_de_ojo if req.clinica else None,
     },
     "fondo_oclusion_vascular_urgente": {
         "hallazgo_keywords": (
-            "oclusion", "vascular retiniana", "trombosis", "mancha rojo cereza", "arterial o venosa"
+            "oclusion", "arterial", "venosa", "vascular retiniana", "cereza"
         ),
-        "accion_keywords": ("urgente", "urgencia", "retinolog", "emergencia", "inmediat"),
+        "accion_keywords": (
+            "urgente", "urgencia", "retinolog", "inmediat", "prioritari",
+            "mismo dia", "oftalmol", "urgencias", "evento vascular"
+        ),
         "field_getter": lambda req: req.clinica.fondo_de_ojo if req.clinica else None,
-        "is_manifest_urgent": lambda texto_corr: True,
+    },
+    "fondo_embolo_retiniano": {
+        "hallazgo_keywords": ("embolo", "embolico", "hollenhorst", "placa"),
+        "accion_keywords": ("urgente", "urgencia", "mismo dia", "evento vascular", "medica"),
+        "field_getter": lambda req: req.clinica.fondo_de_ojo if req.clinica else None,
+    },
+    "fondo_hipertensivo": {
+        "hallazgo_keywords": ("presion arterial", "cifras tensionales", "hemorragia", "edema de papila"),
+        "accion_keywords": ("urgente", "urgencia", "mismo dia", "especializada", "medica", "valoracion"),
+        "field_getter": lambda req: f"{req.paciente.motivo_consulta or ''} {req.clinica.fondo_de_ojo or ''}" if (req.clinica or req.paciente) else None,
+    },
+    "fondo_vascular_diabetico": {
+        "hallazgo_keywords": (
+            "neovascularizacion", "neovasos", "nvd", "nve", "rubeosis", "hemorragia prerretiniana",
+        ),
+        "accion_keywords": ("urgente", "urgencia", "mismo dia", "oftalmolog", "triage", "retinolog"),
+        "field_getter": lambda req: f"{req.clinica.fondo_de_ojo or ''} {req.clinica.anexos_oculares or ''}" if req.clinica else None,
     },
     "pupilas_alteradas": {
+        # #13 puede emitir una alerta urgente por DPAR o por otro signo pupilar
+        # nuevo: H01 debe reconocer y proteger cualquiera de ellos.
         "hallazgo_keywords": (
-            "defecto pupilar", "dpar", "rapd", "marcus gunn", "via optica"
+            "defecto pupilar", "dpar", "rapd", "marcus gunn", "via optica",
+            "anisocoria", "midriasis", "miosis", "pupila", "fotomotor", "consensual",
+            "acomodativ", "discoria", "corectopia", "tonica",
         ),
         "accion_keywords": ("urgente", "urgencia", "neurooftalmol", "evaluacion urgente", "oftalmol"),
         "field_getter": lambda req: req.clinica.reflejos_pupilares if req.clinica else None,
-        "is_manifest_urgent": lambda texto_corr: any(
-            k in texto_corr.lower() for k in ("defecto pupilar", "dpar", "urgente")
+    },
+    "opacidad_cristaliniana": {
+        # #18: leucocoria, cirugia de catarata reciente con dolor/perdida visual o luxacion
+        # traumatica. Una mencion generica de "valoracion" no conserva el plazo.
+        "hallazgo_keywords": (
+            "leucocoria", "reflejo rojo", "cirugia de catarata", "cristalino", "lente intraocular",
+            "subluxad", "luxad", "catarata", "opacidad",
         ),
+        "accion_keywords": ("urgente", "urgencia", "mismo dia"),
+        "field_getter": lambda req: (f"{req.clinica.anexos_oculares or ''} {req.clinica.fondo_de_ojo or ''}"
+                                     if req.clinica else None),
+    },
+    "anexos_patologicos": {
+        "hallazgo_keywords": ("corneal", "queratitis", "hipopion", "ciliar", "proptosis", "dacriocistitis",
+                              "dolor", "halos", "nausea", "fotofobia", "perdida", "disminucion"),
+        "accion_keywords": ("urgente", "urgencia", "mismo dia"),
+        "field_getter": lambda req: req.clinica.anexos_oculares if req.clinica else None,
+    },
+    "anexos_riesgo_glaucoma_secundario": {
+        # #17: el signo del segmento anterior es un aviso de evaluacion; solo con dolor
+        # ocular reciente y halos/nausea/baja visual pasa a urgente (mismo dia).
+        "hallazgo_keywords": (
+            "krukenberg", "dispersion pigmentaria", "pseudoexfoliacion", "pseudoexfoliativo", "sampaolesi",
+            "pxf", "pex", "segmento anterior", "transiluminacion",
+        ),
+        "accion_keywords": ("urgente", "urgencia", "mismo dia"),
+        "field_getter": lambda req: (f"{req.clinica.anexos_oculares or ''} {req.clinica.fondo_de_ojo or ''}"
+                                     if req.clinica else None),
+    },
+    "amsler_alterado": {
+        # #16: cambio reciente de la vision central (rejilla o motivo). Un texto que
+        # solo menciona "valoracion" no conserva la urgencia.
+        "hallazgo_keywords": (
+            "amsler", "rejilla", "distorsion", "metamorfopsia", "micropsia", "macropsia", "escotoma",
+            "mancha central", "vision central", "lineas onduladas", "lineas torcidas", "lineas quebradas",
+        ),
+        "accion_keywords": ("urgente", "urgencia"),
+        "field_getter": lambda req: req.clinica.grid_de_amsler if req.clinica else None,
+    },
+    "campos_visuales_alterados": {
+        # #15: pérdida súbita de campo (examen o síntoma del motivo). El plazo es
+        # inmediato en urgencias o el mismo día; una mención genérica no lo conserva.
+        "hallazgo_keywords": (
+            "campo visual", "campos visuales", "hemianopsia", "cuadrantanopsia", "escotoma", "altitudinal",
+            "hemicampo", "perdida de la mitad", "perdida de la vision", "confrontacion",
+        ),
+        "accion_keywords": ("urgente", "urgencia", "urgencias", "inmediat", "mismo dia"),
+        "field_getter": lambda req: (
+            f"{req.clinica.confrontacion_campos_visuales or ''} {req.paciente.motivo_consulta or ''}"
+            if (req.clinica and req.paciente) else None
+        ),
+    },
+    "motilidad_alterada": {
+        # #14: alerta urgente por deficit motor nuevo, trauma orbitario, dolor con
+        # deterioro visual o nistagmo con sintomas vestibulares. Un texto generico
+        # sobre "valoracion" no conserva el plazo: se exige urgente / mismo dia.
+        "hallazgo_keywords": (
+            "motilidad", "limitacion", "restriccion", "paresia", "paralisis", "oftalmopar", "oftalmopleg",
+            "nistagmo", "ducciones", "versiones", "sacadic", "movimiento ocular", "movimientos oculares",
+            "diplopia", "incomitan", "posicion compensadora", "optocinetic",
+        ),
+        "accion_keywords": ("urgente", "urgencia", "mismo dia"),
+        "field_getter": lambda req: req.clinica.motilidad_ocular if req.clinica else None,
     },
     "sintomas_alarma_traccion_vitreoretina": {
         "hallazgo_keywords": (
             "fotopsias", "miodesopsias", "destellos", "traccion vitreorretiniana", "traccion vitreo", "desprendimiento de vitreo"
         ),
-        "accion_keywords": ("midriasis", "tres espejos", "indentacion", "descartar desgarros", "retina periferica", "retinolog"),
-        "field_getter": lambda req: f"{req.paciente.motivo_consulta if req.paciente else ''} {req.clinica.fondo_de_ojo if req.clinica else ''}",
-        "is_manifest_urgent": lambda texto_corr: True,
+        "accion_keywords": ("midriasis", "48 horas", "mismo dia", "oftalmologia", "indentacion", "descartar desgarros", "retina periferica", "retinolog"),
+        "field_getter": lambda req: req.paciente.motivo_consulta if req.paciente else None,
     },
 }
+
+_ALERTAS_BINOCULARES_CONTEXTO = frozenset({
+    "diplopia_aguda",
+    "ppc_exoforia",
+    "insuficiencia_convergencia", "cover_exoforia_sintomatica", "cover_endoforia_sintomatica",
+    "desviacion_vertical", "endotropia_lente", "exotropia_lente", "cvs_sospecha",
+    "ambliopia_sospecha", "ambliopia_isoametropica_bilateral", "deficit_visual_inexplicado_refractivo",
+    "adulto_mayor_screening",
+})
+for _nombre in _ALERTAS_BINOCULARES_CONTEXTO:
+    _EMERGENCY_SPECS[_nombre] = {
+        "hallazgo_keywords": ("diplopia", "vision doble", "perdida", "disminucion", "dolor", "fotofobia",
+                              "trauma", "desviacion", "cover", "exoforia", "endoforia", "tropia", "AV"),
+        "accion_keywords": ("urgente", "urgencia", "inmediat", "mismo dia"),
+        "field_getter": lambda req: req.paciente.motivo_consulta if req.paciente else None,
+    }
+
+# Alertas cuyo ojo, hallazgo y plazo se toman del texto determinista (hechos ya
+# filtrados por negacion, explicacion y cronologia), no del campo original.
+_ALERTAS_CON_HECHOS_FILTRADOS = frozenset({
+    "horner_o_tercer_par_sospecha", "pupilas_alteradas", "motilidad_alterada", "campos_visuales_alterados",
+    "amsler_alterado", "anexos_riesgo_glaucoma_secundario", "opacidad_cristaliniana",
+    "anexos_patologicos",
+}) | _ALERTAS_BINOCULARES_CONTEXTO
+# Alertas cuyo texto fija un plazo explicito que el LLM debe conservar.
+_ALERTAS_CON_PLAZO_EXPLICITO = frozenset({
+    "fondo_vascular_diabetico", "fondo_embolo_retiniano", "horner_o_tercer_par_sospecha", "pupilas_alteradas",
+    "motilidad_alterada", "campos_visuales_alterados", "anexos_riesgo_glaucoma_secundario",
+    "opacidad_cristaliniana",
+    "anexos_patologicos",
+}) | _ALERTAS_BINOCULARES_CONTEXTO
 
 _EMERGENCY_RULES = {
     nombre: spec["hallazgo_keywords"] + spec["accion_keywords"]
@@ -376,12 +546,23 @@ def _get_active_emergency_alerts(payload: ImpresionClinicaRequest) -> list[Alert
 
     alerts: list[AlertaUrgencia] = []
     for nombre, texto_corr in activas:
+        # T8: Solo correlaciones cuyo texto contenga "hallazgo urgente" son emergencias clinicas
+        if "hallazgo urgente" not in texto_corr.lower():
+            continue
+
         spec = _EMERGENCY_SPECS.get(nombre)
         if spec:
-            if not spec["is_manifest_urgent"](texto_corr):
-                continue
             raw_field_val = spec["field_getter"](payload)
+            if nombre in _ALERTAS_CON_HECHOS_FILTRADOS:
+                # #12-#19: la nota original puede empezar por un hallazgo negado,
+                # fisiologico, antiguo o del ojo contrario. Usar los hechos filtrados.
+                raw_field_val = texto_corr
             eye = _extract_finding_laterality(raw_field_val, spec["hallazgo_keywords"])
+            if (nombre in _ALERTAS_CON_HECHOS_FILTRADOS and nombre != "horner_o_tercer_par_sospecha"
+                    and len(set(re.findall(r"\b(od|oi)\b", raw_field_val.lower()))) > 1):
+                # Hallazgos en ambos ojos: ninguna oracion correcta de un ojo debe
+                # purgarse por contradecir la lateralidad del otro.
+                eye = None
             alerts.append(
                 AlertaUrgencia(
                     id=nombre,
@@ -392,7 +573,7 @@ def _get_active_emergency_alerts(payload: ImpresionClinicaRequest) -> list[Alert
                     texto_determinista=texto_corr.strip(),
                 )
             )
-        elif "hallazgo urgente" in texto_corr.lower():
+        else:
             # Derivacion dinamica de urgencia para reglas con 'Hallazgo urgente:' en su texto,
             # garantizando cobertura universal por metadatos (H02).
             alerts.append(
@@ -414,14 +595,26 @@ def _has_active_emergencies(payload: ImpresionClinicaRequest) -> bool:
 
 def _is_sentence_contradictory(sentence: str, alert: AlertaUrgencia) -> bool:
     from app.correlaciones.texto import _normalize_text
+    from app.correlaciones.hechos_textuales import _sujeto_es_paciente, _es_hipotetico
 
     norm_s = _normalize_text(sentence)
     if not norm_s:
         return False
 
+    # Una oracion exacta del aviso filtrado no es una negacion del hallazgo.
+    # Puede describir un signo ausente (reflejo rojo) o una limitacion del examen.
+    if norm_s in {_normalize_text(s) for s in _split_sentences(alert.texto_determinista)}:
+        return False
+
     # 1. Negacion del hallazgo (prefija o sufija con limites de palabra estrictos)
     for kw in alert.hallazgo_keywords:
         if kw in norm_s:
+            # Un hecho urgente del paciente no queda conservado si el modelo
+            # lo atribuye a un familiar o lo sustituye por una hipótesis.
+            for ocurrencia in re.finditer(re.escape(kw), norm_s):
+                if (not _sujeto_es_paciente(norm_s, ocurrencia.start(), ocurrencia.end())
+                        or _es_hipotetico(norm_s, ocurrencia.start(), ocurrencia.end())):
+                    return True
             for neg in _EXPLICIT_NEGATION_PREFIXES:
                 neg_pat = r"\b" + re.escape(neg.strip()) + r"\s+(?:[^\.\;\,]*\b)?" + re.escape(kw) + r"\b"
                 if re.search(neg_pat, norm_s):
@@ -431,14 +624,20 @@ def _is_sentence_contradictory(sentence: str, alert: AlertaUrgencia) -> bool:
                 return True
 
     # 2. Negacion de la urgencia / accion requerida
+    # «No requiere acudir a urgencias» (plural incluido) niega la urgencia igual que «no es urgente».
     for ak in ("urgente", "urgencia", "inmediat"):
         if ak in norm_s:
-            for neg in ("no es", "no reviste", "no requiere", "sin", "no hay", "descarta", "se descarta", "no amerita"):
-                neg_pat = r"\b" + re.escape(neg) + r"\s+(?:[^\.\;\,]*\b)?" + re.escape(ak) + r"\b"
+            for neg in ("no es", "no reviste", "no requiere", "no necesita", "no es necesario", "no es necesaria",
+                        "sin necesidad de", "sin", "no hay", "descarta", "se descarta", "no amerita"):
+                neg_pat = r"\b" + re.escape(neg) + r"\s+(?:[^\.\;\,]*\b)?" + re.escape(ak) + r"\w*\b"
                 if re.search(neg_pat, norm_s):
                     return True
 
     # 3. Plazo incompatible (control anual / rutinario en presencia de urgencia)
+    if re.search(r"\b(?:cuando sea posible|sin prisa|puede esperar)\b", norm_s):
+        return True
+    if alert.id == "fondo_embolo_retiniano" and re.search(r"\bambulatori\w*\b", norm_s):
+        return True
     if not _CONSULTATION_REASON_PREFIX_RE.search(norm_s):
         if _INCOMPATIBLE_TIMEFRAME_RE.search(norm_s):
             return True
@@ -450,8 +649,20 @@ def _is_sentence_contradictory(sentence: str, alert: AlertaUrgencia) -> bool:
         if alert.id in ("pupilas_alteradas", "horner_o_tercer_par_sospecha", "glaucoma_asimetrico"):
             if re.search(r"\b(?:pupilas?|reflejos?\s+pupilares?)\s+normal\w*\b", norm_s):
                 return True
-        if alert.id in ("fondo_periferico_riesgo", "papila_patologica", "fondo_oclusion_vascular_urgente", "sintomas_alarma_traccion_vitreoretina"):
-            if re.search(r"\b(?:fondo\s+de\s+ojo|retina|nervio\s+[oó]ptico|papila)\s+normal\w*\b", norm_s):
+        if alert.id == "amsler_alterado":
+            if re.search(r"\b(?:amsler|rejilla(?:\s+de\s+amsler)?)\s+(?:normal\w*|negativ\w*|sin\s+(?:alteracion\w*|"
+                         r"distorsion\w*))\b", norm_s):
+                return True
+        if alert.id == "campos_visuales_alterados":
+            if re.search(r"\b(?:campos?\s+visuales?|confrontacion(?:\s+de\s+campos?)?)\s+"
+                         r"(?:normal\w*|conservad\w*|completos?|sin\s+defectos?)\b", norm_s):
+                return True
+        if alert.id == "motilidad_alterada":
+            if re.search(r"\b(?:motilidad(?:\s+ocular)?|movimientos?\s+oculares?|versiones|ducciones)\s+"
+                         r"(?:oculares?\s+)?(?:normal\w*|completas?|conservad\w*|libres)\b", norm_s):
+                return True
+        if alert.id in ("fondo_periferico_riesgo", "papila_patologica", "fondo_oclusion_vascular_urgente", "sintomas_alarma_traccion_vitreoretina", "fondo_embolo_retiniano", "fondo_hipertensivo", "fondo_vascular_diabetico"):
+            if re.search(r"\b(?:fondo\s+de\s+ojo|retina|nervio\s+[oó]ptico|papila|iris)\s+normal\w*\b", norm_s):
                 return True
 
     # 5. Lateralidad contradictoria
@@ -482,18 +693,23 @@ def _ensure_emergency_preserved(text: str, payload: ImpresionClinicaRequest) -> 
     from app.correlaciones.texto import _keyword_matches, _normalize_text
 
     sentences = _split_sentences(text)
+    trusted_sentences = {
+        _normalize_text(s)
+        for alert in alerts for s in _split_sentences(alert.texto_determinista)
+    }
     clean_sentences: list[str] = []
     contradictions_purged_for: set[str] = set()
 
     for s in sentences:
         contradictory = False
         for alert in alerts:
-            if _is_sentence_contradictory(s, alert):
+            if _normalize_text(s) not in trusted_sentences and _is_sentence_contradictory(s, alert):
+                # El texto de la oracion es contenido clinico: solo a nivel DEBUG.
                 logger.warning(
-                    "Salvaguarda H01: Purgando oracion contradictoria/negada para alerta '%s': '%s'",
+                    "Salvaguarda H01: Purgando oracion contradictoria/negada para alerta '%s'",
                     alert.id,
-                    s,
                 )
+                logger.debug("Oracion purgada por H01 (%s): %s", alert.id, s)
                 contradictory = True
                 contradictions_purged_for.add(alert.id)
                 break
@@ -506,6 +722,11 @@ def _ensure_emergency_preserved(text: str, payload: ImpresionClinicaRequest) -> 
     missing_alerts_text: list[str] = []
 
     for alert in alerts:
+        # La presencia del aviso completo ya preserva hechos, lado y plazo,
+        # incluso en rutas dinamicas cuyo ID interno no aparece en el texto.
+        # No volver a insertarlo tras purgar una contradiccion independiente.
+        if _normalize_text(alert.texto_determinista) in candidate_norm:
+            continue
         # Si se purgo una contradiccion en el texto del LLM para esta alerta,
         # no confiamos en fragmentos ambiguos: inyectamos deterministamente la conducta obligatoria.
         if alert.id in contradictions_purged_for:
@@ -524,12 +745,43 @@ def _ensure_emergency_preserved(text: str, payload: ImpresionClinicaRequest) -> 
             for ak in alert.accion_keywords
         )
 
+        # Las rutas revisadas especifican un plazo. Una mencion
+        # generica de 'medica' u 'oftalmologia' no conserva esa conducta.
+        required = _normalize_text(alert.texto_determinista)
+        if alert.id in _ALERTAS_CON_PLAZO_EXPLICITO or any(
+                plazo in required for plazo in ("1 dia habil", "24 horas", "48 horas", "mismo dia", "inmediata")):
+            if "inmediata" in required:
+                has_action_affirmed = has_action_affirmed and "inmediat" in candidate_norm and "urgencias" in candidate_norm
+                if "evaluacion neurologica" in required:
+                    has_action_affirmed = has_action_affirmed and "neurolog" in candidate_norm
+                elif "neurovascular" in required:
+                    has_action_affirmed = has_action_affirmed and ("neurovascular" in candidate_norm or "vascular cerebral" in candidate_norm)
+            elif "mismo dia" in required:
+                # «Hoy vino a renovar su receta» fecha la consulta, no la
+                # atención indicada. El plazo debe acompañar una acción.
+                acciones = r"(?:valoracion|evaluacion|atencion|derivacion|acudir|consultar|enviar|referir|urgencias)"
+                plazo_presente = any(
+                    re.search(acciones, s) and (
+                        "mismo dia" in s
+                        or re.search(r"\b" + acciones + r"\b(?:\s+\w+){0,5}\s+hoy\b", s)
+                        or re.search(r"\bhoy\s+(?:(?:mismo|requiere|necesita|se indica)\s+)?" + acciones, s)
+                    ) for s in (_normalize_text(s) for s in _split_sentences(candidate_text))
+                )
+                has_action_affirmed = has_action_affirmed and plazo_presente
+            elif "1 dia habil" in required:
+                has_action_affirmed = has_action_affirmed and bool(re.search(r"\b(?:1|un) dia habil\b", candidate_norm))
+            elif "24 horas" in required:
+                has_action_affirmed = has_action_affirmed and bool(re.search(r"\b24\s*(?:horas|h)\b", candidate_norm))
+            elif "48 horas" in required:
+                has_action_affirmed = has_action_affirmed and bool(re.search(r"\b48\s*(?:horas|h)\b", candidate_norm))
+        else:
+            has_action_affirmed = has_action_affirmed and bool(re.search(r"\b(?:urgente\w*|urgencia\w*|inmediat\w*)\b", candidate_norm))
+
         # Comprobar lateralidad coherente si aplica
         correct_laterality = True
         if alert.ojo in ("OD", "OI"):
             eye_found = _extract_finding_laterality(candidate_text, alert.hallazgo_keywords)
-            if eye_found and eye_found != "AO" and eye_found != alert.ojo:
-                correct_laterality = False
+            correct_laterality = eye_found == alert.ojo
 
         if not (has_finding_affirmed and has_action_affirmed and correct_laterality):
             logger.warning(
@@ -606,7 +858,17 @@ async def run_inference(
             "clinicos de texto libre."
         )
 
-    raw_text, _ = await ollama_provider.call(system_prompt, user_prompt, client)
+    raw_text, data = await ollama_provider.call(system_prompt, user_prompt, client)
+    if _terminada_por_longitud(data):
+        # Un texto cortado por el limite de tokens no es una impresion terminada: se reintenta
+        # una vez con mas presupuesto de salida (sin salir de num_ctx) y, si persiste, se rechaza.
+        mayor = min(int(settings.ollama_num_predict * 1.5), ctx_budget - est_input)
+        if mayor > settings.ollama_num_predict:
+            logger.warning("Generacion truncada por longitud; reintento con num_predict=%d", mayor)
+            raw_text, data = await ollama_provider.call(system_prompt, user_prompt, client, num_predict=mayor)
+        if _terminada_por_longitud(data):
+            logger.error("Generacion truncada por longitud tras el reintento; se rechaza el resultado")
+            raise GeneracionIncompletaError("La generacion termino por limite de longitud y esta incompleta.")
 
     try:
         text = _postprocess(raw_text)
@@ -618,6 +880,24 @@ async def run_inference(
         raise
 
     text = clean_impresion(text)  # ← aquí, después de postprocess y antes de follow-up
+    text = _purgar_no_sustentado(text, user_prompt)
     text = _ensure_emergency_preserved(text, payload)
 
-    return _ensure_follow_up_last(text, payload.clinica.recomendacion_seguimiento, payload=payload)
+    text = _ensure_follow_up_last(text, payload.clinica.recomendacion_seguimiento, payload=payload)
+    if not text.strip():
+        # La depuracion puede eliminar todo («No se dispone de datos clinicos.»): un exito HTTP con
+        # impresion vacia no es un resultado util y no debe guardarse en cache.
+        raise GeneracionIncompletaError("La impresion clinica quedo vacia tras la depuracion.")
+    return text
+
+
+def respaldo_determinista(payload: ImpresionClinicaRequest) -> str | None:
+    """Impresion minima con los avisos urgentes deterministas y el seguimiento compatible.
+
+    Solo existe cuando hay una urgencia activa: sin ella no hay contenido clinico que entregar
+    sin el modelo. Se identifica como determinista en la respuesta HTTP y nunca se cachea."""
+    if not _get_active_emergency_alerts(payload):
+        return None
+    texto = _ensure_emergency_preserved("", payload)
+    texto = _ensure_follow_up_last(texto, payload.clinica.recomendacion_seguimiento, payload=payload)
+    return texto if texto.strip() else None

@@ -196,10 +196,13 @@ def test_h01_emergency_suppresses_routine_follow_up():
 
 
 def test_h02_dpar_in_pupilas_alteradas_preserved():
-    """H02: El DPAR aislado en pupilas_alteradas debe preservarse y purgar 'Examen normal.'."""
+    """H02: El DPAR nuevo en pupilas_alteradas debe preservarse y purgar 'Examen normal.'.
+
+    #13: un DPAR sin fecha de inicio ya no es urgente por si solo; la urgencia
+    exige inicio reciente o sintomas agudos documentados."""
     payload = ImpresionClinicaRequest(
         receta_id="test-h02-dpar",
-        clinica={"reflejos_pupilares": "DPAR positivo en OD"},
+        clinica={"reflejos_pupilares": "DPAR positivo en OD de inicio hoy"},
     )
     text = "Examen normal."
     result = _ensure_emergency_preserved(text, payload)
@@ -226,7 +229,7 @@ def test_h02_multiple_emergencies_combined():
         receta_id="test-h02-multi",
         clinica={
             "fondo_de_ojo": "desgarro retiniano en herradura",
-            "reflejos_pupilares": "DPAR positivo",
+            "reflejos_pupilares": "DPAR positivo de inicio hoy",
         },
     )
     text = "Paciente acude a revision. Examen normal."
@@ -242,9 +245,9 @@ def test_h02_dpar_already_preserved():
     """H02: Si DPAR ya fue redactado con urgencia adecuada, se preserva sin inyeccion duplicada."""
     payload = ImpresionClinicaRequest(
         receta_id="test-h02-dpar-ok",
-        clinica={"reflejos_pupilares": "DPAR positivo"},
+        clinica={"reflejos_pupilares": "DPAR positivo de inicio hoy"},
     )
-    text = "Se identifica defecto pupilar aferente relativo que amerita evaluacion neurooftalmologica urgente."
+    text = "Se identifica defecto pupilar aferente relativo que amerita evaluacion oftalmologica urgente."
     result = _ensure_emergency_preserved(text, payload)
     assert result == text
 

@@ -1,0 +1,98 @@
+{
+  "numero": 10,
+  "nombre": "fondo_hipertensivo",
+  "veredicto": "PARCIAL",
+  "requisitos": [
+    [
+      "Resultado porhallazgo/fuente/ojo/actualidad/nivel; memoizacion; no unir ojos",
+      "AUDITORIA_CORRELACIONES.md:2233",
+      "app/correlaciones/fondo_de_ojo.py:1793-1954",
+      "Implementado resultado y textos con ojo; falta fuente/sujeto porhecho"
+    ],
+    [
+      "Nucleo arteriolar/AV/pared/crucepatologico/GunnSalusBonnet vascular; eliminar crucesnormales,tortuosidad,etiqueta sinmorfologia,historiaresuelta/plan",
+      "AUDITORIA_CORRELACIONES.md:2234-2235",
+      "app/correlaciones/fondo_de_ojo.py:1655-1700,1847-1929",
+      "Implementado en ejemplos previstos; negacionOD F10-02 falla"
+    ],
+    [
+      "Trasladarhemorragias/algodonosos11 y deduplicar misma lesion3 sin perder signosindependientes",
+      "AUDITORIA_CORRELACIONES.md:2236",
+      "app/correlaciones/fondo_de_ojo.py:2080;1793",
+      "Ruta11 conservada y no atribucion HTA"
+    ],
+    [
+      "Texto dinamico neutralPA,no tratamiento/controlinferido; levesnoexplicanAV",
+      "AUDITORIA_CORRELACIONES.md:2237,2276",
+      "app/correlaciones/fondo_de_ojo.py:1947; app/correlaciones/contexto.py",
+      "Cumple neutralidad"
+    ],
+    [
+      "Adulto>=18,PAactual propia/contextomedicionunidades,>=180 OR>=120 +hemorragia/edema actuales; nohistoria/familiar/hipotesis/negacion/contradictoria; no seguimiento",
+      "AUDITORIA_CORRELACIONES.md:2238;C10adicionales:2267",
+      "app/correlaciones/fondo_de_ojo.py:1735-1790,1806-1841",
+      "PARCIAL: cambio de clausula y pierde sujeto familiarPA F10-01"
+    ],
+    [
+      "Alarma ocularindependiente sinPA; H01/plazo determinista sinnormalidad contralateralveto",
+      "AUDITORIA_CORRELACIONES.md:2239-2240",
+      "app/correlaciones/fondo_de_ojo.py:335,740;app/inference.py:253,470",
+      "Cumple plazos positivos F10-03/04, requiere negacion/sujeto fiables"
+    ]
+  ],
+  "casos": [
+    {
+      "entrada": {
+        "fondo": "Hemorragias retinianas OD.",
+        "edad": 55,
+        "motivo": "Mi padre tiene diabetes y PA medida hoy de 210/125 mmHg."
+      },
+      "esperado": {
+        "activa": false,
+        "h01": false
+      },
+      "motivo": "PA materna/paterna se hereda al paciente tras conector y genera urgencia/H01."
+    },
+    {
+      "entrada": {
+        "fondo": "No se observa en OD estrechamiento arteriolar."
+      },
+      "esperado": {
+        "activa": false,
+        "h01": false
+      },
+      "motivo": "Negacion con OD interpuesto activa estrechamiento arteriolar."
+    },
+    {
+      "entrada": {
+        "fondo": "Hemorragias retinianas OD.",
+        "edad": 55,
+        "motivo": "PA medida hoy 190/100 mmHg."
+      },
+      "esperado": {
+        "activa": true,
+        "urgente": true,
+        "h01": true,
+        "contiene": [
+          "190/100",
+          "mismo dia"
+        ]
+      }
+    },
+    {
+      "entrada": {
+        "fondo": "Hemorragias retinianas OD.",
+        "edad": 55,
+        "motivo": "PA medida hoy 170/125 mmHg."
+      },
+      "esperado": {
+        "activa": true,
+        "urgente": true,
+        "h01": true
+      }
+    }
+  ],
+  "cobertura": "Corrida agrupada real de 13 archivos de aceptacion/integracion: 1496 aprobadas, 0 fallos, 0 errores, 0 omitidas; JUnit suite-existente.xml. Comando: .venv/Scripts/python.exe -m pytest tests/test_auditoria_correlaciones.py tests/test_revalidacion_ajustes.py tests/test_revalidacion_papila_macula.py tests/test_revalidacion_sintomas_oclusiones.py tests/test_ajuste_c12.py tests/test_ajuste_c13.py tests/test_ajuste_c14.py tests/test_ajuste_c15.py tests/test_ajuste_c16.py tests/test_ajuste_c17.py tests/test_ajuste_c18.py tests/test_ajuste_c19.py tests/test_correlaciones.py -q -p no:cacheprovider --junitxml=auditoria/conformidad-2026-09-29/fondo/suite-existente.xml",
+  "conclusion": "F10-01 comprueba si se transfiere PA del padre al paciente al separar tras y: el resultado y hashes constan en evidencia. F10-02 reproduce alcance incorrecto de negacion con ojo interpuesto. F10-03/04 comprueban OR real de umbrales y plazos.",
+  "recomendaciones": "Conservar sujeto al separar clausulas coordinadas de mediciones de PA; cambios del objeto diabetes aPA no acreditan cambio de persona. Reparar negacionconOD. Revalidar las pruebas obligatorias: historia/familiar/hipotesis/no medido/contradiccion/edad menor/OR/unidades/no seguimiento y salvaguardaH01sinatribuirHTA."
+}

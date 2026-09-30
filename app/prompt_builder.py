@@ -274,9 +274,9 @@ def build_user_prompt(req: ImpresionClinicaRequest) -> str:
     akr_comparison = _format_akr_comparison(req)
     if akr_comparison:
         sections.append(
-            "Correlacion AKR/queratometria vs refraccion final "
-            "(la diferencia indica el ajuste del examen subjetivo; la queratometria "
-            "describe curvatura y astigmatismo corneal):\n"
+            "Datos AKR/queratometria y refraccion final "
+            "(mediciones y prescripcion registradas; su diferencia no demuestra un ajuste, "
+            "una causa ni identidad temporal):\n"
             f"{akr_comparison}"
         )
 
@@ -446,11 +446,14 @@ def _clean_sentence(s: str) -> str | None:
         logger.info("Guardarrail: meta-referencia a correlaciones eliminada de la oración")
     if not stripped:
         return None
+    # El texto de las oraciones descartadas es contenido clinico: solo a nivel DEBUG.
     if _ABSENCE_SENTENCE_RE.search(stripped):
-        logger.info("Guardarrail: descartada oración de meta-ausencia: %.80s", stripped)
+        logger.info("Guardarrail: descartada oración de meta-ausencia")
+        logger.debug("Oración de meta-ausencia descartada: %.80s", stripped)
         return None
     if _PLACEHOLDER_RE.search(stripped):
-        logger.warning("Guardarrail: descartada oración con placeholder: %.80s", stripped)
+        logger.warning("Guardarrail: descartada oración con placeholder")
+        logger.debug("Oración con placeholder descartada: %.80s", stripped)
         return None
     # Si el meta-prefijo iba al inicio, el resto quedó en minúscula: recapitalizar.
     if meta_al_inicio:
@@ -458,7 +461,8 @@ def _clean_sentence(s: str) -> str | None:
     # Solo se conservan oraciones que empiezan con mayúscula: descarta fragmentos
     # colgados en minúscula (comportamiento original).
     if not re.match(r'^[A-ZÁÉÍÓÚÜÑ¿¡"]', stripped):
-        logger.info("Guardarrail: descartado fragmento sin mayúscula inicial: %.80s", stripped)
+        logger.info("Guardarrail: descartado fragmento sin mayúscula inicial")
+        logger.debug("Fragmento sin mayúscula descartado: %.80s", stripped)
         return None
     return stripped
 

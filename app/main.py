@@ -15,7 +15,12 @@ from app.cache import inference_cache
 from app.clinical_data import has_clinical_data
 from app.config import settings
 from app.correlaciones import nombres_correlaciones_activas
-from app.inference import CONTEXT_OVERFLOW_PREFIX, run_inference
+from app.inference import (
+    CONTEXT_OVERFLOW_PREFIX,
+    GeneracionIncompletaError,
+    respaldo_determinista,
+    run_inference,
+)
 from app.observability import request_id_var
 from app.schemas import ImpresionClinicaRequest
 
@@ -175,7 +180,8 @@ def verify_api_key(
             status_code=401,
             detail="Header Authorization requerido: Bearer <token>",
         )
-    if not hmac.compare_digest(credentials.credentials, settings.api_key):
+    # compare_digest sobre str lanza TypeError con caracteres no ASCII (Bearer «ñ» -> 500): se compara en bytes.
+    if not hmac.compare_digest(credentials.credentials.encode("utf-8"), settings.api_key.encode("utf-8")):
         logger.warning(
             "Auth rechazada (401): token invalido (longitud recibida: %d)",
             len(credentials.credentials),
@@ -275,6 +281,23 @@ async def crear_impresion_clinica(
                     status_code=504,
                     detail="Ollama no respondio a tiempo. Intente de nuevo.",
                 )
+            except GeneracionIncompletaError as exc:
+                # Cortada por longitud o vacia tras la depuracion: nunca es un exito silencioso ni se cachea.
+                respaldo = respaldo_determinista(req)
+                if respaldo is not None:
+                    logger.warning(
+                        "Generacion incompleta [%s]: se entrega el respaldo determinista de la urgencia activa", sid)
+                    return {
+                        "status": "ok",
+                        "impresion_clinica": respaldo,
+                        "origen": "determinista",
+                        "correlaciones_activadas": correlaciones,
+                    }
+                logger.error("Generacion incompleta [%s] -> 502: %s", sid, exc)
+                raise HTTPException(
+                    status_code=502,
+                    detail="El modelo no produjo una impresion clinica completa. Intente de nuevo.",
+                )
             except ValueError as exc:
                 detail = str(exc)
                 if detail.startswith(CONTEXT_OVERFLOW_PREFIX):
@@ -345,12 +368,15 @@ async def health(
         except Exception:
             pass
 
-    is_ready = (ollama_status == "ok" and model_available)
+    # Sin API_KEY el POST clinico responde 500: el servicio no esta listo aunque Ollama lo este.
+    api_key_configurada = bool(settings.api_key)
+    is_ready = (ollama_status == "ok" and model_available and api_key_configurada)
     if not is_ready:
         response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
 
     return {
         "status": "ok" if is_ready else "degraded",
+        "api_key_configurada": api_key_configurada,
         "ollama": ollama_status,
         "model": settings.ollama_model,
         "model_available": model_available,

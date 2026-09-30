@@ -15,13 +15,17 @@ evaluacion viven en registry.py.
 from app.correlaciones.base import Correlacion
 from app.correlaciones.registry import (
     CORRELACIONES,
+    RECORDATORIOS_TECNICOS,
     evaluar_correlaciones,
+    evaluar_recordatorios_tecnicos,
     nombres_correlaciones_activas,
 )
 
 __all__ = [
     "Correlacion",
     "CORRELACIONES",
+    "RECORDATORIOS_TECNICOS",
     "evaluar_correlaciones",
+    "evaluar_recordatorios_tecnicos",
     "nombres_correlaciones_activas",
 ]

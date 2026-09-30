@@ -23,6 +23,8 @@ def has_clinical_data(req: ImpresionClinicaRequest) -> bool:
     """Check that at least some refraction or clinical data is present."""
     return (
         _has_any_value(req.refraccion)
-        or _has_any_value(req.akr)
+        # Metadatos de captura (ticket, fecha, índice, VD) no son un hallazgo.
+        or _has_any_value(req.akr.od)
+        or _has_any_value(req.akr.oi)
         or _has_any_value(req.clinica)
     )

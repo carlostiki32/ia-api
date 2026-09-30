@@ -1,0 +1,108 @@
+{
+  "numero": 9,
+  "nombre": "fondo_macular_otros",
+  "veredicto": "PARCIAL",
+  "requisitos": [
+    [
+      "P edema/quistes/agujerocompleto/CSCjoven noalta miopia/desgarroEPR; R MER/TVM/lamelar/esquisis/miopia caracterizada",
+      "AUDITORIA_CORRELACIONES.md:2116-2141",
+      "app/correlaciones/fondo_de_ojo.py:1519-1546,1573-1620",
+      "Implementadaslistas principales; pigmentomacularaislado de8 noentra F09-03"
+    ],
+    [
+      "Excluirtigroide/peripapilar/edemaquistegenerico y routings8edad/EE/drusaslocal",
+      "AUDITORIA_CORRELACIONES.md:2124-2128,2142-2144",
+      "app/correlaciones/fondo_de_ojo.py:1587-1615;1321",
+      "Implementadosumbrales concomponentesconocidos, noesfera solaEE"
+    ],
+    [
+      "Neurosensorial con retina/periferia/regmatogeno/desgarro/bolsa/cuadrante ->1",
+      "AUDITORIA_CORRELACIONES.md:2145-2146",
+      "app/correlaciones/fondo_de_ojo.py:430,1584",
+      "NO CUMPLE: todasrutascallan F09-02"
+    ],
+    [
+      "TextosPpreferente/Rprogramada,Pprevalece; no H01",
+      "AUDITORIA_CORRELACIONES.md:2147-2153",
+      "app/correlaciones/fondo_de_ojo.py:1627-1649",
+      "Implementado"
+    ],
+    [
+      "Supresion duplicidad3/8, preservarotraslesiones/ojos segun11posterior",
+      "AUDITORIA_CORRELACIONES.md:2154-2156; posterior11:2321",
+      "app/correlaciones/fondo_de_ojo.py:1549,1572",
+      "Control contralateral F09-04 correcto"
+    ],
+    [
+      "EdemaDM11coexistente sinatribuirDM; listascausaAV ykeywordswholeword",
+      "AUDITORIA_CORRELACIONES.md:2157-2162; posterior11:2314-2323;56/57:3916,3932",
+      "app/correlaciones/fondo_de_ojo.py:2080;app/correlaciones/contexto.py;texto.py",
+      "Ver11, noinferirDMdesdeEMCS/EMD"
+    ],
+    [
+      "Negacion/sospecha actual, no planparaotraentidadborresignopresente",
+      "AUDITORIA_CORRELACIONES.md:234-255;T10",
+      "app/correlaciones/fondo_de_ojo.py:1327,1576",
+      "NO CUMPLE F09-01: edema afirmado eliminado por plan descartar"
+    ],
+    [
+      "Revision posterior56/57: no usar keywords de causa organica como prueba causal completa ni veto de AV; preservar ojos/hechos/prioridad",
+      "AUDITORIA_CORRELACIONES.md:3916,3932",
+      "app/correlaciones/contexto.py:139,157,174",
+      "Los selectores actuales de AV no contienen filtro organico; condiciones originales de causalidad de este bloque se leen bajo esa revision posterior."
+    ]
+  ],
+  "casos": [
+    {
+      "entrada": {
+        "fondo": "Macula con edema OD para descartar edema macular."
+      },
+      "esperado": {
+        "activa": true,
+        "urgente": false,
+        "contiene": [
+          "preferente"
+        ]
+      },
+      "motivo": "Plan para descartar edema macular elimina edema afirmado."
+    },
+    {
+      "entrada": {
+        "fondo": "Desprendimiento neurosensorial de retina periferica OD.",
+        "edad": 40
+      },
+      "esperado": {
+        "activa": false,
+        "activas": [
+          "fondo_periferico_riesgo"
+        ]
+      },
+      "motivo": "Neurosensorial periferico queda sin ruta1/8/9."
+    },
+    {
+      "entrada": {
+        "fondo": "Cambios pigmentarios maculares OD."
+      },
+      "esperado": {
+        "activa": true,
+        "urgente": false
+      },
+      "motivo": "Pigmento macular aislado no llega a #9 desde especificacion8."
+    },
+    {
+      "entrada": {
+        "fondo": "Membrana epirretiniana OI; OVCR OD."
+      },
+      "esperado": {
+        "activa": true,
+        "urgente": false,
+        "activas": [
+          "fondo_oclusion_vascular_urgente"
+        ]
+      }
+    }
+  ],
+  "cobertura": "Corrida agrupada real de 13 archivos de aceptacion/integracion: 1496 aprobadas, 0 fallos, 0 errores, 0 omitidas; JUnit suite-existente.xml. Comando: .venv/Scripts/python.exe -m pytest tests/test_auditoria_correlaciones.py tests/test_revalidacion_ajustes.py tests/test_revalidacion_papila_macula.py tests/test_revalidacion_sintomas_oclusiones.py tests/test_ajuste_c12.py tests/test_ajuste_c13.py tests/test_ajuste_c14.py tests/test_ajuste_c15.py tests/test_ajuste_c16.py tests/test_ajuste_c17.py tests/test_ajuste_c18.py tests/test_ajuste_c19.py tests/test_correlaciones.py -q -p no:cacheprovider --junitxml=auditoria/conformidad-2026-09-29/fondo/suite-existente.xml",
+  "conclusion": "Tres desvios: F09-01 palabra descartar borra edema actual; F09-02 neurosensorialperiferico excluido1y9y8 pese a ruta1exigida; F09-03 pigmentomacularaislado tiene receptor9exigido8 pero no cobertura. F09-04 no suprime MER OI por oclusionOD, mejora correcta frente veto originalglobal.",
+  "recomendaciones": "Asignar certeza/plan por ocurrencia, incorporar receptordepigmentoaislado con texto neutral sinatribucion etiologica, completar ruta1 para neurosensorial periferico. Revalidar retina vs macula, ojos, suspect/negativo y deduplicacion con3/8/11 sinperder independientes."
+}

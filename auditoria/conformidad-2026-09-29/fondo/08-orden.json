@@ -1,0 +1,107 @@
+{
+  "numero": 8,
+  "nombre": "fondo_macular_dmae",
+  "veredicto": "PARCIAL",
+  "requisitos": [
+    [
+      "A neovascular/hemorragico cualquieredad; exudativo conditional edad/drusas/EE mismoojo y rutas9",
+      "AUDITORIA_CORRELACIONES.md:1963-1972",
+      "app/correlaciones/fondo_de_ojo.py:1273,1415-1446",
+      "Parcial: sospechaMNV se veta completamente F08-01"
+    ],
+    [
+      "B drusas no pequeñas benignas/papilares,pigmento con drusas maculares,atrofia geografica; excluirMEV/epiteliopatia/contextomiopico B",
+      "AUDITORIA_CORRELACIONES.md:1974-1990",
+      "app/correlaciones/fondo_de_ojo.py:1385-1413",
+      "Implementado filtros; pigmento aislado deberecibir9(verinforme9)"
+    ],
+    [
+      "B-TRATADA no nueva actividad, C<50, BedadNone/>=50; ordenA>A2>tratada>C>B",
+      "AUDITORIA_CORRELACIONES.md:1963,1970-1972",
+      "app/correlaciones/fondo_de_ojo.py:1444-1502",
+      "Implementado; conservar actividad nueva expresa"
+    ],
+    [
+      "A2 todas percepciones/ojos/certeza/fiabilidad/tiempo; no veto global estable; no inventar inicio",
+      "AUDITORIA_CORRELACIONES.md:2702-2708 (revision16 posterior)",
+      "app/correlaciones/fondo_de_ojo.py:1334-1372,1466-1478",
+      "Parcial: empeoramiento de metamorfopsia estable no escala8 F08-02"
+    ],
+    [
+      "Textos1dia habil A/A2; Bseguimiento/estadificacioncondicionalsuplementacion; ningunAmslernormalvetaA",
+      "AUDITORIA_CORRELACIONES.md:1992-2004;2702-2708",
+      "app/correlaciones/fondo_de_ojo.py:1458-1502",
+      "Plazos A/A2 implementados, resultado8programado en empeoramiento mientras16siurgente"
+    ],
+    [
+      "Deduplicar16 solo si conserva todoshechos/ojos/incertidumbre/prioridad; A2OD no borra micropsiaOI",
+      "AUDITORIA_CORRELACIONES.md:2706-2708 (sustituye2003)",
+      "app/correlaciones/fondo_de_ojo.py:1469-1478; app/correlaciones/campos_amsler.py:_cond_amsler_alterado",
+      "A2fusiona sintomas; controles especificos C16actuales en corrida final"
+    ],
+    [
+      "CausaAV no drusas/pigmento solos, neovasretiniano11 distinguido, H01prefijo A/A2",
+      "AUDITORIA_CORRELACIONES.md:2005-2012; posterior56/57:3916,3932",
+      "app/correlaciones/contexto.py; app/correlaciones/fondo_de_ojo.py:2080; app/inference.py:233,470",
+      "Implementadasrutas; nuevas fallas afectan decision urgente"
+    ],
+    [
+      "Revision posterior56/57: no usar keywords de causa organica como prueba causal completa ni veto de AV; preservar ojos/hechos/prioridad",
+      "AUDITORIA_CORRELACIONES.md:3916,3932",
+      "app/correlaciones/contexto.py:139,157,174",
+      "Los selectores actuales de AV no contienen filtro organico; condiciones originales de causalidad de este bloque se leen bajo esa revision posterior."
+    ]
+  ],
+  "casos": [
+    {
+      "entrada": {
+        "fondo": "Posible membrana neovascular coroidea OD.",
+        "edad": 70
+      },
+      "esperado": {
+        "activa": true,
+        "urgente": true,
+        "h01": true,
+        "contiene": [
+          "posible",
+          "1 dia habil"
+        ]
+      },
+      "motivo": "Posible membrana neovascular se pierde, sin conservar sospecha/plazo."
+    },
+    {
+      "entrada": {
+        "fondo": "Drusas blandas maculares OD.",
+        "edad": 70,
+        "amsler": "Metamorfopsia estable OD, pero empeora desde hoy."
+      },
+      "esperado": {
+        "activa": true,
+        "urgente": true,
+        "h01": true,
+        "contiene": [
+          "1 dia habil"
+        ]
+      },
+      "motivo": "Estabilidad previa con empeoramiento hoy deja #8 programada aunque #16 urgente."
+    },
+    {
+      "entrada": {
+        "fondo": "Drusas blandas maculares OD.",
+        "edad": 70,
+        "amsler": "Metamorfopsia OD"
+      },
+      "esperado": {
+        "activa": true,
+        "urgente": false,
+        "h01": false,
+        "activas": [
+          "amsler_alterado"
+        ]
+      }
+    }
+  ],
+  "cobertura": "Corrida agrupada real de 13 archivos de aceptacion/integracion: 1496 aprobadas, 0 fallos, 0 errores, 0 omitidas; JUnit suite-existente.xml. Comando: .venv/Scripts/python.exe -m pytest tests/test_auditoria_correlaciones.py tests/test_revalidacion_ajustes.py tests/test_revalidacion_papila_macula.py tests/test_revalidacion_sintomas_oclusiones.py tests/test_ajuste_c12.py tests/test_ajuste_c13.py tests/test_ajuste_c14.py tests/test_ajuste_c15.py tests/test_ajuste_c16.py tests/test_ajuste_c17.py tests/test_ajuste_c18.py tests/test_ajuste_c19.py tests/test_correlaciones.py -q -p no:cacheprovider --junitxml=auditoria/conformidad-2026-09-29/fondo/suite-existente.xml",
+  "conclusion": "F08-01 demuestra sospecha MNV borrada, pese a que orden8fundamenta aviso urgente ante sospecha activa. F08-02 conservacion de estado antiguo estable impide reconocer empeoramiento actual en8;16si lo reconoce, por lo que pipeline termina con8programada y16urgente, sinplazode1diahabil. F08-03 falta de tiempo se conserva sin urgencia inventada, conforme a revision16posterior.",
+  "recomendaciones": "Mantener sospecha como sospecha para evaluacion, no vetarla ni confirmar lesion. Compartir con16 el extractor de cronologia por ocurrencia/deictica y prioridadtras cambio expreso. Distinguir estable antes de empeoramiento de estable actualmente. Revalidar plazos A2 y deduplicacion con ojos contrarios."
+}

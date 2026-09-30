@@ -67,6 +67,9 @@ class Settings(BaseSettings):
     cache_ttl_seconds: int = 86400
     cache_max_size: int = 500
 
+    # AKR vs Rx
+    akr_max_horas_comparacion: int = 24
+
     # Health check
     health_check_timeout: float = 5.0
 
@@ -77,6 +80,7 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+AKR_MAX_HORAS_COMPARACION = settings.akr_max_horas_comparacion
 
 # Logging: consola + logs/inference.log (rotatorio) + logs/errors.log (WARNING+).
 # Cada registro incluye el request-id ([rid]) que asigna el middleware de main.py.

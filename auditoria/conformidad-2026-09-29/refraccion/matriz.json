@@ -1,0 +1,2228 @@
+{
+  "24": {
+    "veredicto": "PARCIAL",
+    "resumen": "Reformulación conforme en el dropdown; el schema puede omitir alta miopía registrada con cilindro negativo del rango BD.",
+    "requisitos": [
+      {
+        "orden": "D1: EE≤−6 suficiente, cifra/ojo y valoración retinal central/periférica; sin diagnóstico nuevo",
+        "codigo": "refractivas.py:33–59; refraccion_utils.py:159–167",
+        "estado": "CUMPLE local; PARCIAL C24-A05 por cilindro BD perdido",
+        "cobertura": "test_ajuste_c24.py:15; C24-01–04,09"
+      },
+      {
+        "orden": "D2: eliminar salto−8 y riesgo global",
+        "codigo": "refractivas.py:45–57",
+        "estado": "CUMPLE: valores por ojo, sin categoría−8",
+        "cobertura": "C24-05–08; test_ajuste_c24.py:15"
+      },
+      {
+        "orden": "D3: retirar mecanismo axial/corneal; K independiente; no posponer fondo por topografía",
+        "codigo": "refractivas.py:53–59",
+        "estado": "CUMPLE: recomendación retinal independiente",
+        "cobertura": "C24-13–15,20"
+      },
+      {
+        "orden": "D4: meridiano y media no se llaman Kmax",
+        "codigo": "queratometria.py:281–304",
+        "estado": "CUMPLE: fuentes reales; _k_max es solo alias interno",
+        "cobertura": "test_ajuste_c24.py:45"
+      },
+      {
+        "orden": "D5: null≠0, esfera≤−6 sola sin EE exacto; verificar provisional",
+        "codigo": "refractivas.py:51–52; refraccion_utils.py:159–167; queratometria.py:44–71",
+        "estado": "CUMPLE nulos; PARCIAL descarte de C explícito BD",
+        "cobertura": "test_ajuste_c24.py:40; C24-10–12,23"
+      },
+      {
+        "orden": "D6: seguimiento/lesión conocidos y fondo normal conservados; silencio trasLASIK no certifica riesgo bajo",
+        "codigo": "refractivas.py:56,59; queratometria.py:44–71",
+        "estado": "CUMPLE contexto literal, alcance Rx final",
+        "cobertura": "C24-21–27,32"
+      },
+      {
+        "orden": "D7: C24-01–32 lateralidad/nulos/Kmedia/controles/H01; no urgencia por −6/−8 aislados",
+        "codigo": "registry.py:156; inference.py:470",
+        "estado": "CUMPLE histórico; dominio BD no cubierto",
+        "cobertura": "test_ajuste_c24.py:15,40,45; evidencia32casos"
+      }
+    ],
+    "adicionales": [
+      {
+        "payload": {
+          "refraccion": {
+            "od": {
+              "esfera": -5.75,
+              "cilindro": -0.5
+            }
+          }
+        },
+        "esperado": {
+          "activo": true,
+          "h01": false
+        }
+      },
+      {
+        "payload": {
+          "refraccion": {
+            "od": {
+              "esfera": -6,
+              "cilindro": null
+            }
+          }
+        },
+        "esperado": {
+          "activo": true
+        }
+      },
+      {
+        "payload": {
+          "refraccion": {
+            "od": {
+              "esfera": null,
+              "cilindro": -8
+            }
+          }
+        },
+        "esperado": {
+          "activo": false
+        }
+      },
+      {
+        "payload": {
+          "refraccion": {
+            "oi": {
+              "esfera": -8,
+              "cilindro": 0
+            }
+          },
+          "akr": {
+            "od": {
+              "k2_d": 50
+            }
+          }
+        },
+        "esperado": {
+          "activo": true,
+          "h01": false
+        }
+      },
+      {
+        "payload": {
+          "refraccion": {
+            "od": {
+              "esfera": 0,
+              "cilindro": -12
+            }
+          }
+        },
+        "esperado": {
+          "activo": true,
+          "cilindro_rx": -12
+        }
+      }
+    ],
+    "defectos": [
+      "Dependencia transversal: schemas.py:43,146–148 descarta cilindro Rx con magnitud >8, aunque el contrato §1.2 admite rango BD hasta30 D. Los casos C=−12 pertenecen al dominio contractual ampliado; NO son valores del dropdown actual. Conservar valores válidos del dominio declarado y añadir aceptación API por componente/EE/meridiano afectado. No recomendar un cambio de prescripción; corregir la pérdida de datos en la recepción."
+    ],
+    "limites": [
+      "Conformidad técnica contra órdenes oficiales; no certificación clínica universal ni validación de Qwen real.",
+      "Los hashes identifican el árbol leído. Las salidas históricas no se aceptan como oráculo: se reproducen los problemas que motivaron las órdenes."
+    ]
+  },
+  "25": {
+    "veredicto": "PARCIAL",
+    "resumen": "Acomodación automática retirada y C25-30 conectado aH01; falta conservar cilindros del dominio BD.",
+    "requisitos": [
+      {
+        "orden": "D1: EE≥+5 completo por ojo, quitar esfera≥+3 redundante; +5 operativo",
+        "codigo": "refractivas.py:62–86",
+        "estado": "CUMPLE local; PARCIAL C25-A05 S12/C−12 EE6 desaparece",
+        "cobertura": "test_ajuste_c25.py:6"
+      },
+      {
+        "orden": "D2: no demanda acomodativa; pediatría AV/alineación con corrección, sin desviación inventada",
+        "codigo": "refractivas.py:83–90",
+        "estado": "CUMPLE",
+        "cobertura": "test_ajuste_c25.py:6,18; C25-23–26"
+      },
+      {
+        "orden": "D3: edad nula≠adulto y40 no frontera angular; evaluar sin confirmar anatomía",
+        "codigo": "refractivas.py:85–90",
+        "estado": "CUMPLE: indicación angular independiente de edad",
+        "cobertura": "C25-05–10; test_ajuste_c25.py:18"
+      },
+      {
+        "orden": "D4: afaquia/pseudofaquia/examen por ojo; cámara profunda no sustituye gonioscopía",
+        "codigo": "queratometria.py:44–71; refractivas.py:85,91",
+        "estado": "CUMPLE: datos literales sin anatomía inferida",
+        "cobertura": "test_ajuste_c25.py:24; C25-27–29,31–32"
+      },
+      {
+        "orden": "D5: no causa axial ni astigmatismo no documentado; K con ojo/fuente real",
+        "codigo": "refractivas.py:77–91; queratometria.py:281–304",
+        "estado": "CUMPLE K independiente por sus rutas",
+        "cobertura": "C25-15–22,35"
+      },
+      {
+        "orden": "D6: Cnull noEE inventado; medición provisional verificar antes de clasificar",
+        "codigo": "refraccion_utils.py:159–167; queratometria.py:44–71",
+        "estado": "CUMPLE null; PARCIAL C explícito BD descartado",
+        "cobertura": "C25-11,33"
+      },
+      {
+        "orden": "D7: dolor intenso actual+halos+náuseas urgente independiente de EE; aislados/negados/remotos no",
+        "codigo": "registry.py:168; anexos_cristalino.py ruta compartida; inference.py:470",
+        "estado": "CUMPLE C25-30 yA03; A04 negativo",
+        "cobertura": "test_ajuste_c25.py:33,43"
+      },
+      {
+        "orden": "D8: texto neutral y seguimiento segúnAV/alineación/segmento/contexto, sin duplicar derivación",
+        "codigo": "refractivas.py:81–91",
+        "estado": "CUMPLE",
+        "cobertura": "C25-01–35; test_ajuste_c25.py:6"
+      }
+    ],
+    "adicionales": [
+      {
+        "payload": {
+          "refraccion": {
+            "od": {
+              "esfera": 5,
+              "cilindro": null
+            }
+          }
+        },
+        "esperado": {
+          "activo": false
+        }
+      },
+      {
+        "payload": {
+          "refraccion": {
+            "od": {
+              "esfera": 5,
+              "cilindro": 0
+            }
+          },
+          "paciente": {
+            "edad": 39
+          }
+        },
+        "esperado": {
+          "activo": true,
+          "h01": false
+        }
+      },
+      {
+        "payload": {
+          "refraccion": {
+            "od": {
+              "esfera": 0,
+              "cilindro": 0
+            }
+          },
+          "paciente": {
+            "motivo_consulta": "Dolor ocular intenso de inicio hoy, halos y nauseas."
+          }
+        },
+        "esperado": {
+          "activo": false,
+          "h01": true
+        }
+      },
+      {
+        "payload": {
+          "refraccion": {
+            "od": {
+              "esfera": 5,
+              "cilindro": 0
+            }
+          },
+          "paciente": {
+            "motivo_consulta": "No tengo dolor ocular, halos ni nauseas."
+          }
+        },
+        "esperado": {
+          "activo": true,
+          "h01": false
+        }
+      },
+      {
+        "payload": {
+          "refraccion": {
+            "od": {
+              "esfera": 12,
+              "cilindro": -12
+            }
+          }
+        },
+        "esperado": {
+          "activo": true,
+          "cilindro_rx": -12
+        }
+      }
+    ],
+    "defectos": [
+      "Dependencia transversal: schemas.py:43,146–148 descarta cilindro Rx con magnitud >8, aunque el contrato §1.2 admite rango BD hasta30 D. Los casos C=−12 pertenecen al dominio contractual ampliado; NO son valores del dropdown actual. Conservar valores válidos del dominio declarado y añadir aceptación API por componente/EE/meridiano afectado. No recomendar un cambio de prescripción; corregir la pérdida de datos en la recepción."
+    ],
+    "limites": [
+      "Conformidad técnica contra órdenes oficiales; no certificación clínica universal ni validación de Qwen real.",
+      "Los hashes identifican el árbol leído. Las salidas históricas no se aceptan como oráculo: se reproducen los problemas que motivaron las órdenes."
+    ]
+  },
+  "26": {
+    "veredicto": "PARCIAL",
+    "resumen": "EE/tolerancia neutral correctos; faltan ruta de diplopía aguda independiente y cilindro BD preservado.",
+    "requisitos": [
+      {
+        "orden": "D1: componentes suficientes AO; cero explícito válido; revisar consumidores EE",
+        "codigo": "refraccion_utils.py:159–167; refractivas.py:95–109; schemas.py:146–148",
+        "estado": "CUMPLE local, PARCIAL extremo a extremo",
+        "cobertura": "C26-15–18; test_ajuste_c26.py:6"
+      },
+      {
+        "orden": "D2: magnitud/ojos/EE sin gravedad ni fusión/tamaño alterados",
+        "codigo": "refractivas.py:110–116",
+        "estado": "CUMPLE: antimetropía significa signos de EE",
+        "cobertura": "C26-01–09"
+      },
+      {
+        "orden": "D3: infancia desarrollo/evaluación segúnAV/alineación; no cambiar tratamiento ni corte8 de utilidad",
+        "codigo": "refractivas.py:117–122",
+        "estado": "CUMPLE",
+        "cobertura": "test_ajuste_c26.py:17"
+      },
+      {
+        "orden": "D4: >1 operativo soloEE, no asimetría completa ni normalidad por silencio",
+        "codigo": "refractivas.py:95–103,110–121",
+        "estado": "CUMPLE",
+        "cobertura": "C26-01–06,19–20; A01–03"
+      },
+      {
+        "orden": "D5: Kmedia explícita o2meridianos; deltaC sin relevancia clínica/causa/eje inferidos",
+        "codigo": "queratometria.py:180–192,250–258; refractivas.py:123–136",
+        "estado": "CUMPLE",
+        "cobertura": "C26-25–34; test_ajuste_c26.py:22"
+      },
+      {
+        "orden": "D6: provisional/adaptación/hallazgos actuales; afaquia no causa; no duplicar27/28",
+        "codigo": "queratometria.py:44–71; registry.py:156–166",
+        "estado": "CUMPLE literal, retiradas conservadas",
+        "cobertura": "C26-21,24,32–33; corpus27/28"
+      },
+      {
+        "orden": "D7: C26-01–34; noH01 por delta; dolor/diplopía reciente/pérdida por rutas propias",
+        "codigo": "registry.py:158; inference.py:470",
+        "estado": "PARCIAL: A04 diplopía aguda explícita daH01 vacío",
+        "cobertura": "Falta este positivo en suite; C27-24 también reproduce"
+      }
+    ],
+    "adicionales": [
+      {
+        "payload": {
+          "refraccion": {
+            "od": {
+              "esfera": 0,
+              "cilindro": 0
+            },
+            "oi": {
+              "esfera": 1,
+              "cilindro": 0
+            }
+          }
+        },
+        "esperado": {
+          "activo": false,
+          "h01": false
+        }
+      },
+      {
+        "payload": {
+          "refraccion": {
+            "od": {
+              "esfera": 0,
+              "cilindro": 0
+            },
+            "oi": {
+              "esfera": 1.25,
+              "cilindro": 0
+            }
+          }
+        },
+        "esperado": {
+          "activo": true
+        }
+      },
+      {
+        "payload": {
+          "refraccion": {
+            "od": {
+              "esfera": null,
+              "cilindro": 0
+            },
+            "oi": {
+              "esfera": 2,
+              "cilindro": 0
+            }
+          }
+        },
+        "esperado": {
+          "activo": false
+        }
+      },
+      {
+        "payload": {
+          "refraccion": {
+            "od": {
+              "esfera": -0.75,
+              "cilindro": 0
+            },
+            "oi": {
+              "esfera": 0.75,
+              "cilindro": 0
+            }
+          },
+          "paciente": {
+            "motivo_consulta": "Desde hoy diplopia binocular vertical de inicio subito."
+          }
+        },
+        "esperado": {
+          "activo": true,
+          "h01": true
+        }
+      },
+      {
+        "payload": {
+          "refraccion": {
+            "od": {
+              "esfera": 0,
+              "cilindro": -12
+            },
+            "oi": {
+              "esfera": 0,
+              "cilindro": 0
+            }
+          }
+        },
+        "esperado": {
+          "activo": true,
+          "cilindro_rx": -12
+        }
+      }
+    ],
+    "defectos": [
+      "Dependencia transversal: schemas.py:43,146–148 descarta cilindro Rx con magnitud >8, aunque el contrato §1.2 admite rango BD hasta30 D. Los casos C=−12 pertenecen al dominio contractual ampliado; NO son valores del dropdown actual. Conservar valores válidos del dominio declarado y añadir aceptación API por componente/EE/meridiano afectado. No recomendar un cambio de prescripción; corregir la pérdida de datos en la recepción.",
+      "P1: C27-24 contractual («Desde hoy diplopia binocular vertical de inicio subito», Rx−0.75/0 y+0.75/0) produce solo26 y H01 vacío. La orden27D6 exige prioridad independiente de ametropía y de otros exámenes. Conectar un detector de síntoma agudo afirmado del paciente a aviso/H01, sin requerir Cover, PPC, ptosis o AV reducida. Preservar datos refractivos sin atribuirles causa; añadir positivos agudos y negativos remotos/negados/familiares. Mantener la retirada de27."
+    ],
+    "limites": [
+      "Conformidad técnica contra órdenes oficiales; no certificación clínica universal ni validación de Qwen real.",
+      "Los hashes identifican el árbol leído. Las salidas históricas no se aceptan como oráculo: se reproducen los problemas que motivaron las órdenes."
+    ]
+  },
+  "27": {
+    "veredicto": "PARCIAL",
+    "resumen": "Retirada/fusión refractiva conformes; la integración urgente ordenada paraC27-24 falta.",
+    "requisitos": [
+      {
+        "orden": "D1: retirar27 y migrar solamente signos deEE a26",
+        "codigo": "registry.py:137–182; refractivas.py:106–116",
+        "estado": "CUMPLE ausencia27, valoresAO en26",
+        "cobertura": "test_correlaciones.py:1328; todos27casos"
+      },
+      {
+        "orden": "D2: no etiqueta pura/acomodativa interna paraQwen; conservarID como historial",
+        "codigo": "registry.py:137–182; prompt_builder.py:294–299",
+        "estado": "CUMPLE nombre activo ausente; historia oficial conservada",
+        "cobertura": "rg sin función/import27; corpus"
+      },
+      {
+        "orden": "D3: eliminar anisoforia/demandas y LC automática parafusión",
+        "codigo": "refractivas.py:106–136",
+        "estado": "CUMPLE valoración sin terapia",
+        "cobertura": "C27-08–22"
+      },
+      {
+        "orden": "D4: nulos y contexto monovisión/estabilidad/afaquia sin acomodación o efectos prismáticos asumidos",
+        "codigo": "refraccion_utils.py:159–167; queratometria.py:44–71",
+        "estado": "CUMPLE UI; dependencia BD documentada26",
+        "cobertura": "C27-11–13,17–23,26–27"
+      },
+      {
+        "orden": "D5: conservarAV/binocularidad26 sin déficit ni regla con campos ausentes",
+        "codigo": "refractivas.py:111–121",
+        "estado": "CUMPLE",
+        "cobertura": "test_correlaciones.py:1328; A01"
+      },
+      {
+        "orden": "D6: C27-24 diplopía aguda merece evaluación independiente de ametropía; actual vsnegado/remoto",
+        "codigo": "registry.py:137–182; inference.py:470",
+        "estado": "NO CUMPLE: histórico24/A02 solo26, H01 vacío",
+        "cobertura": "No prueba existente del positivo aislado; A02–04"
+      },
+      {
+        "orden": "D7:27casos sin segundo aviso causal; datos reales yH01 independientes conservados",
+        "codigo": "registry.py:137–182; refractivas.py:106–136",
+        "estado": "PARCIAL: retiro27/27 correcto; prioridadC27-24 pendiente",
+        "cobertura": "27entradas independientes reejecutadas"
+      }
+    ],
+    "adicionales": [
+      {
+        "payload": {
+          "refraccion": {
+            "od": {
+              "esfera": 0.25,
+              "cilindro": -2
+            },
+            "oi": {
+              "esfera": 2,
+              "cilindro": -2.5
+            }
+          }
+        },
+        "esperado": {
+          "activo": false,
+          "h01": false
+        }
+      },
+      {
+        "payload": {
+          "refraccion": {
+            "od": {
+              "esfera": -0.75,
+              "cilindro": 0
+            },
+            "oi": {
+              "esfera": 0.75,
+              "cilindro": 0
+            }
+          },
+          "paciente": {
+            "motivo_consulta": "Desde hoy diplopia binocular vertical de inicio subito."
+          }
+        },
+        "esperado": {
+          "activo": false,
+          "h01": true
+        }
+      },
+      {
+        "payload": {
+          "refraccion": {
+            "od": {
+              "esfera": -0.75,
+              "cilindro": 0
+            },
+            "oi": {
+              "esfera": 0.75,
+              "cilindro": 0
+            }
+          },
+          "paciente": {
+            "motivo_consulta": "No tengo diplopia ni sintomas nuevos."
+          }
+        },
+        "esperado": {
+          "activo": false,
+          "h01": false
+        }
+      },
+      {
+        "payload": {
+          "refraccion": {
+            "od": {
+              "esfera": -0.75,
+              "cilindro": 0
+            },
+            "oi": {
+              "esfera": 0.75,
+              "cilindro": 0
+            }
+          },
+          "paciente": {
+            "motivo_consulta": "Diplopia binocular hace diez anos, resuelta; actualmente sin molestias."
+          }
+        },
+        "esperado": {
+          "activo": false,
+          "h01": false
+        }
+      }
+    ],
+    "defectos": [
+      "P1: C27-24 contractual («Desde hoy diplopia binocular vertical de inicio subito», Rx−0.75/0 y+0.75/0) produce solo26 y H01 vacío. La orden27D6 exige prioridad independiente de ametropía y de otros exámenes. Conectar un detector de síntoma agudo afirmado del paciente a aviso/H01, sin requerir Cover, PPC, ptosis o AV reducida. Preservar datos refractivos sin atribuirles causa; añadir positivos agudos y negativos remotos/negados/familiares. Mantener la retirada de27."
+    ],
+    "limites": [
+      "Conformidad técnica contra órdenes oficiales; no certificación clínica universal ni validación de Qwen real.",
+      "Los hashes identifican el árbol leído. Las salidas históricas no se aceptan como oráculo: se reproducen los problemas que motivaron las órdenes."
+    ]
+  },
+  "28": {
+    "veredicto": "CUMPLE",
+    "resumen": "Regla causal retirada; diferencias refractivas/K se conservan descriptivas sin aniseiconía deducida.",
+    "requisitos": [
+      {
+        "orden": "D1: retirarregistro/función/texto28; no alternativa con campos ausentes",
+        "codigo": "registry.py:137–182; refractivas.py:95–136",
+        "estado": "CUMPLE",
+        "cobertura": "test_correlaciones.py:945,1518;28casos"
+      },
+      {
+        "orden": "D2: conservarRx/K válidas26 sin componente/severidad/fusión",
+        "codigo": "refractivas.py:110–135; queratometria.py:250–258",
+        "estado": "CUMPLE en datos completos; dependencia BD ya26",
+        "cobertura": "C28-01–16; A01–03"
+      },
+      {
+        "orden": "D3: sinKnapp/porcentajesK diagnóstico; corregirfalsosEE/promedios26",
+        "codigo": "refraccion_utils.py:159–167; queratometria.py:250–258",
+        "estado": "CUMPLE nulos/meridianos ysin causa",
+        "cobertura": "C28-11,15–16; test_ajuste_c26.py:22"
+      },
+      {
+        "orden": "D4: síntomas/resultados explícitos motivosdeevaluación aunqueK contraria/ausente",
+        "codigo": "refractivas.py:111–113; prompt_builder.py:250–299",
+        "estado": "CUMPLE C28-28: síntoma prompt +revisión26 independiente de direcciónK",
+        "cobertura": "C28-28; A02"
+      },
+      {
+        "orden": "D5: regresiónausencia28/conservación26, no veto ni orden alterado",
+        "codigo": "registry.py:137–182",
+        "estado": "CUMPLE28 ausente corpus",
+        "cobertura": "test_correlaciones.py:945,1518"
+      }
+    ],
+    "adicionales": [
+      {
+        "payload": {
+          "refraccion": {
+            "od": {
+              "esfera": -2,
+              "cilindro": 0
+            },
+            "oi": {
+              "esfera": 0,
+              "cilindro": 0
+            }
+          },
+          "akr": {
+            "od": {
+              "k_promedio_d": 44
+            },
+            "oi": {
+              "k_promedio_d": 42
+            }
+          }
+        },
+        "esperado": {
+          "activo": false
+        }
+      },
+      {
+        "payload": {
+          "refraccion": {
+            "od": {
+              "esfera": -2,
+              "cilindro": 0
+            },
+            "oi": {
+              "esfera": 0,
+              "cilindro": 0
+            }
+          },
+          "paciente": {
+            "motivo_consulta": "Aniseiconia sintomatica confirmada en pruebas, requiere revision."
+          }
+        },
+        "esperado": {
+          "activo": false
+        }
+      },
+      {
+        "payload": {
+          "refraccion": {
+            "od": {
+              "esfera": null,
+              "cilindro": -2
+            },
+            "oi": {
+              "esfera": 2,
+              "cilindro": 0
+            }
+          },
+          "akr": {
+            "od": {
+              "k1_d": 44
+            },
+            "oi": {
+              "k1_d": 42
+            }
+          }
+        },
+        "esperado": {
+          "activo": false
+        }
+      }
+    ],
+    "defectos": [
+      "No se reproduce incumplimiento propio de los requisitos enumerados. Conservar sus regresiones."
+    ],
+    "limites": [
+      "Conformidad técnica contra órdenes oficiales; no certificación clínica universal ni validación de Qwen real.",
+      "Los hashes identifican el árbol leído. Las salidas históricas no se aceptan como oráculo: se reproducen los problemas que motivaron las órdenes."
+    ]
+  },
+  "29": {
+    "veredicto": "PARCIAL",
+    "resumen": "Separación médica/técnica verificada enhandlerAPI fresco/cache; puede perderse meridianoS+C por descarte de cilindroBD.",
+    "requisitos": [
+      {
+        "orden": "D1: separarhallazgosQwen y mantenerfutura salida técnica; no derivación desdepotencia",
+        "codigo": "registry.py:187–196 vs137–182; main.py:228–267; prompt_builder.py:294–299",
+        "estado": "CUMPLE: noID29 enresponse/prompt; técnico interno. No se exige nueva salidaHTTP ahora",
+        "cobertura": "test_ajuste_c29.py:28; handlerAPI guardado"
+      },
+      {
+        "orden": "D2: comprobarVD/compensación solo si cambia plano; no impacto demostrado/enfermedad/LC",
+        "codigo": "refractivas.py:250–257",
+        "estado": "CUMPLE",
+        "cobertura": "test_ajuste_c29.py:9;24casos"
+      },
+      {
+        "orden": "D3: ojos/meridianosS yS+C reales, no etiquetaesfera solamente",
+        "codigo": "refractivas.py:228–240",
+        "estado": "CUMPLE local; PARCIAL A05 S0/C−12 perdido",
+        "cobertura": "C29-08–12; test_ajuste_c29.py:22"
+      },
+      {
+        "orden": "D4: null≠0; Sexplícita permiteunmeridiano; Snull noS+C",
+        "codigo": "refractivas.py:233–238; schemas.py:146–148",
+        "estado": "CUMPLE nulos; PARCIAL cilindro BD borrado",
+        "cobertura": "C29-13–15; A01–02"
+      },
+      {
+        "orden": "D5: futura compensación exigeVDorigen/destino/unidades; noVD_AKR/12default",
+        "codigo": "refractivas.py:254–257",
+        "estado": "CUMPLE no cálculo ni sustitución",
+        "cobertura": "test_ajuste_c29.py:22; C29-16–18"
+      },
+      {
+        "orden": "D6:24casos/segundo meridiano/incompletos/datoverificado/noH01",
+        "codigo": "refractivas.py:256–257; queratometria.py:44–71; prompt_builder.py:250–269",
+        "estado": "CUMPLE controlesUI; VD12/12 sigueprompt, técnica considera verificaciones sin afirmar ausencia",
+        "cobertura": "C29-19–20,24; handlerAPI"
+      }
+    ],
+    "adicionales": [
+      {
+        "payload": {
+          "refraccion": {
+            "od": {
+              "esfera": null,
+              "cilindro": -4
+            }
+          }
+        },
+        "esperado": {
+          "activo": false,
+          "tecnico": false
+        }
+      },
+      {
+        "payload": {
+          "refraccion": {
+            "od": {
+              "esfera": 4,
+              "cilindro": null
+            }
+          }
+        },
+        "esperado": {
+          "activo": false,
+          "tecnico": true,
+          "h01": false
+        }
+      },
+      {
+        "payload": {
+          "refraccion": {
+            "od": {
+              "esfera": 0,
+              "cilindro": -4
+            }
+          }
+        },
+        "esperado": {
+          "activo": false,
+          "tecnico": true,
+          "h01": false
+        }
+      },
+      {
+        "payload": {
+          "refraccion": {
+            "od": {
+              "esfera": -4,
+              "cilindro": 0
+            }
+          },
+          "paciente": {
+            "motivo_consulta": "Rx tomada a 12 mm, montura final a 12 mm. Distancia al vertice verificada."
+          }
+        },
+        "esperado": {
+          "activo": false,
+          "tecnico": true,
+          "h01": false
+        }
+      },
+      {
+        "payload": {
+          "refraccion": {
+            "od": {
+              "esfera": 0,
+              "cilindro": -12
+            }
+          }
+        },
+        "esperado": {
+          "activo": false,
+          "tecnico": true,
+          "cilindro_rx": -12
+        }
+      }
+    ],
+    "defectos": [
+      "Dependencia transversal: schemas.py:43,146–148 descarta cilindro Rx con magnitud >8, aunque el contrato §1.2 admite rango BD hasta30 D. Los casos C=−12 pertenecen al dominio contractual ampliado; NO son valores del dropdown actual. Conservar valores válidos del dominio declarado y añadir aceptación API por componente/EE/meridiano afectado. No recomendar un cambio de prescripción; corregir la pérdida de datos en la recepción.",
+      "C29-19: el recordatorio técnico no repite12/12, pero dice considerar las verificaciones documentadas. El prompt crudo sí conserva ambas distancias. No afirma explícitamente que falten: oportunidad de precisión de menor impacto, no contradicción clínica demostrada. La ausencia de campo técnicoHTTP es coherente conD1 «si esa interfaz se implementa»."
+    ],
+    "limites": [
+      "Conformidad técnica contra órdenes oficiales; no certificación clínica universal ni validación de Qwen real.",
+      "Los hashes identifican el árbol leído. Las salidas históricas no se aceptan como oráculo: se reproducen los problemas que motivaron las órdenes.",
+      "Handler real con inferencia/cache simulados; sin transporte HTTP externo ni Qwen real."
+    ]
+  },
+  "30": {
+    "veredicto": "PARCIAL",
+    "resumen": "Descripción oblicua neutral y coincidencia solo angular conformes; el cilindro BD puede perderse antes de evaluar.",
+    "requisitos": [
+      {
+        "orden": "D1: Rx numérica por ojo, sin gravedad; bandas abiertas20–70/110–160 y|C|>2 selección",
+        "codigo": "refractivas.py:177–213",
+        "estado": "CUMPLE local; PARCIAL A05 C−12/eje45 descartado",
+        "cobertura": "test_ajuste_c30.py:6; C30-01–23"
+      },
+      {
+        "orden": "D2: orientación K aproximadamente coincidente, nunca igual magnitud/origen/ectasia",
+        "codigo": "refractivas.py:214–219; queratometria.py:195–217",
+        "estado": "CUMPLE: no infiere ejeK aislado, según orden36 posterior",
+        "cobertura": "C30-24–32; test_ajuste_c30.py:6"
+      },
+      {
+        "orden": "D3: niños AV/desarrollo con corrección; adultos asintomáticos sin síntomas o estudio inventados",
+        "codigo": "refractivas.py:222–225",
+        "estado": "CUMPLE",
+        "cobertura": "C30-33–35"
+      },
+      {
+        "orden": "D4: AV/síntomas/córnea por rutas propias con ojo/contexto; receta no desenfoque inevitable",
+        "codigo": "registry.py:159,163–166; refractivas.py:205–225",
+        "estado": "CUMPLE en reproducciones; K contralateral no atribuido",
+        "cobertura": "C30-27–28,33–35; A03"
+      },
+      {
+        "orden": "D5: nulos/lateralidad/fiabilidad, noH01 ni diagnóstico",
+        "codigo": "refractivas.py:198–200,209–225; queratometria.py:44–71",
+        "estado": "CUMPLE UI; PARCIAL BD",
+        "cobertura": "test_ajuste_c30.py:19; C30-21–23,36"
+      }
+    ],
+    "adicionales": [
+      {
+        "payload": {
+          "refraccion": {
+            "od": {
+              "cilindro": -2.5,
+              "eje": 20
+            }
+          }
+        },
+        "esperado": {
+          "activo": false
+        }
+      },
+      {
+        "payload": {
+          "refraccion": {
+            "od": {
+              "esfera": null,
+              "cilindro": -2.5,
+              "eje": 21
+            }
+          }
+        },
+        "esperado": {
+          "activo": true,
+          "h01": false
+        }
+      },
+      {
+        "payload": {
+          "refraccion": {
+            "oi": {
+              "cilindro": -2.5,
+              "eje": 135
+            }
+          },
+          "akr": {
+            "od": {
+              "k1_d": 40,
+              "k2_d": 56,
+              "k1_eje": 135,
+              "k2_eje": 45
+            }
+          }
+        },
+        "esperado": {
+          "activo": true,
+          "h01": false
+        }
+      },
+      {
+        "payload": {
+          "refraccion": {
+            "od": {
+              "cilindro": -2.5,
+              "eje": 45
+            }
+          },
+          "akr": {
+            "od": {
+              "k_cilindro": 2.5,
+              "k_cilindro_eje": 135
+            }
+          }
+        },
+        "esperado": {
+          "activo": true,
+          "h01": false
+        }
+      },
+      {
+        "payload": {
+          "refraccion": {
+            "od": {
+              "esfera": 0,
+              "cilindro": -12,
+              "eje": 45
+            }
+          }
+        },
+        "esperado": {
+          "activo": true,
+          "cilindro_rx": -12
+        }
+      }
+    ],
+    "defectos": [
+      "Dependencia transversal: schemas.py:43,146–148 descarta cilindro Rx con magnitud >8, aunque el contrato §1.2 admite rango BD hasta30 D. Los casos C=−12 pertenecen al dominio contractual ampliado; NO son valores del dropdown actual. Conservar valores válidos del dominio declarado y añadir aceptación API por componente/EE/meridiano afectado. No recomendar un cambio de prescripción; corregir la pérdida de datos en la recepción."
+    ],
+    "limites": [
+      "Conformidad técnica contra órdenes oficiales; no certificación clínica universal ni validación de Qwen real.",
+      "Los hashes identifican el árbol leído. Las salidas históricas no se aceptan como oráculo: se reproducen los problemas que motivaron las órdenes.",
+      "Abstenerse de coincidencia enC30-31/32 es conforme a36 posterior; no reimplantar rotaciónT4 desde convención angular no documentada."
+    ]
+  },
+  "31": {
+    "veredicto": "CUMPLE",
+    "resumen": "Retirada completa: edad/eje contra la regla no originan nueva sospecha automática de ectasia.",
+    "requisitos": [
+      {
+        "orden": "Retirar condición/texto/helpers/import/registro31 y topografía/etiología automáticas",
+        "codigo": "registry.py:137–182; refractivas.py completo",
+        "estado": "CUMPLE ausencia código/ID activo",
+        "cobertura": "test_correlaciones.py:1340,1600,2242;29casos"
+      },
+      {
+        "orden": "Conservar orientaciónRx como dato, resto de vías y medidas",
+        "codigo": "prompt_builder.py:250–299; registry.py:162–166",
+        "estado": "CUMPLE Rxcruda yK independiente",
+        "cobertura": "C31-21–29; A01–03"
+      },
+      {
+        "orden": "No reintroducir salto víaQwen ni campos ficticios",
+        "codigo": "prompt_builder.py:45,51,294–299",
+        "estado": "CUMPLE determinista; Qwenreal noverificable",
+        "cobertura": "Prompts guardados; sinLLM"
+      },
+      {
+        "orden": "Fronteras39/40,0/5,70/110,nulos,Knormal/estable; conservar urgencias independientes",
+        "codigo": "registry.py:137–182; inference.py:470",
+        "estado": "CUMPLE retirada yH01 independiente A03",
+        "cobertura": "test_correlaciones.py:1340,1600,2242"
+      }
+    ],
+    "adicionales": [
+      {
+        "payload": {
+          "refraccion": {
+            "od": {
+              "cilindro": -1,
+              "eje": 90
+            }
+          },
+          "paciente": {
+            "edad": 39
+          }
+        },
+        "esperado": {
+          "activo": false,
+          "h01": false
+        }
+      },
+      {
+        "payload": {
+          "refraccion": {
+            "od": {
+              "cilindro": -1,
+              "eje": 90
+            }
+          },
+          "akr": {
+            "od": {
+              "k2_d": 49
+            }
+          },
+          "paciente": {
+            "edad": 40
+          }
+        },
+        "esperado": {
+          "activo": false
+        }
+      },
+      {
+        "payload": {
+          "refraccion": {
+            "od": {
+              "cilindro": -1,
+              "eje": 90
+            }
+          },
+          "paciente": {
+            "motivo_consulta": "Perdida brusca de vision OD desde esta manana.",
+            "edad": 20
+          }
+        },
+        "esperado": {
+          "activo": false,
+          "h01": true
+        }
+      }
+    ],
+    "defectos": [
+      "No se reproduce incumplimiento propio de los requisitos enumerados. Conservar sus regresiones."
+    ],
+    "limites": [
+      "Conformidad técnica contra órdenes oficiales; no certificación clínica universal ni validación de Qwen real.",
+      "Los hashes identifican el árbol leído. Las salidas históricas no se aceptan como oráculo: se reproducen los problemas que motivaron las órdenes."
+    ]
+  },
+  "32": {
+    "veredicto": "PARCIAL",
+    "resumen": "La descripción AV es neutral; la prioridad aguda se pierde si la misma frase del paciente menciona que cuida a su madre.",
+    "requisitos": [
+      {
+        "orden": "1: cifra/ojo, sin bandas clínicas ni discapacidad desde un ojo",
+        "codigo": "refractivas.py:139–164; refraccion_utils.py:146–157",
+        "estado": "CUMPLE",
+        "cobertura": "test_ajuste_c32.py:8; C32-01–19"
+      },
+      {
+        "orden": "2: pediatría/fiabilidad, cribado≠diagnóstico; limitar si edad/protocolo faltan",
+        "codigo": "refractivas.py:162–174; queratometria.py:44–71",
+        "estado": "CUMPLE no acreditaBCVA y contextualizaedad",
+        "cobertura": "C32-20–21,23,29"
+      },
+      {
+        "orden": "3: quitar explicación AVporK; Kseparada, no etiología ni irreversibilidad",
+        "codigo": "refractivas.py:146–174; registry.py:159,163–166",
+        "estado": "CUMPLE",
+        "cobertura": "C32-26–28; test_ajuste_c32.py:8"
+      },
+      {
+        "orden": "4: agudo y causas conocidas, ausencia inicio≠crónico; verificar AVscmejor",
+        "codigo": "refractivas.py:153–164; inference.py:470; fondo_de_ojo.py:335–356; binocularidad.py:66–70,107–135",
+        "estado": "PARCIAL: A05 pérdida del paciente +madre incidental da H01 vacío; A06 resuelta+actual sí H01 por2",
+        "cobertura": "test_ajuste_c32.py:8 cubre C32-25; falta A05"
+      },
+      {
+        "orden": "5: catálogo16, niños/nulos/estable/agudo/AVscmejor/Kcontralateral/regular/H01",
+        "codigo": "registry.py:159; refractivas.py:139–174",
+        "estado": "PARCIAL integración de sujeto; resto conforme",
+        "cobertura": "31históricos; test_ajuste_c32.py:8,38; A05–06"
+      }
+    ],
+    "adicionales": [
+      {
+        "payload": {
+          "refraccion": {
+            "od": {
+              "av_cc": "20/25"
+            }
+          }
+        },
+        "esperado": {
+          "activo": false
+        }
+      },
+      {
+        "payload": {
+          "refraccion": {
+            "oi": {
+              "av_cc": "20/40",
+              "av_sc": "20/20"
+            }
+          },
+          "paciente": {
+            "edad": 3
+          }
+        },
+        "esperado": {
+          "activo": true,
+          "h01": false
+        }
+      },
+      {
+        "payload": {
+          "refraccion": {
+            "od": {
+              "av_cc": "20/200"
+            }
+          },
+          "paciente": {
+            "motivo_consulta": "Perdida brusca de vision OD desde esta manana.",
+            "edad": 30
+          }
+        },
+        "esperado": {
+          "activo": true,
+          "h01": true
+        }
+      },
+      {
+        "payload": {
+          "refraccion": {
+            "od": {
+              "esfera": null,
+              "cilindro": null,
+              "av_cc": "20/30"
+            }
+          }
+        },
+        "esperado": {
+          "activo": true
+        }
+      },
+      {
+        "payload": {
+          "refraccion": {
+            "od": {
+              "av_cc": "20/40"
+            }
+          },
+          "paciente": {
+            "motivo_consulta": "Presento perdida visual subita OD desde hoy mientras cuido a mi madre."
+          }
+        },
+        "esperado": {
+          "activo": true,
+          "h01": true
+        }
+      },
+      {
+        "payload": {
+          "refraccion": {
+            "od": {
+              "av_cc": "20/40"
+            }
+          },
+          "paciente": {
+            "motivo_consulta": "Fatiga ocular resuelta, ahora perdida visual subita OD desde hoy."
+          }
+        },
+        "esperado": {
+          "activo": true,
+          "h01": true
+        }
+      }
+    ],
+    "defectos": [
+      "P1 compartido con las rutas de alarma2/56: A05 tiene pérdida visual aguda en primera persona; madre es una persona atendida y no el sujeto del síntoma. Solo aparecen32/56 con seguimiento sin urgencia y H01 vacío. D4 exige preservar la prioridad de inicio agudo explícito. Corregir atribución por ocurrencia/cláusula, sin veto global por palabra familiar. Aceptación: pérdida del paciente +madre incidental, pérdida solo de familiar, negación del paciente, síntomas antiguos/actuales coordinados. No volver urgente la AV20/40 aislada.",
+      "A06 distingue el defecto: fatiga resuelta seguida de pérdida actual mantiene H01 por2. El helper de56 omite su propia prioridad, pero el conjunto sí conserva urgencia en este control. No registrar A06 como ausencia global de triage."
+    ],
+    "limites": [
+      "Conformidad técnica contra órdenes oficiales; no certificación clínica universal ni validación de Qwen real.",
+      "Los hashes identifican el árbol leído. Las salidas históricas no se aceptan como oráculo: se reproducen los problemas que motivaron las órdenes."
+    ]
+  },
+  "33": {
+    "veredicto": "CUMPLE",
+    "resumen": "Fuentes/ojos numéricos conservados sin irregularidad/ectasia inferidas ni ausencia de datos como positivo.",
+    "requisitos": [
+      {
+        "orden": "Nombrar magnitudes/fuente/ojos correctamente, AKR noKmax",
+        "codigo": "queratometria.py:281–304; corneal.py:37–47",
+        "estado": "CUMPLE K1/K2/media/parcial",
+        "cobertura": "test_ajuste_c33.py:14; C33-32–34"
+      },
+      {
+        "orden": "Quitar irregularidad/ectasia como conclusión; verificar/repetir/contexto y evaluar si persiste",
+        "codigo": "corneal.py:40–47; queratometria.py:44–71",
+        "estado": "CUMPLE",
+        "cobertura": "C33-17–21; test_ajuste_c33.py:14"
+      },
+      {
+        "orden": "Ausencia no positivo; Kparcial≠media; cortes no universales/alternativos arbitrarios",
+        "codigo": "queratometria.py:220–240,281–304",
+        "estado": "CUMPLE K47.2sinC no; C4positivo; media explícita se conserva",
+        "cobertura": "test_ajuste_c33.py:38,44,57; A01–05"
+      },
+      {
+        "orden": "Silencio no normalidad; alerta específica ectasia requiere contexto/validación aparte",
+        "codigo": "corneal.py:32–47; prompt_builder.py:51",
+        "estado": "CUMPLE determinista",
+        "cobertura": "test_ajuste_c33.py:49; C33-22"
+      },
+      {
+        "orden": "LC/cirugía/inestabilidad/conocido/seguimiento modulan sin exclusión automática",
+        "codigo": "queratometria.py:44–71; corneal.py:46",
+        "estado": "CUMPLE literal ycondicional",
+        "cobertura": "C33-17–21"
+      },
+      {
+        "orden": "Consumidores24–26/32/34/AKR sin causa o falsa tranquilidad; fecha no actualiza examen",
+        "codigo": "refractivas.py:45–174; corneal.py:148–181; akr.py:28–93",
+        "estado": "CUMPLE: sin vetos orgánicos/cruzados ni filtroreloj",
+        "cobertura": "Evidencias24/25/32/34/40/41; C33-26–27"
+      }
+    ],
+    "adicionales": [
+      {
+        "payload": {
+          "akr": {
+            "od": {
+              "k2_d": 47.2
+            }
+          }
+        },
+        "esperado": {
+          "activo": false
+        }
+      },
+      {
+        "payload": {
+          "akr": {
+            "od": {
+              "k2_d": 48.7
+            }
+          }
+        },
+        "esperado": {
+          "activo": true,
+          "h01": false
+        }
+      },
+      {
+        "payload": {
+          "akr": {
+            "od": {
+              "k_cilindro": 4
+            }
+          }
+        },
+        "esperado": {
+          "activo": true
+        }
+      },
+      {
+        "payload": {
+          "akr": {
+            "od": {
+              "k1_d": 42,
+              "k2_d": 46,
+              "k_cilindro": 4
+            }
+          }
+        },
+        "esperado": {
+          "activo": true
+        }
+      },
+      {
+        "payload": {
+          "akr": {
+            "od": {
+              "k_promedio_d": 48.7,
+              "k1_d": 45
+            }
+          }
+        },
+        "esperado": {
+          "activo": true
+        }
+      }
+    ],
+    "defectos": [
+      "No se reproduce incumplimiento propio de los requisitos enumerados. Conservar sus regresiones."
+    ],
+    "limites": [
+      "Conformidad técnica contra órdenes oficiales; no certificación clínica universal ni validación de Qwen real.",
+      "Los hashes identifican el árbol leído. Las salidas históricas no se aceptan como oráculo: se reproducen los problemas que motivaron las órdenes."
+    ]
+  },
+  "34": {
+    "veredicto": "CUMPLE",
+    "resumen": "Medias completas comparadas sin diagnóstico; la asimetría permanece con otra selección corneal.",
+    "requisitos": [
+      {
+        "orden": "1: media explícita o2meridianos AO; noK1/K2 aisladas como promedio",
+        "codigo": "queratometria.py:250–258; corneal.py:148–160",
+        "estado": "CUMPLE parcial se abstiene",
+        "cobertura": "test_ajuste_c34.py:37; C34-07–10"
+      },
+      {
+        "orden": "2: delta/valores/ojos,≥1operativo sin sensibilidad o diagnóstico",
+        "codigo": "corneal.py:164–180",
+        "estado": "CUMPLE sinredondeo antes de comparar",
+        "cobertura": "test_ajuste_c34.py:59; A02–03"
+      },
+      {
+        "orden": "3: retirar sin ectasia/frustro/periodicidad biométrica; repetir antes de estudio",
+        "codigo": "corneal.py:177–181",
+        "estado": "CUMPLE",
+        "cobertura": "test_ajuste_c34.py:10; C34-11–15"
+      },
+      {
+        "orden": "4: cirugía/LC/fiabilidad/conocido, ausencia≠córnea virgen",
+        "codigo": "queratometria.py:44–71; corneal.py:181",
+        "estado": "CUMPLE contexto literal",
+        "cobertura": "C34-11–15"
+      },
+      {
+        "orden": "5: no#33falso=normal; conservar asimetría con otra alteración/deduplicar sin perderla",
+        "codigo": "corneal.py:164–181; registry.py:163–164",
+        "estado": "CUMPLE coexistencia C34-18/A03, datosdistintos",
+        "cobertura": "test_ajuste_c34.py:10,42"
+      },
+      {
+        "orden": "6: fronteras/intercambio/completitud/redundancia/conocido/normalantiguo/coexistencia",
+        "codigo": "corneal.py:148–181",
+        "estado": "CUMPLE muestras, fecha no presume actualidad",
+        "cobertura": "23históricos; test_ajuste_c34.py:10,37,42,59"
+      }
+    ],
+    "adicionales": [
+      {
+        "payload": {
+          "akr": {
+            "od": {
+              "k1_d": 42
+            },
+            "oi": {
+              "k2_d": 44
+            }
+          }
+        },
+        "esperado": {
+          "activo": false
+        }
+      },
+      {
+        "payload": {
+          "akr": {
+            "od": {
+              "k1_d": 42,
+              "k2_d": 42.01
+            },
+            "oi": {
+              "k1_d": 43,
+              "k2_d": 43
+            }
+          }
+        },
+        "esperado": {
+          "activo": false
+        }
+      },
+      {
+        "payload": {
+          "akr": {
+            "od": {
+              "k1_d": 48,
+              "k2_d": 50
+            },
+            "oi": {
+              "k1_d": 43,
+              "k2_d": 43
+            }
+          }
+        },
+        "esperado": {
+          "activo": true,
+          "h01": false
+        }
+      },
+      {
+        "payload": {
+          "akr": {
+            "od": {
+              "k_promedio_d": 43
+            },
+            "oi": {
+              "k_promedio_d": 42
+            }
+          }
+        },
+        "esperado": {
+          "activo": true
+        }
+      }
+    ],
+    "defectos": [
+      "No se reproduce incumplimiento propio de los requisitos enumerados. Conservar sus regresiones."
+    ],
+    "limites": [
+      "Conformidad técnica contra órdenes oficiales; no certificación clínica universal ni validación de Qwen real.",
+      "Los hashes identifican el árbol leído. Las salidas históricas no se aceptan como oráculo: se reproducen los problemas que motivaron las órdenes."
+    ]
+  },
+  "35": {
+    "veredicto": "PARCIAL",
+    "resumen": "Reformulación/fuentes conforme; media baja explícita se pierde al añadir K2 parcial compatible.",
+    "requisitos": [
+      {
+        "orden": "1: fuenteK1/K2/media real; conservar lectura baja sin inventar media/K1",
+        "codigo": "corneal.py:111–127; queratometria.py:170–177",
+        "estado": "PARCIAL A02/A03 media37.99+K2=39 deja activar",
+        "cobertura": "test_ajuste_c35.py:46 solo fuentes aisladas; falta combinaciónmedia+K2"
+      },
+      {
+        "orden": "2: noCNA/microftalmos/cierreangular/cirugía deducidos; datos específicos solo si explícitos",
+        "codigo": "corneal.py:136–145",
+        "estado": "CUMPLE",
+        "cobertura": "test_ajuste_c35.py:10; C35-12–17"
+      },
+      {
+        "orden": "3: cirugía/LC/fiabilidad/estabilidad, sin sospecha nueva ni fórmulaLIO inválida desdeK",
+        "codigo": "queratometria.py:44–71; corneal.py:141–145",
+        "estado": "CUMPLE",
+        "cobertura": "C35-12–15"
+      },
+      {
+        "orden": "4: quitar monitorización biométrica automática; corte38 revisión, no norma universal",
+        "codigo": "corneal.py:108–145",
+        "estado": "CUMPLE",
+        "cobertura": "test_ajuste_c35.py:46; C35-01–03"
+      },
+      {
+        "orden": "5: frontera/fuentes/altoastig/ojo/redundancia/conocido/nofiable, no exclusión en negativo",
+        "codigo": "corneal.py:111–145; registry.py:163,165",
+        "estado": "PARCIAL solo media perdida; otroscontroles cumplen",
+        "cobertura": "21históricos; test_ajuste_c35.py:37,46; A01–05"
+      }
+    ],
+    "adicionales": [
+      {
+        "payload": {
+          "akr": {
+            "od": {
+              "k_promedio_d": 37.99
+            }
+          }
+        },
+        "esperado": {
+          "activo": true
+        }
+      },
+      {
+        "payload": {
+          "akr": {
+            "od": {
+              "k_promedio_d": 37.99,
+              "k2_d": 39
+            }
+          }
+        },
+        "esperado": {
+          "activo": true
+        }
+      },
+      {
+        "payload": {
+          "akr": {
+            "oi": {
+              "k_promedio_d": 37.99,
+              "k2_d": 39
+            }
+          }
+        },
+        "esperado": {
+          "activo": true
+        }
+      },
+      {
+        "payload": {
+          "akr": {
+            "od": {
+              "k1_d": 37,
+              "k2_d": 43,
+              "k_promedio_d": 40
+            }
+          }
+        },
+        "esperado": {
+          "activo": true,
+          "h01": false
+        }
+      },
+      {
+        "payload": {
+          "akr": {
+            "od": {
+              "k1_d": 38,
+              "k2_d": 38,
+              "k_promedio_d": 38
+            }
+          }
+        },
+        "esperado": {
+          "activo": false
+        }
+      }
+    ],
+    "defectos": [
+      "P2: A01→A02 pierde aviso al añadir K2=39 a media37.99 registrada. Los datos están permitidos y no hay contradicción comprobable. K1 NO se capturó y no debe imprimirse una K1 calculada. Solo como ejemplo matemático de coherencia, esa pareja admite un meridiano no observado36.98; no se añade al payload ni se trata como hallazgo.",
+      "Conservar por fuente cada lectura baja explícita pertinente aunque exista un meridiano parcial mayor. No llamar media aK2 ni inferirK1. Mantener filtros de coherencia para pares completos. Añadir aceptación media37.99→media+K2=39, ambosojos, parcompleto coherente, límites38/38.01 yrobustez separada para media contradictoria; sin nuevo umbral o etiología."
+    ],
+    "limites": [
+      "Conformidad técnica contra órdenes oficiales; no certificación clínica universal ni validación de Qwen real.",
+      "Los hashes identifican el árbol leído. Las salidas históricas no se aceptan como oráculo: se reproducen los problemas que motivaron las órdenes."
+    ]
+  },
+  "36": {
+    "veredicto": "PARCIAL",
+    "resumen": "Comparación escalar/angular/temporal neutral ajustada; persiste pérdida del cilindro Rx del dominio BD.",
+    "requisitos": [
+      {
+        "orden": "1: escalar/eje separados y mostrados cuando causanaviso; ojo, sin error/lenticular/patológico",
+        "codigo": "corneal.py:50–85,96–105",
+        "estado": "CUMPLE local; PARCIAL A05 cilindroBD eliminado",
+        "cobertura": "test_ajuste_c36.py:10; C36-01–15"
+      },
+      {
+        "orden": "2: no residual/vector/plano niJaval inventados; abstenerse ejeK aislado con convención no documentada",
+        "codigo": "corneal.py:102–103; queratometria.py:195–207",
+        "estado": "CUMPLE: no rotación por signo; K1plano sí está encontrato",
+        "cobertura": "test_ajuste_c36.py:42,58; C36-24–25"
+      },
+      {
+        "orden": "3: deduplicación por ojo, no veto37 global ni pérdidaODporOI",
+        "codigo": "corneal.py:50–85; registry.py:166",
+        "estado": "CUMPLE37 retirada, ojos independientes",
+        "cobertura": "C36-21; test_correlaciones.py:1213"
+      },
+      {
+        "orden": "4: taken_at segúncontrato, no24h=vigente/comparable; no cambiarcontrato",
+        "codigo": "corneal.py:88–104; akr.py:18–25",
+        "estado": "CUMPLE nofiltroreloj, noacredita simultaneidad",
+        "cobertura": "test_ajuste_c36.py:50; C36-19–20"
+      },
+      {
+        "orden": "5: Rxprescrita≠defectototal, reducción explícita/pseudofaquia, no intolerancia o ausencia de enfermedad",
+        "codigo": "corneal.py:99–104; queratometria.py:44–71",
+        "estado": "CUMPLE literal",
+        "cobertura": "C36-16–18; test_ajuste_c36.py:10,66"
+      },
+      {
+        "orden": "6: aceptación ejes/plano/nulos/signoK/veto cruzado/fechas/pseudofaquia/decisiónconocida",
+        "codigo": "corneal.py:50–105; schemas.py:146–148",
+        "estado": "CUMPLE UI; PARCIAL dominio BD sin aceptación",
+        "cobertura": "test_ajuste_c36.py:10,42,50,58,66,74"
+      }
+    ],
+    "adicionales": [
+      {
+        "payload": {
+          "refraccion": {
+            "od": {
+              "cilindro": -2,
+              "eje": 0
+            }
+          },
+          "akr": {
+            "od": {
+              "k_cilindro": 2,
+              "k_cilindro_eje": 0
+            }
+          }
+        },
+        "esperado": {
+          "activo": false
+        }
+      },
+      {
+        "payload": {
+          "refraccion": {
+            "od": {
+              "cilindro": -2,
+              "eje": 90
+            }
+          },
+          "akr": {
+            "od": {
+              "k1_d": 42,
+              "k2_d": 44,
+              "k1_eje": 0,
+              "k2_eje": 90
+            }
+          }
+        },
+        "esperado": {
+          "activo": true,
+          "h01": false
+        }
+      },
+      {
+        "payload": {
+          "refraccion": {
+            "od": {
+              "cilindro": -0.75
+            }
+          },
+          "akr": {
+            "od": {
+              "k1_d": 42,
+              "k2_d": 44
+            }
+          }
+        },
+        "esperado": {
+          "activo": true
+        }
+      },
+      {
+        "payload": {
+          "refraccion": {
+            "od": {
+              "cilindro": -2,
+              "eje": 180
+            }
+          },
+          "akr": {
+            "od": {
+              "k1_d": 42,
+              "k2_d": 44,
+              "k1_eje": 0,
+              "k2_eje": 90
+            }
+          }
+        },
+        "esperado": {
+          "activo": false
+        }
+      },
+      {
+        "payload": {
+          "refraccion": {
+            "od": {
+              "esfera": 0,
+              "cilindro": -12
+            }
+          },
+          "akr": {
+            "od": {
+              "k1_d": 42,
+              "k2_d": 43
+            }
+          }
+        },
+        "esperado": {
+          "activo": true,
+          "cilindro_rx": -12
+        }
+      }
+    ],
+    "defectos": [
+      "Dependencia transversal: schemas.py:43,146–148 descarta cilindro Rx con magnitud >8, aunque el contrato §1.2 admite rango BD hasta30 D. Los casos C=−12 pertenecen al dominio contractual ampliado; NO son valores del dropdown actual. Conservar valores válidos del dominio declarado y añadir aceptación API por componente/EE/meridiano afectado. No recomendar un cambio de prescripción; corregir la pérdida de datos en la recepción."
+    ],
+    "limites": [
+      "Conformidad técnica contra órdenes oficiales; no certificación clínica universal ni validación de Qwen real.",
+      "Los hashes identifican el árbol leído. Las salidas históricas no se aceptan como oráculo: se reproducen los problemas que motivaron las órdenes."
+    ]
+  },
+  "37": {
+    "veredicto": "CUMPLE",
+    "resumen": "Regla lenticular retirada; discrepancia recuperada sin veto global y sin nueva causa.",
+    "requisitos": [
+      {
+        "orden": "Retirar funciones/texto/import/registro37 y origen lenticular puro/ectopia",
+        "codigo": "registry.py:137–182; corneal.py completo",
+        "estado": "CUMPLE nombre/función ausentes",
+        "cobertura": "test_correlaciones.py:924,1233;22casos"
+      },
+      {
+        "orden": "Retirar veto37sobre36 yneutralizar causalidad que reaparecería",
+        "codigo": "corneal.py:50–105",
+        "estado": "CUMPLE AO independientes sin causa",
+        "cobertura": "test_correlaciones.py:1213; C37-20"
+      },
+      {
+        "orden": "No bajar1.25Dde36; Rx1.5/K0.5 puede dejar deavisar",
+        "codigo": "corneal.py:25–28,59–69",
+        "estado": "CUMPLE diferencia1D no pasa1.25",
+        "cobertura": "C37-01–06; A02"
+      },
+      {
+        "orden": "ConservarRx/K/otrasrutas; retirada no excluye ectopia/enfermedad niK=esfericidad",
+        "codigo": "prompt_builder.py:170–184,250–299; corneal.py:96–105",
+        "estado": "CUMPLE determinista; Qwen real no ensayado",
+        "cobertura": "C37-11–15,21–22; prompts"
+      }
+    ],
+    "adicionales": [
+      {
+        "payload": {
+          "refraccion": {
+            "od": {
+              "cilindro": -1.5
+            },
+            "oi": {
+              "cilindro": -3
+            }
+          },
+          "akr": {
+            "od": {
+              "k1_d": 42,
+              "k2_d": 42.5
+            },
+            "oi": {
+              "k1_d": 42,
+              "k2_d": 43
+            }
+          }
+        },
+        "esperado": {
+          "activo": false
+        }
+      },
+      {
+        "payload": {
+          "refraccion": {
+            "od": {
+              "cilindro": -1.5
+            }
+          },
+          "akr": {
+            "od": {
+              "k_cilindro": 0.5
+            }
+          }
+        },
+        "esperado": {
+          "activo": false
+        }
+      }
+    ],
+    "defectos": [
+      "No se reproduce incumplimiento propio de los requisitos enumerados. Conservar sus regresiones."
+    ],
+    "limites": [
+      "Conformidad técnica contra órdenes oficiales; no certificación clínica universal ni validación de Qwen real.",
+      "Los hashes identifican el árbol leído. Las salidas históricas no se aceptan como oráculo: se reproducen los problemas que motivaron las órdenes."
+    ]
+  },
+  "38": {
+    "veredicto": "CUMPLE",
+    "resumen": "Espasmo/sobreacomodación desdeedad/pantallas/AR retirados; registros y comparación neutral conservados.",
+    "requisitos": [
+      {
+        "orden": "Retirar condición/texto/import/registro/golden causal38",
+        "codigo": "registry.py:137–182; akr.py completo",
+        "estado": "CUMPLE: nombreausente",
+        "cobertura": "test_correlaciones.py:62,1112;23casos"
+      },
+      {
+        "orden": "Eliminar veto38sobre40; conservar ojos/componentes",
+        "codigo": "akr.py:28–57",
+        "estado": "CUMPLE datoscapturados",
+        "cobertura": "C38-21; A02"
+      },
+      {
+        "orden": "No bajar1.5 de40,0.75–1.25 ya no espasmo",
+        "codigo": "akr.py:15,35–38",
+        "estado": "CUMPLE",
+        "cobertura": "C38-01–12; A01"
+      },
+      {
+        "orden": "No inferir cicloplejia/respuestaacomodativa ni crearotraregla; datoscrudos permanecen",
+        "codigo": "prompt_builder.py:203–247,250–299; akr.py:53–56",
+        "estado": "CUMPLE determinista; defectoschema Snull de40 no reintroduce38",
+        "cobertura": "C38-14–18"
+      }
+    ],
+    "adicionales": [
+      {
+        "payload": {
+          "refraccion": {
+            "od": {
+              "esfera": 0,
+              "cilindro": 0
+            }
+          },
+          "akr": {
+            "od": {
+              "esfera": -1,
+              "cilindro": 0
+            }
+          },
+          "paciente": {
+            "edad": 20
+          },
+          "clinica": {
+            "uso_pantallas": "gt6"
+          }
+        },
+        "esperado": {
+          "activo": false
+        }
+      },
+      {
+        "payload": {
+          "refraccion": {
+            "od": {
+              "esfera": 0,
+              "cilindro": 0
+            },
+            "oi": {
+              "esfera": 0,
+              "cilindro": 0
+            }
+          },
+          "akr": {
+            "od": {
+              "esfera": -0.75
+            },
+            "oi": {
+              "esfera": -2
+            }
+          },
+          "paciente": {
+            "edad": 20
+          },
+          "clinica": {
+            "uso_pantallas": "gt6"
+          }
+        },
+        "esperado": {
+          "activo": false
+        }
+      }
+    ],
+    "defectos": [
+      "No se reproduce incumplimiento propio de los requisitos enumerados. Conservar sus regresiones."
+    ],
+    "limites": [
+      "Conformidad técnica contra órdenes oficiales; no certificación clínica universal ni validación de Qwen real.",
+      "Los hashes identifican el árbol leído. Las salidas históricas no se aceptan como oráculo: se reproducen los problemas que motivaron las órdenes."
+    ]
+  },
+  "39": {
+    "veredicto": "CUMPLE",
+    "resumen": "Inferencia de índice cristaliniano desde edad/diferenciaAR retirada, sin veto cruzado sobre40.",
+    "requisitos": [
+      {
+        "orden": "Retirar condición/texto/import/registro39 ycausa índicecristalino",
+        "codigo": "registry.py:137–182; akr.py completo",
+        "estado": "CUMPLE ausente en24/24",
+        "cobertura": "test_correlaciones.py:78,1292"
+      },
+      {
+        "orden": "Eliminar supresión40por39/afaquia/Kcontralateral y conservar registros",
+        "codigo": "akr.py:28–57",
+        "estado": "CUMPLE normalizaciónválida",
+        "cobertura": "C39-11–15,20–21; A01–02"
+      },
+      {
+        "orden": "No bajar1.5; diferencias>1y<1.5 no causales; hallazgosexplícitos por sus rutas",
+        "codigo": "akr.py:15,35–38; prompt_builder.py:250–299",
+        "estado": "CUMPLE18 independiente",
+        "cobertura": "C39-04–07,16"
+      },
+      {
+        "orden": "Sin serie/catarata/córneanegativa desdefaltante/edad; no reintroducir causa víaQwen",
+        "codigo": "akr.py:53–56; prompt_builder.py:282–299",
+        "estado": "CUMPLE determinista; Qwenreal noensayado",
+        "cobertura": "C39-08–10,22–24; prompts"
+      }
+    ],
+    "adicionales": [
+      {
+        "payload": {
+          "refraccion": {
+            "od": {
+              "esfera": 0,
+              "cilindro": 0
+            }
+          },
+          "akr": {
+            "od": {
+              "esfera": 1.25,
+              "cilindro": 0
+            }
+          },
+          "paciente": {
+            "edad": 65
+          }
+        },
+        "esperado": {
+          "activo": false
+        }
+      },
+      {
+        "payload": {
+          "refraccion": {
+            "od": {
+              "esfera": 0,
+              "cilindro": 0
+            },
+            "oi": {
+              "esfera": 0,
+              "cilindro": 0
+            }
+          },
+          "akr": {
+            "od": {
+              "esfera": 1.25
+            },
+            "oi": {
+              "esfera": -2
+            }
+          },
+          "paciente": {
+            "edad": 65
+          },
+          "clinica": {
+            "anexos_oculares": "OD pseudofaquia transparente."
+          }
+        },
+        "esperado": {
+          "activo": false
+        }
+      }
+    ],
+    "defectos": [
+      "No se reproduce incumplimiento propio de los requisitos enumerados. Conservar sus regresiones."
+    ],
+    "limites": [
+      "Conformidad técnica contra órdenes oficiales; no certificación clínica universal ni validación de Qwen real.",
+      "Los hashes identifican el árbol leído. Las salidas históricas no se aceptan como oráculo: se reproducen los problemas que motivaron las órdenes."
+    ]
+  },
+  "40": {
+    "veredicto": "PARCIAL",
+    "resumen": "Texto porcomponente/ojo/delta ytiempo neutral cumple; transposiciónplus-cyl conSnull inventa esfera y origina contraste falso.",
+    "requisitos": [
+      {
+        "orden": "Solo componentesAR/Rx presentes≥1.5, null≠0",
+        "codigo": "akr.py:28–38; schemas.py:105–119",
+        "estado": "NO CUMPLE extremo a extremo: A01 Snull/C+2→S+2inventada",
+        "cobertura": "test_ajuste_c40.py:11 cubre minus; falta plus/Snull"
+      },
+      {
+        "orden": "Ojo/componente/AR/Rx/delta, sin mecanismo/inestabilidad/≈3DE",
+        "codigo": "akr.py:47–57",
+        "estado": "CUMPLE para valores reales; PARCIAL esfera inventada",
+        "cobertura": "C40-01–09,21–22"
+      },
+      {
+        "orden": "Taken_atcontrato, no mismodía/24h/zonaeliminada para inferencia",
+        "codigo": "akr.py:18–25,28–57",
+        "estado": "CUMPLE sinfiltro ni afirmación de comparabilidad",
+        "cobertura": "test_ajuste_c40.py:34; A02–03"
+      },
+      {
+        "orden": "Límites ejes/planos yRx≠BCVA; sincomparabilidad solo diferencia deregistros",
+        "codigo": "akr.py:53–56; prompt_builder.py:280–285",
+        "estado": "CUMPLE",
+        "cobertura": "C40-10–15,24–25"
+      },
+      {
+        "orden": "1.5operativo, nodx/noderivación obligatoria/silencio≠concordancia",
+        "codigo": "akr.py:13–15,53–56",
+        "estado": "CUMPLE local; PARCIAL RxBD A05 perdida",
+        "cobertura": "C40-01–06; A04–05"
+      },
+      {
+        "orden": "Sin vetos38/39 niKcontralateral; contexto repetible/recetareducida/pseudofaquia",
+        "codigo": "akr.py:28–57; queratometria.py:44–71",
+        "estado": "CUMPLE literal, sincausa",
+        "cobertura": "C40-13–17,20–23"
+      }
+    ],
+    "adicionales": [
+      {
+        "payload": {
+          "refraccion": {
+            "od": {
+              "esfera": 0,
+              "cilindro": 0
+            }
+          },
+          "akr": {
+            "od": {
+              "esfera": null,
+              "cilindro": 2,
+              "eje": 90
+            }
+          }
+        },
+        "esperado": {
+          "activo": true,
+          "esfera_ar": null,
+          "sin_esfera_ar_inventada_en_40": true
+        }
+      },
+      {
+        "payload": {
+          "refraccion": {
+            "od": {
+              "esfera": 0,
+              "cilindro": 0
+            }
+          },
+          "akr": {
+            "taken_at": "2020-01-01 12:00:00",
+            "od": {
+              "esfera": -1.5,
+              "cilindro": 0
+            }
+          }
+        },
+        "esperado": {
+          "activo": true
+        }
+      },
+      {
+        "payload": {
+          "refraccion": {
+            "oi": {
+              "esfera": 0,
+              "cilindro": 0
+            }
+          },
+          "akr": {
+            "taken_at": "2030-01-01 12:00:00",
+            "oi": {
+              "esfera": -1.5
+            }
+          }
+        },
+        "esperado": {
+          "activo": true
+        }
+      },
+      {
+        "payload": {
+          "refraccion": {
+            "od": {
+              "esfera": 0,
+              "cilindro": 0
+            }
+          },
+          "akr": {
+            "od": {
+              "esfera": -1.49,
+              "cilindro": 0
+            }
+          }
+        },
+        "esperado": {
+          "activo": false
+        }
+      },
+      {
+        "payload": {
+          "refraccion": {
+            "od": {
+              "esfera": 0,
+              "cilindro": -12
+            }
+          },
+          "akr": {
+            "od": {
+              "esfera": 0,
+              "cilindro": -10
+            }
+          }
+        },
+        "esperado": {
+          "activo": true,
+          "cilindro_rx": -12
+        }
+      }
+    ],
+    "defectos": [
+      "P1 compartido conraíz: schemas105–119 usaS=0 cuandoARplus-cylinder contieneSnull ycreaS+2. A01 guardaentrada,normalización,texto yprompt:40 afirma esfera+2 que nadiecapturó. Corregir transposición conservandoS desconocida y componentes disponibles. Aceptación AR{S:null,C:+2,eje90} vsRx{S:0,C:0}, cilindros bajo/sobre1.5, controlminus yambosojos; ningún contraste o prompt debe inventarS. Referencia: ../transversal-casos.json, contrato-plus-cyl-esfera-null.",
+      "Dependencia transversal: schemas.py:43,146–148 descarta cilindro Rx con magnitud >8, aunque el contrato §1.2 admite rango BD hasta30 D. Los casos C=−12 pertenecen al dominio contractual ampliado; NO son valores del dropdown actual. Conservar valores válidos del dominio declarado y añadir aceptación API por componente/EE/meridiano afectado. No recomendar un cambio de prescripción; corregir la pérdida de datos en la recepción."
+    ],
+    "limites": [
+      "Conformidad técnica contra órdenes oficiales; no certificación clínica universal ni validación de Qwen real.",
+      "Los hashes identifican el árbol leído. Las salidas históricas no se aceptan como oráculo: se reproducen los problemas que motivaron las órdenes."
+    ]
+  },
+  "41": {
+    "veredicto": "CUMPLE",
+    "resumen": "Comparación propia exigeC explícitos, respeta0/parcial ynoKcausal. No aprueba40 simultánea conS inventada por el schema.",
+    "requisitos": [
+      {
+        "orden": "CAR/CRx presentes,0 válido, nullno0; C−0.25 no «noincluido»",
+        "codigo": "akr.py:67–82",
+        "estado": "CUMPLE lógica41, no imputaCRx",
+        "cobertura": "test_ajuste_c41.py:8,37; A01–03"
+      },
+      {
+        "orden": "Ojo/valoresAR/prescrito, sin subumbral/tolerancia/ruido",
+        "codigo": "akr.py:85–93",
+        "estado": "CUMPLE",
+        "cobertura": "C41-01–03,07,15,17,20"
+      },
+      {
+        "orden": "RetirarvetoK; medición independiente, no todo cilindroocular",
+        "codigo": "akr.py:67–76,90–91",
+        "estado": "CUMPLE Kausente/plana/parcial no veta",
+        "cobertura": "test_ajuste_c41.py:30; C41-09–12"
+      },
+      {
+        "orden": "No etiología/aumentoreceta; contexto decisión/fiabilidad/síntomas",
+        "codigo": "akr.py:89–93; queratometria.py:44–71",
+        "estado": "CUMPLE literal",
+        "cobertura": "C41-13–15"
+      },
+      {
+        "orden": "Fechascontrato, límites eje/plano/tiempo y0.75/0.5operativos",
+        "codigo": "akr.py:67–93",
+        "estado": "CUMPLE: sinfiltrofecha, sin comparación de eje",
+        "cobertura": "C41-01–02,18–19"
+      },
+      {
+        "orden": "Aceptaciónnull,cero,parcial, sincausas; no asumir salidaexistente correcta",
+        "codigo": "tests/test_ajuste_c41.py:8,30,37; reproducción independiente",
+        "estado": "CUMPLE regla41; defecto extremo a extremo compartido40 no certificable",
+        "cobertura": "A01–05"
+      }
+    ],
+    "adicionales": [
+      {
+        "payload": {
+          "refraccion": {
+            "od": {
+              "esfera": 0,
+              "cilindro": null
+            }
+          },
+          "akr": {
+            "od": {
+              "cilindro": -1
+            }
+          }
+        },
+        "esperado": {
+          "activo": false
+        }
+      },
+      {
+        "payload": {
+          "refraccion": {
+            "od": {
+              "esfera": null,
+              "cilindro": 0
+            }
+          },
+          "akr": {
+            "od": {
+              "cilindro": -1
+            }
+          }
+        },
+        "esperado": {
+          "activo": true
+        }
+      },
+      {
+        "payload": {
+          "refraccion": {
+            "od": {
+              "cilindro": -0.25
+            }
+          },
+          "akr": {
+            "od": {
+              "cilindro": -3,
+              "k1_d": 43,
+              "k2_d": 43
+            }
+          }
+        },
+        "esperado": {
+          "activo": true
+        }
+      },
+      {
+        "payload": {
+          "refraccion": {
+            "od": {
+              "cilindro": -0.5
+            }
+          },
+          "akr": {
+            "od": {
+              "cilindro": -1
+            }
+          }
+        },
+        "esperado": {
+          "activo": false
+        }
+      },
+      {
+        "payload": {
+          "refraccion": {
+            "od": {
+              "esfera": 0,
+              "cilindro": 0
+            }
+          },
+          "akr": {
+            "od": {
+              "esfera": null,
+              "cilindro": 2,
+              "eje": 90
+            }
+          }
+        },
+        "esperado": {
+          "activo": true
+        }
+      }
+    ],
+    "defectos": [
+      "No hay incumplimiento de las órdenes propias41 en estos controles. A05 produce41 legítimamente por cilindros presentes, pero40 añade una esfera inventada porschema. DefectoP1 documentado en40/raíz. CUMPLE aquí no certifica respuestaAPI completa ni avala esa esfera falsa."
+    ],
+    "limites": [
+      "Conformidad técnica contra órdenes oficiales; no certificación clínica universal ni validación de Qwen real.",
+      "Los hashes identifican el árbol leído. Las salidas históricas no se aceptan como oráculo: se reproducen los problemas que motivaron las órdenes.",
+      "Se distingue el texto propio41 de la comparación falsa40 coexistente."
+    ]
+  }
+}

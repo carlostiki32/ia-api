@@ -380,7 +380,7 @@ en la respuesta HTTP), con la misma logica de supresion.
 - Ordenado: la posicion en `CORRELACIONES` (en `registry.py`) define el orden del
   bloque que recibe el LLM; es un invariante clinico cubierto por tests.
 - Textual: las correlaciones generan texto final, no instrucciones.
-- Verificación determinista: los 57 textos exactos están cubiertos por pruebas *golden*
+- Verificación determinista: los 47 textos exactos están cubiertos por pruebas *golden*
   (`tests/test_correlaciones_golden.py`) que auditan su activación y contenido exacto.
 
 ### Helpers clinicos relevantes
@@ -422,7 +422,7 @@ Se usa para anisometropia, miopia magna e hipermetropia alta.
 
 Desde la integracion de datos de queratometria (`akr.od`/`akr.oi.k1_d`, `k2_d`, `k_promedio_d`, `k_cilindro`, `k_cilindro_eje`), el modulo agrega helpers para leer y clasificar esos valores: `_k_values`, `_has_keratometry`, `_k_max`, `_corneal_cyl_abs`, `_keratometry_axis`, `_keratometry_supports_astigmatism`, `_keratometry_axis_matches` y `_keratometry_suggests_corneal_irregularity` (curvatura corneal ≥ 47.20D como umbral de sospecha, ≥ 48.70D o cilindro corneal ≥ 4.00D como umbral de ectasia/irregularidad franca). Estos helpers alimentan las correlaciones refractivas y de AR como confirmacion/matiz, y ademas **disparan** las dos correlaciones del modulo `corneal.py` (`queratocono_ectasia_sospecha`, `astigmatismo_corneal_vs_refractivo`), unica excepcion a la regla "la queratometria no dispara".
 
-**Estado:** integrada. El detalle clinico de como cada una de las 41 correlaciones
+**Estado:** integrada. El detalle clinico de como cada una de las 47 correlaciones
 usa la queratometria (confirmacion/matiz en las refractivas, disparador propio en las
 dos corneales) esta documentado por correlacion en [CORRELACIONES_CLINICAS.md](CORRELACIONES_CLINICAS.md).
 
@@ -484,20 +484,20 @@ exigiendo el sub `Tropia` explicito. El detalle clinico esta en
 
 ## 7. Correlaciones activas actuales
 
-El registro contiene **57 correlaciones**, particionadas por dominio clinico en el
+El registro contiene **47 correlaciones medicas** (mas 1 recordatorio tecnico, evaluado aparte), particionadas por dominio clinico en el
 paquete `app/correlaciones/` (ver estructura en la seccion 6).
 
-> **Fuente de referencia clinica:** el catalogo completo de las 57 correlaciones
+> **Fuente de referencia clinica:** el catalogo completo de las 47 correlaciones medicas y el recordatorio tecnico
 > —campos que las disparan, umbrales, keywords, texto exacto generado y **fundamento
 > clinico con evidencia**— vive en [CORRELACIONES_CLINICAS.md](CORRELACIONES_CLINICAS.md).
 > Este documento ya no lo duplica, para evitar la divergencia que existia entre ambos.
 > Los textos exactos estan auditados por pruebas *golden* en
 > `tests/test_correlaciones_golden.py`: si una regla cambia su texto sin actualizar la
-> prueba, el CI falla.
+> prueba, la suite falla.
 
 El **orden de evaluacion** es un invariante clinico (los hallazgos urgentes van
 primero) definido explicitamente en `app/correlaciones/registry.py` y cubierto por
-tests (`test_registro_tiene_57_correlaciones_con_nombres_unicos`,
+tests (`test_registro_separa_47_medicas_y_un_recordatorio_tecnico`,
 `test_but_critico_esta_antes_que_correlaciones_contextuales`).
 
 Trazabilidad: la respuesta HTTP incluye `correlaciones_activadas` con los nombres de
@@ -697,8 +697,7 @@ aplica el postprocesado + guardarrailes. Devuelve el parrafo final.
 | `ollama_max_retries` | `2` | Reintentos ante timeout / respuesta vacia / 5xx |
 
 Cada valor esta comentado con su justificacion (incluidas las mediciones de VRAM en
-la 3070 Ti) en [app/config.py](app/config.py); la evidencia empirica de la afinacion
-esta en [RESULTADOS_BATERIA.md](RESULTADOS_BATERIA.md).
+la 3070 Ti) en [app/config.py](app/config.py).
 
 Se reintenta ante: `httpx.ReadTimeout`, `ValueError` por respuesta vacia, HTTP 500/503.
 Tras la respuesta, si `done_reason == "length"` se loggea warning de salida truncada.
@@ -880,11 +879,34 @@ Si el cache esta lleno y entra una nueva clave, se elimina la entrada mas antigu
   aplicaron al caso (trazabilidad); se incluye tambien en cache hit. El detalle
   clinico de cada nombre esta en [CORRELACIONES_CLINICAS.md](CORRELACIONES_CLINICAS.md).
 
+### Respaldo determinista y errores de generacion
+
+- Si el modelo termina por longitud (`done_reason=length`) se reintenta una vez con mas `num_predict`; si persiste, o si la
+  depuracion deja la impresion vacia, la API **no** devuelve un exito vacio ni lo guarda en cache: responde `502`
+  (`"El modelo no produjo una impresion clinica completa. Intente de nuevo."`).
+- Con una urgencia activa la API entrega en su lugar el **respaldo determinista** (avisos urgentes + seguimiento compatible), sin cache,
+  identificado con un campo adicional:
+
+```json
+{
+  "status": "ok",
+  "impresion_clinica": "Hallazgo urgente: ...",
+  "origen": "determinista",
+  "correlaciones_activadas": ["diplopia_aguda"]
+}
+```
+
+- Las oraciones del modelo con cifras de riesgo (mmHg, um, %, mm), terapias o diagnosticos graves ausentes de lo que recibio
+  el modelo se omiten. Es una contencion, no una verificacion de la fidelidad del texto. Detalle en el Apendice D de
+  [CORRELACIONES_CLINICAS.md](CORRELACIONES_CLINICAS.md).
+
 ### Endpoint `/health`
 
 Ademas del estado de Ollama/modelo, `/health` expone el bloque `concurrencia`
 con `max_concurrent`, `en_cola` y `max_en_cola`. Con `max_concurrent=1`, la
-profundidad de cola (`en_cola`) es la senal operacional mas relevante.
+profundidad de cola (`en_cola`) es la senal operacional mas relevante. Sin
+`API_KEY` configurada responde `503` (`degraded`, `api_key_configurada=false`): el POST
+clinico responderia `500`.
 
 ### Propiedades del texto final
 
@@ -913,8 +935,8 @@ profundidad de cola (`en_cola`) es la senal operacional mas relevante.
    de negacion (helpers en `texto.py`).
 4. **Agregar un golden** en `tests/test_correlaciones_golden.py` que fije el texto
    exacto (obligatorio: `test_golden_cubre_todas_las_correlaciones` falla si no lo
-   haces) y actualizar el conteo en
-   `test_registro_tiene_41_correlaciones_con_nombres_unicos`.
+   haces) y actualizar el conteo (47) en
+   `test_registro_separa_47_medicas_y_un_recordatorio_tecnico`.
 5. Documentar la correlacion y su fundamento clinico en
    [CORRELACIONES_CLINICAS.md](CORRELACIONES_CLINICAS.md).
 
@@ -936,8 +958,6 @@ Debes revisar al menos:
 - el paquete `app/correlaciones/` (dominio + `registry.py`)
 - `tests/test_correlaciones_golden.py` (texto exacto) y `tests/test_prompt_builder.py`
 - `app/cache.py` si cambian condiciones que deban invalidar cache
-- idealmente, re-correr la bateria de [BATERIA_PRUEBAS_IA.md](BATERIA_PRUEBAS_IA.md)
-  y comparar contra [RESULTADOS_BATERIA.md](RESULTADOS_BATERIA.md)
 
 ### Si cambias parametros de inferencia
 

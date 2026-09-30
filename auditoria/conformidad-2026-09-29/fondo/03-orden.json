@@ -1,0 +1,117 @@
+{
+  "numero": 3,
+  "nombre": "fondo_oclusion_vascular_urgente",
+  "veredicto": "PARCIAL",
+  "requisitos": [
+    [
+      "Detector por clausula: vasos/acronimos/signos; excluir sistemico/microinfarto/genéricos",
+      "AUDITORIA_CORRELACIONES.md:1174-1186",
+      "app/correlaciones/fondo_de_ojo.py:2194-2300",
+      "Implementado patrones y exclusions; fallo negacion ocular F03-01"
+    ],
+    [
+      "Subtipos arterial/venoso/sin tipificar y prioridad arterial > sin tipificar > venoso > secuela",
+      "AUDITORIA_CORRELACIONES.md:1187-1189,1195-1199",
+      "app/correlaciones/fondo_de_ojo.py:2300-2375",
+      "Implementado"
+    ],
+    [
+      "Cronicidad <=6 palabras; reciente vence salvo inicio antiguo; signos arteriales siempre activos",
+      "AUDITORIA_CORRELACIONES.md:1190-1194",
+      "app/correlaciones/fondo_de_ojo.py:2243,2295",
+      "Implementado ventana; F03-03 secuela no urgente"
+    ],
+    [
+      "Textos/plazos: arterial mismo dia centro vascular,venoso dias PIO/edema/NV,indeterminado mismo dia,secuela seguimiento",
+      "AUDITORIA_CORRELACIONES.md:1195-1204",
+      "app/correlaciones/fondo_de_ojo.py:2334-2375",
+      "Implementado; verificar sustituye confirmar segun T5"
+    ],
+    [
+      "Edad ACG None o>=50, HC <50 sin presumir edad",
+      "AUDITORIA_CORRELACIONES.md:1196-1197",
+      "app/correlaciones/fondo_de_ojo.py:2335,2355",
+      "Implementado con None explicito"
+    ],
+    [
+      "Separar #58 tras #3 y aplicar dictamen posterior de58; no usar embolo aislado como explicacion completa de AV",
+      "AUDITORIA_CORRELACIONES.md:1205-1214; posterior58:3961-3966",
+      "app/correlaciones/registry.py:fondo_embolo_retiniano; app/correlaciones/fondo_de_ojo.py:2468",
+      "Implementada como #58; informe58 independiente"
+    ],
+    [
+      "Causa organica solo oclusion ocular afirmada/secuela mismo ojo, no hipotesis/sistemica",
+      "AUDITORIA_CORRELACIONES.md:1215-1217; posterior56:3916",
+      "app/correlaciones/fondo_de_ojo.py:2400; app/correlaciones/contexto.py:_has_organic_cause_for_low_av",
+      "Detector confirmed_keywords y ojos; no confirma cualquier keyword"
+    ],
+    [
+      "H01 por prefijo y metadatos; T1/T9/T10; sujeto fiel",
+      "AUDITORIA_CORRELACIONES.md:1218-1219;234-255",
+      "app/correlaciones/fondo_de_ojo.py:2270; app/inference.py:470",
+      "PARCIAL: negacion OD rota y familiar asignado al paciente F03-01/02"
+    ],
+    [
+      "Revision posterior56/57: no usar keywords de causa organica como prueba causal completa ni veto de AV; preservar ojos/hechos/prioridad",
+      "AUDITORIA_CORRELACIONES.md:3916,3932",
+      "app/correlaciones/contexto.py:139,157,174",
+      "Los selectores actuales de AV no contienen filtro organico; condiciones originales de causalidad de este bloque se leen bajo esa revision posterior."
+    ]
+  ],
+  "casos": [
+    {
+      "entrada": {
+        "fondo": "No se observa en OD oclusion arterial retiniana."
+      },
+      "esperado": {
+        "activa": false,
+        "h01": false
+      },
+      "motivo": "Negacion con OD interpuesto activa oclusion arterial urgente/H01."
+    },
+    {
+      "entrada": {
+        "fondo": "Mi madre tuvo OVCR OD hace 2 dias."
+      },
+      "esperado": {
+        "activa": false,
+        "h01": false
+      },
+      "motivo": "Oclusion venosa materna se atribuye al paciente urgente/H01."
+    },
+    {
+      "entrada": {
+        "fondo": "OACR OD hace 3 anos, estable."
+      },
+      "esperado": {
+        "activa": true,
+        "urgente": false,
+        "h01": false,
+        "contiene": [
+          "seguimiento"
+        ]
+      }
+    },
+    {
+      "entrada": {
+        "fondo": "OVCR OI desde ayer.",
+        "edad": 42
+      },
+      "esperado": {
+        "activa": true,
+        "urgente": true,
+        "contiene": [
+          "proximos dias",
+          "hipercoagulabilidad"
+        ],
+        "no_contiene": [
+          "emergencia",
+          "tromboembolico"
+        ]
+      }
+    }
+  ],
+  "cobertura": "Corrida agrupada real de 13 archivos de aceptacion/integracion: 1496 aprobadas, 0 fallos, 0 errores, 0 omitidas; JUnit suite-existente.xml. Comando: .venv/Scripts/python.exe -m pytest tests/test_auditoria_correlaciones.py tests/test_revalidacion_ajustes.py tests/test_revalidacion_papila_macula.py tests/test_revalidacion_sintomas_oclusiones.py tests/test_ajuste_c12.py tests/test_ajuste_c13.py tests/test_ajuste_c14.py tests/test_ajuste_c15.py tests/test_ajuste_c16.py tests/test_ajuste_c17.py tests/test_ajuste_c18.py tests/test_ajuste_c19.py tests/test_correlaciones.py -q -p no:cacheprovider --junitxml=auditoria/conformidad-2026-09-29/fondo/suite-existente.xml",
+  "conclusion": "F03-01 activa una oclusion arterial negada y H01. F03-02 atribuye la OVCR de la madre al paciente y deriva por ella. Las ramas, plazos y edad principales cumplen en los controles afirmados, pero los filtros de sujeto/negacion impiden dar conformidad completa.",
+  "recomendaciones": "Corregir alcance de negacion con ojo interpuesto y sujeto por ocurrencia. Excluir antecedentes de terceros sin silenciar eventos actuales del paciente en clausulas mixtas. Añadir regresiones al aviso, H01 y consumidor de causa organica por ojo. Conservar distincion arterial/venosa y plazos."
+}

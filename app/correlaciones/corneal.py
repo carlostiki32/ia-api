@@ -1,10 +1,6 @@
-"""Dominio: cornea / queratometria como disparador (2 correlaciones).
+"""Hallazgos de cornea y queratometria: cuatro correlaciones activas.
 
-queratocono_ectasia_sospecha y astigmatismo_corneal_vs_refractivo. Son la
-EXCEPCION explicita a la regla general "la queratometria solo confirma o matiza":
-aqui el dato corneal SI dispara de forma independiente, porque describe un proceso
-propio (ectasia corneal, astigmatismo lenticular) que ninguna otra correlacion
-cubre. Solo aplican cuando existen valores queratometricos; son none-safe.
+La comparacion de Rx y queratometria no identifica una causa lenticular.
 """
 from __future__ import annotations
 
@@ -13,6 +9,7 @@ from app.correlaciones.queratometria import (
     _axis_distance,
     _corneal_cyl_abs,
     _corneal_irregularity_parts,
+    _contexto_mediciones,
     _k_flat_d,
     _k_promedio,
     _keratometry_axis,
@@ -23,18 +20,17 @@ from app.correlaciones.queratometria import (
 from app.correlaciones.texto import _join_hallazgos
 from app.schemas import ImpresionClinicaRequest
 
-# Umbrales del contraste cornea vs refraccion final (deteccion de astigmatismo
-# lenticular o de un posible error de transposicion/registro del cilindro).
+# Umbrales operativos de revision de discrepancias cornea vs Rx final.
+# No identifican etiologia; pendientes de validacion clinica (auditoria #36).
 _CIL_RX_MINIMO_D = 0.75          # la Rx debe tener cilindro no trivial
-_DIF_MAGNITUD_RELEVANTE_D = 1.25  # generoso: la regla de Javal ya espera ~0.5D lenticular ATR
+_DIF_MAGNITUD_RELEVANTE_D = 1.25  # criterio operativo; no umbral de enfermedad lenticular
 _CIL_PARA_COMPARAR_EJE_D = 1.00   # ambos cilindros deben ser reales para comparar eje
 _DIF_EJE_RELEVANTE_GRADOS = 15
 
 
 @_memoize_cond
 def _cond_queratocono_ectasia_sospecha(req: ImpresionClinicaRequest) -> bool:
-    """Caso clinico: curvatura corneal muy pronunciada o cilindro corneal muy alto
-    en la queratometria sugieren irregularidad/ectasia y ameritan topografia."""
+    """Selecciona valores queratometricos elevados para revision descriptiva."""
     return _req_has_corneal_irregularity(req)
 
 
@@ -42,9 +38,12 @@ def _texto_queratocono_ectasia_sospecha(req: ImpresionClinicaRequest) -> str:
     partes = _corneal_irregularity_parts(req)
     detalle = _join_hallazgos(partes) if partes else "la queratometria"
     return (
-        f"La queratometria documenta curvatura corneal pronunciada o cilindro corneal elevado "
-        f"en {detalle}, hallazgo sugestivo de irregularidad en la curvatura corneal o sospecha de "
-        "ectasia incipiente que amerita topografia/tomografia corneal para descarte de queratocono."
+        f"La queratometria registrada presenta valores elevados en {detalle}. "
+        "Verificar repetibilidad, condiciones de medicion y antecedentes; si persisten "
+        "sin explicacion o coexisten hallazgos clinicos, valorar evaluacion corneal "
+        "especializada y la necesidad de topografia/tomografia. Estos valores aislados "
+        "no establecen la anatomia ni la causa del hallazgo."
+        + _contexto_mediciones(req)
     )
 
 
@@ -60,25 +59,36 @@ def _mismatch_parts(req: ImpresionClinicaRequest) -> list[str]:
         if corneal is None or rx_cyl is None or abs(rx_cyl) < _CIL_RX_MINIMO_D:
             continue
         rx_abs = abs(rx_cyl)
-        magnitud_discrepa = abs(corneal - rx_abs) >= _DIF_MAGNITUD_RELEVANTE_D
+        diferencia_magnitud = abs(corneal - rx_abs)
+        magnitud_discrepa = diferencia_magnitud >= _DIF_MAGNITUD_RELEVANTE_D
         eje_discrepa = False
+        eje_corneal = _keratometry_axis(akr_eye)
+        distancia = None
         if corneal >= _CIL_PARA_COMPARAR_EJE_D and rx_abs >= _CIL_PARA_COMPARAR_EJE_D:
-            distancia = _axis_distance(_keratometry_axis(akr_eye), rx_eye.eje)
+            distancia = _axis_distance(eje_corneal, rx_eye.eje)
             eje_discrepa = distancia is not None and distancia >= _DIF_EJE_RELEVANTE_GRADOS
         if magnitud_discrepa or eje_discrepa:
+            detalle = (
+                f"cilindro de la prescripcion final {rx_cyl:+.2f}D; "
+                f"cilindro corneal queratometrico {corneal:.2f}D; "
+                f"diferencia de magnitudes {diferencia_magnitud:.2f}D"
+            )
+            if distancia is not None:
+                detalle += (f"; eje Rx {rx_eye.eje % 180} grados; "
+                            f"meridiano plano K {eje_corneal % 180} grados; "
+                            f"diferencia de orientacion {distancia} grados")
+            else:
+                detalle += "; orientacion no comparada por datos insuficientes"
             partes.append(
-                f"{label} (cilindro refractivo {rx_cyl:+.2f}D vs cilindro corneal {corneal:.2f}D)"
+                f"{label} ({detalle})"
             )
     return partes
 
 
 def _cond_astigmatismo_corneal_vs_refractivo(req: ImpresionClinicaRequest) -> bool:
     """Caso clinico: el cilindro corneal queratometrico y el cilindro refractivo
-    prescrito discrepan en magnitud o eje, lo que orienta a astigmatismo lenticular
-    o a una revision de la transposicion/registro del cilindro."""
+    prescrito discrepan en magnitud o eje, sin establecer la causa de la diferencia."""
     if req.refraccion is None or req.akr is None:
-        return False
-    if _cond_astigmatismo_lenticular_puro(req):
         return False
     return bool(_mismatch_parts(req))
 
@@ -86,10 +96,12 @@ def _cond_astigmatismo_corneal_vs_refractivo(req: ImpresionClinicaRequest) -> bo
 def _texto_astigmatismo_corneal_vs_refractivo(req: ImpresionClinicaRequest) -> str:
     partes = _mismatch_parts(req)
     return (
-        f"Se documenta discrepancia entre el astigmatismo corneal queratometrico y el cilindro "
-        f"refractivo prescrito en {_join_hallazgos(partes)}, lo que puede corresponder a un "
-        "componente astigmatico lenticular o ameritar la revision de la transposicion y el "
-        "registro del cilindro en la refraccion final."
+        f"Se registra diferencia entre el astigmatismo corneal queratometrico y el cilindro "
+        f"de la prescripcion final en {_join_hallazgos(partes)}. Revisar mediciones, "
+        "condiciones de captura y criterio de prescripcion e interpretar con la exploracion. "
+        "Esta comparacion descriptiva no calcula un residual optico, no acredita "
+        "simultaneidad de las mediciones ni establece la causa de la diferencia."
+        + _contexto_mediciones(req)
     )
 
 
@@ -102,20 +114,22 @@ def _cornea_plana_parts(req: ImpresionClinicaRequest) -> list[str]:
         ojo = _ojo_akr(req, side)
         if ojo is None or _queratometria_contradictoria(ojo):
             continue
-        # Se evalua explicitamente el meridiano mas plano (K flat),
-        # o en su defecto K promedio si K1 y K2 individuales no constan.
-        # De este modo, la adicion redundante y coherente de k_promedio_d
-        # no altera la conclusion clinica ni genera falsas discrepancias.
-        k_val = _k_flat_d(ojo)
-        if k_val is not None and k_val < _K_PLANA_EXTREMA_D:
-            parts.append(f"{label} ({k_val:.2f}D)")
+        # La media explícita sigue siendo un dato al agregar un solo meridiano.
+        # No se reconstruye el meridiano ausente ni se cambia la fuente de la media.
+        fuentes = [("K1 registrada", ojo.k1_d), ("K2 registrada", ojo.k2_d),
+                   ("K promedio registrada", ojo.k_promedio_d)]
+        bajas = [(nombre, valor) for nombre, valor in fuentes
+                 if valor is not None and valor < _K_PLANA_EXTREMA_D]
+        if bajas:
+            fuente, k_val = min(bajas, key=lambda dato: dato[1])
+            parcial = ", queratometria parcial" if (ojo.k1_d is None) != (ojo.k2_d is None) else ""
+            parts.append(f"{label} ({fuente} {k_val:.2f}D{parcial})")
     return parts
 
 
 @_memoize_cond
 def _cond_cornea_plana_extrema(req: ImpresionClinicaRequest) -> bool:
-    """Caso clinico: queratometria marcadamente plana (<38.00 D) indica cornea plana verdadera (CNA1/CNA2)
-    y variante anatomica de relevancia refractiva."""
+    """Selecciona una K registrada <38 D sin establecer etiologia ni anatomia global."""
     return bool(_cornea_plana_parts(req))
 
 
@@ -123,43 +137,11 @@ def _texto_cornea_plana_extrema(req: ImpresionClinicaRequest) -> str:
     partes = _cornea_plana_parts(req)
     ojos = _join_hallazgos(partes) if partes else "la queratometria"
     return (
-        f"La queratometria revela curvatura corneal marcadamente plana en {ojos}, "
-        "variante anatomica de relevancia refractiva que amerita valoracion del segmento "
-        "anterior y monitorizacion biometrica."
-    )
-
-
-def _lenticular_parts(req: ImpresionClinicaRequest) -> list[str]:
-    parts = []
-    for label, side in [("OD", "od"), ("OI", "oi")]:
-        akr_eye = _ojo_akr(req, side)
-        rx_eye = getattr(req.refraccion, side) if req.refraccion is not None else None
-        if akr_eye is None or _queratometria_contradictoria(akr_eye):
-            continue
-        cyl_cornea = _corneal_cyl_abs(akr_eye)
-        if cyl_cornea is None or cyl_cornea > 0.50:
-            continue
-        cyl_rx = abs(rx_eye.cilindro) if rx_eye is not None and rx_eye.cilindro is not None else 0.0
-        if cyl_rx >= 1.50:
-            parts.append(f"{label} (cilindro refractivo {cyl_rx:.2f}D vs cilindro corneal {cyl_cornea:.2f}D)")
-    return parts
-
-
-@_memoize_cond
-def _cond_astigmatismo_lenticular_puro(req: ImpresionClinicaRequest) -> bool:
-    """Caso clinico: astigmatismo refractivo relevante (>= 1.50 D) con cornea queratometricamente esferica
-    sugiere componente lenticular/interno (catarata, subluxacion)."""
-    return bool(_lenticular_parts(req))
-
-
-def _texto_astigmatismo_lenticular_puro(req: ImpresionClinicaRequest) -> str:
-    partes = _lenticular_parts(req)
-    ojos = _join_hallazgos(partes) if partes else "la exploracion"
-    return (
-        f"Se documenta astigmatismo refractivo relevante en presencia de una superficie corneal "
-        f"queratometricamente esferica en {ojos}, lo que sugiere un componente cristaliniano/interno "
-        "del defecto y amerita valoracion del segmento anterior para descartar asimetria "
-        "cristaliniana o ectopia lentis."
+        f"La queratometria registra un valor de curvatura bajo en {ojos}. "
+        "Verificar lectura, repetibilidad y antecedentes corneales; si persiste sin "
+        "explicacion o coexisten hallazgos clinicos, valorar el segmento anterior. "
+        "Esta medicion aislada no establece la anatomia global ni su causa."
+        + _contexto_mediciones(req)
     )
 
 
@@ -180,10 +162,7 @@ def _asimetria_k_parts(req: ImpresionClinicaRequest) -> tuple[float, float, floa
 
 @_memoize_cond
 def _cond_queratometria_asimetrica_interocular(req: ImpresionClinicaRequest) -> bool:
-    """Caso clinico: asimetria queratometrica interocular significativa (>= 1.00 D)
-    sin queratocono manifiesto activa tamizaje de ectasia incipiente/forme fruste."""
-    if _cond_queratocono_ectasia_sospecha(req):
-        return False
+    """Diferencia operativa >=1 D entre medias completas; no diagnostica ectasia."""
     datos = _asimetria_k_parts(req)
     if datos is None:
         return False
@@ -195,10 +174,11 @@ def _texto_queratometria_asimetrica_interocular(req: ImpresionClinicaRequest) ->
     datos = _asimetria_k_parts(req)
     val = f"{datos[0]:.2f}D (OD {datos[1]:.2f}D vs OI {datos[2]:.2f}D)" if datos else "relevante"
     return (
-        f"Se documenta asimetria queratometrica interocular significativa ({val}) "
-        "sin ectasia corneal manifiesta en el examen actual, hallazgo que amerita monitorizacion "
-        "biometrica periodica y estudio tomografico/topografico corneal para descarte de ectasia "
-        "asimetrica incipiente o queratocono frustro."
+        f"Diferencia de K media registrada entre ojos de {val}. "
+        "Verificar mediciones, repetibilidad y antecedentes; si persiste sin explicacion "
+        "o coexisten hallazgos clinicos, valorar evaluacion corneal especializada. "
+        "La diferencia numerica aislada no establece una enfermedad ni su ausencia."
+        + _contexto_mediciones(req)
     )
 
 

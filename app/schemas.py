@@ -12,6 +12,7 @@ Laravel (FormEditor::generateImpresionClinica no valida antes de toPayload),
 asi que un valor fuera de catalogo en un campo secundario no debe tumbar la
 generacion completa con 422: se descarta (None) o se normaliza, y se loggea.
 """
+from datetime import datetime
 import logging
 import re
 from typing import Literal
@@ -39,7 +40,8 @@ _ESFERA_MAX_ABS_D = 30.0
 # Convencion de cilindro NEGATIVO: el catalogo nunca emite cilindro positivo;
 # un positivo solo puede venir de datos legacy en convencion plus-cyl y se
 # normaliza por transposicion (ver _transponer_a_cilindro_negativo).
-_CILINDRO_MAX_ABS_D = 8.0
+# El catálogo de captura llega a -8 D; el contrato persistido admite ±30 D.
+_CILINDRO_MAX_ABS_D = 30.0
 # Eje refractivo y queratometrico: 0..180 grados. El input del SaaS es un
 # number libre SIN validacion de rango, asi que valores fuera de 0..180 se
 # normalizan modulo 180 (el eje es ciclico) en vez de rechazarse.
@@ -111,8 +113,9 @@ def _transponer_a_cilindro_negativo(ojo) -> None:
     """
     if ojo.cilindro is None or ojo.cilindro <= 0:
         return
-    esf = ojo.esfera if ojo.esfera is not None else 0.0
-    ojo.esfera = esf + ojo.cilindro
+    # Ausencia no equivale a plano: conservarla para las comparaciones AR/Rx.
+    if ojo.esfera is not None:
+        ojo.esfera += ojo.cilindro
     ojo.cilindro = -ojo.cilindro
     if ojo.eje is not None:
         ojo.eje = ((ojo.eje + 90) % 180) or 180
@@ -198,11 +201,36 @@ class Refraccion(BaseModel):
 
 class AkrSnapshot(BaseModel):
     ticket_id: int | None = None
+    taken_at: datetime | None = None
     pd: float | None = None
     vd: float | None = None
     ker_index: float | None = None
     od: AkrOjo = Field(default_factory=AkrOjo)
     oi: AkrOjo = Field(default_factory=AkrOjo)
+
+    @field_validator("taken_at", mode="before")
+    @classmethod
+    def normalize_taken_at(cls, value):
+        if value is None:
+            return None
+        if isinstance(value, datetime):
+            return value
+        if isinstance(value, str):
+            value_str = value.strip()
+            if not value_str:
+                return None
+            for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d"):
+                try:
+                    return datetime.strptime(value_str, fmt)
+                except ValueError:
+                    pass
+            try:
+                dt = datetime.fromisoformat(value_str)
+                return dt
+            except (ValueError, TypeError):
+                pass
+        logger.warning("Valor invalido para akr.taken_at descartado: %r", value)
+        return None
 
     @model_validator(mode="after")
     def normaliza_catalogo_saas(self):
@@ -245,12 +273,16 @@ class DatosClinica(BaseModel):
         "confrontacion_campos_visuales",
         "fondo_de_ojo",
         "grid_de_amsler",
-        "recomendacion_seguimiento",
         mode="before",
     )
     @classmethod
     def normalize_texto_clinico(cls, value, info):
         return _normalize_texto_clinico(value, info.field_name)
+
+    @field_validator("recomendacion_seguimiento", mode="before")
+    @classmethod
+    def normalize_seguimiento(cls, value):
+        return _normalize_texto_clinico(value, "recomendacion_seguimiento", max_len=60000)
 
     @field_validator("motilidad_ocular", mode="before")
     @classmethod

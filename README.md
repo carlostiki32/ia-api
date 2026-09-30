@@ -58,7 +58,7 @@ FastAPI (uvicorn) ─ app/main.py
    │  si no hay cache: entra a la cola de concurrencia (máx. 1 inferencia a la vez)
    ▼
 Capa determinista ─ app/correlaciones/
-   │  evalúa 57 reglas clínicas fijas sobre el payload (sin LLM, 100% reproducible)
+   │  evalúa 47 reglas clínicas fijas (más 1 recordatorio técnico) sobre el payload (sin LLM, 100% reproducible)
    │  produce una lista de hechos clínicos ya redactados
    ▼
 Construcción del prompt ─ app/prompt_builder.py
@@ -94,12 +94,13 @@ Detalle línea por línea de este flujo (headers, timeouts, reintentos, formato 
 | `app/config.py` | Todas las variables de configuración (`Settings`, vía `pydantic-settings`), leídas de `.env`. También configura logging a consola + `logs/inference.log`. |
 | `app/schemas.py` | Modelos Pydantic del payload de entrada (`ImpresionClinicaRequest` y sub-modelos). Refleja el catálogo real del SaaS (dropdowns, enums, rangos) con **coerción tolerante**: un valor fuera de catálogo se descarta o normaliza (no tumba el request con `422`). Mapeo campo-por-campo en [DICCIONARIO_DATOS_RECETA.md](DICCIONARIO_DATOS_RECETA.md). |
 | `app/clinical_data.py` | Un solo chequeo: `has_clinical_data(req)` — rechaza payloads sin refracción ni datos clínicos. |
-| `app/correlaciones/` | **El motor de casos optométricos.** Paquete con las 57 reglas clínicas, organizadas por dominio. Ver [§7](#7-casos-optométricos-correlaciones-clínicas). |
+| `app/correlaciones/` | **El motor de casos optométricos.** Paquete con las 47 reglas clínicas y el recordatorio técnico, organizadas por dominio. Ver [§7](#7-casos-optométricos-correlaciones-clínicas). |
 | `app/prompt_builder.py` | Arma el system prompt y el user prompt que se le mandan al LLM, a partir del payload + las correlaciones activas. |
 | `app/inference.py` | Orquesta la inferencia: construye los prompts, valida el contexto, llama a Ollama y aplica el postprocesado + guardarraíles del texto crudo. |
 | `app/providers/ollama.py` | Cliente HTTP hacia Ollama (`/api/chat`), parámetros de sampling, reintentos, monitoreo de contexto. |
 | `app/cache.py` | Cache en memoria (TTL + tamaño máximo) para no repetir inferencias idénticas. |
-| `tests/` | Suite de pytest: correlaciones (incluye golden tests de texto exacto), prompt builder, schemas, inferencia, endpoint principal. |
+| `tests/` | Suite de pytest (más de 6000 pruebas): correlaciones (incluye golden tests de texto exacto), prompt builder, schemas, inferencia, endpoint principal y el corpus de casos históricos. |
+| `auditoria/` | Solo datos y scripts de referencia que leen las pruebas: corpus `2026-09-21/casos.json` y las órdenes/matrices de `conformidad-2026-09-29/` y `certificacion-2026-09-29/`. No es código de la API. |
 | `start_linux.sh` | Script de arranque para Ubuntu: valida `.env`, levanta Ollama si hace falta, descarga el modelo si falta, activa el venv, corre uvicorn. |
 | `.env` / `.env.example` | Configuración real / plantilla. Ver [§9](#9-configuración-env). |
 
@@ -127,11 +128,13 @@ Verificación rápida:
 curl http://localhost:8888/health
 ```
 
-Correr la suite de tests (no necesita GPU ni Ollama):
+Correr la suite de pruebas (no necesita GPU ni Ollama; más de 6000 pruebas, ~1 minuto):
 
 ```bash
-.venv/bin/python -m pytest    # 313+ tests
+.venv/bin/python -m pytest
 ```
+
+Las pruebas leen datos de referencia de `auditoria/` (ver [§3](#3-mapa-del-proyecto)); no los borres.
 
 ---
 
@@ -142,7 +145,7 @@ Correr la suite de tests (no necesita GPU ni Ollama):
 - **Headers:**
   - `Authorization: Bearer <el mismo valor que API_KEY en tu .env>`
   - `Content-Type: application/json`
-- **Body (raw JSON):** un payload con al menos `refraccion`, `akr` o `clinica` con algún valor. Hay **137 payloads reales listos para copiar** en [BATERIA_PRUEBAS_IA.md](BATERIA_PRUEBAS_IA.md) (cada caso trae su bloque JSON y las correlaciones que debe activar).
+- **Body (raw JSON):** un payload con al menos `refraccion`, `akr` o `clinica` con algún valor. La estructura campo por campo está en [DICCIONARIO_DATOS_RECETA.md](DICCIONARIO_DATOS_RECETA.md).
 
 Respuesta esperada:
 
@@ -188,12 +191,12 @@ Un "caso optométrico" en este sistema es una **correlación clínica**: una reg
 | `binocularidad.py` | Cover test, PPC, forias/tropias |
 | `superficie_ocular.py` | BUT (ojo seco) |
 | `contexto.py` | Edad, ocupación, motivo de consulta (screening, CVS, presbicia) |
-| `registry.py` | **Ensambla las 57 en orden fijo** y expone `evaluar_correlaciones` / `nombres_correlaciones_activas` |
+| `registry.py` | **Ensambla las reglas en orden fijo** y expone `evaluar_correlaciones` / `nombres_correlaciones_activas` |
 | `base.py`, `texto.py`, `refraccion_utils.py`, `queratometria.py` | Helpers compartidos (memoización, normalización de texto, cálculos clínicos) |
 
 Cada regla es determinista: no la decide el LLM, la decide Python. El LLM solo la redacta como soporte a la decisión clínica.
 
-**Catálogo clínico completo** (qué dispara cada una de las 57, con el fundamento clínico/evidencia detrás de cada una): **[CORRELACIONES_CLINICAS.md](CORRELACIONES_CLINICAS.md)** — este es el documento que le sirve tanto al optometrista y al doctor (para entender qué campo activa qué hallazgo) como al equipo técnico.
+**Catálogo clínico completo** (qué dispara cada una de las 47 reglas y el recordatorio técnico, con el fundamento clínico/evidencia detrás de cada una): **[CORRELACIONES_CLINICAS.md](CORRELACIONES_CLINICAS.md)** — este es el documento que le sirve tanto al optometrista y al doctor (para entender qué campo activa qué hallazgo) como al equipo técnico.
 
 ---
 
@@ -205,7 +208,7 @@ Cada regla es determinista: no la decide el LLM, la decide Python. El LLM solo l
    - `_texto_x(req) -> str` — el texto clínico que se agrega al prompt si aplica.
 3. Regístrala en `app/correlaciones/registry.py`, agregando `Correlacion("nombre_unico", _cond_x, _texto_x)` a la lista `CORRELACIONES`, en la posición correcta según prioridad clínica (los hallazgos urgentes van primero — el orden de esa lista es el orden en que aparecen en el párrafo final).
 4. Si tu regla depende de texto libre (fondo de ojo, motilidad, etc.), revisa los helpers de `texto.py` para normalización y ventana de negación ("sin desgarros" no debe disparar la regla de "desgarro").
-5. Agrega un test **golden** en `tests/test_correlaciones_golden.py` que audite directamente el texto exacto de tu regla nueva (obligatorio — hay un test que falla si te falta) y actualiza el conteo esperado de correlaciones en `tests/test_correlaciones.py`.
+5. Agrega un test **golden** en `tests/test_correlaciones_golden.py` que audite directamente el texto exacto de tu regla nueva (obligatorio: `test_golden_cubre_todas_las_correlaciones` falla si te falta) y actualiza el conteo esperado (47 médicas) en `tests/test_correlaciones.py` (`test_registro_separa_47_medicas_y_un_recordatorio_tecnico`).
 6. Documenta la regla (campos que la disparan, umbral, fundamento clínico) en `CORRELACIONES_CLINICAS.md`.
 
 Paso a paso con más contexto de arquitectura: [PIPELINE_LLM.md §14](PIPELINE_LLM.md#14-como-extender-el-sistema).
@@ -220,7 +223,7 @@ La plantilla completa es [.env.example](.env.example); cada parámetro de sampli
 |---|---|
 | `OLLAMA_URL` | Dónde vive tu Ollama (default `http://localhost:11434`, correcto si la API corre en el mismo Ubuntu). |
 | `OLLAMA_MODEL` | El modelo a usar — déjalo en `qwen3.5:9b`. |
-| `OLLAMA_TEMPERATURE` | `0.2` — tarea de extracción/reporte fiel, no chat; con seed fijo da salida casi determinista. Afinado con la batería de 137 casos (ver [RESULTADOS_BATERIA.md](RESULTADOS_BATERIA.md)). |
+| `OLLAMA_TEMPERATURE` | `0.2` — tarea de extracción/reporte fiel, no chat; con seed fijo da salida casi determinista. |
 | `OLLAMA_NUM_CTX` | `8192` — el payload máximo del diccionario no cabía en 4096 (daba `413`). Medido en la 3070 Ti: solo +0.2 GB de footprint vs 4096. |
 | `API_KEY` | El token que Postman debe mandar en `Authorization: Bearer`. **Cámbialo del placeholder** (el script de arranque lo exige). |
 | `HOST` / `PORT` | Dónde escucha uvicorn (default `0.0.0.0:8888`, para que Postman le pueda pegar desde otra máquina en tu red). Los lee `start_linux.sh`. |
@@ -235,9 +238,7 @@ La plantilla completa es [.env.example](.env.example); cada parámetro de sampli
 |---|---|
 | **README.md** (este archivo) | Punto de entrada: arquitectura, flujo Ubuntu/Ollama/Postman, dónde está cada cosa. |
 | [PIPELINE_LLM.md](PIPELINE_LLM.md) | Detalle técnico línea por línea del pipeline: schema completo, construcción del prompt, inferencia con Ollama, postprocesado + guardarraíles, cache, cómo extender el sistema. |
-| [CORRELACIONES_CLINICAS.md](CORRELACIONES_CLINICAS.md) | Catálogo clínico de las 57 correlaciones: qué las dispara y por qué, con evidencia y límites metodológicos. |
+| [CORRELACIONES_CLINICAS.md](CORRELACIONES_CLINICAS.md) | Catálogo clínico de las 47 correlaciones y el recordatorio técnico: qué las dispara y por qué, con evidencia y límites metodológicos. |
 | [DICCIONARIO_DATOS_RECETA.md](DICCIONARIO_DATOS_RECETA.md) | Diccionario de datos del SaaS: catálogo real (dropdowns, enums, rangos, texto libre) de cada campo del payload y especificación técnica del schema. |
-| [BATERIA_PRUEBAS_IA.md](BATERIA_PRUEBAS_IA.md) | Batería de 137 casos reales (payloads JSON + correlaciones esperadas sincronizadas) para validar el endpoint de punta a punta, con protocolo y runner. |
-| [RESULTADOS_BATERIA.md](RESULTADOS_BATERIA.md) | Resultados de la ejecución de la batería: 137/137 PASS determinista, análisis por bloque clínico, y justificación de `num_ctx=8192` / `temperature=0.2` en la 3070 Ti. |
 | [GUIA_CONEXION.md](GUIA_CONEXION.md) | Conexión total en producción: SaaS en Hetzner (`www.redcoretech.xyz`) → Cloudflare Tunnel → ia-api en la PC de casa. Namecheap/Cloudflare/WAF/systemd paso a paso, verificación end-to-end y tabla de debugging. |
 | [.claude/skills/qwen-inference/](.claude/skills/qwen-inference/) | Referencia técnica de Qwen3.5 usada como fuente para los parámetros de inferencia. |

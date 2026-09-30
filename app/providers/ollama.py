@@ -27,11 +27,15 @@ async def call(
     system_prompt: str,
     user_prompt: str,
     client: httpx.AsyncClient,
+    *,
+    num_predict: int | None = None,
 ) -> tuple[str, dict]:
     """
     Llama a Ollama /api/chat y devuelve (raw_text, response_data).
     Reintenta ante ReadTimeout o 5xx hasta ollama_max_retries.
+    `num_predict` sustituye el limite de tokens de salida (reintento tras truncamiento).
     """
+    options = _OLLAMA_OPTIONS if num_predict is None else {**_OLLAMA_OPTIONS, "num_predict": num_predict}
     request_body = {
         "model": settings.ollama_model,
         "messages": [
@@ -40,7 +44,7 @@ async def call(
         ],
         "stream": False,
         "think":  False,
-        "options": _OLLAMA_OPTIONS,
+        "options": options,
     }
 
     data: dict = {}
@@ -105,7 +109,7 @@ async def call(
         logger.warning(
             "Ollama output truncated by num_predict limit (%d tokens). "
             "Output length: %d chars.",
-            settings.ollama_num_predict,
+            options["num_predict"],
             len(raw_text),
         )
 

@@ -1,0 +1,101 @@
+{
+  "numero": 2,
+  "nombre": "sintomas_alarma_traccion_vitreoretina",
+  "veredicto": "PARCIAL",
+  "requisitos": [
+    [
+      "Solo motivo_consulta, excluir anillo Weiss/signos de fondo",
+      "AUDITORIA_CORRELACIONES.md:1003-1005",
+      "app/correlaciones/fondo_de_ojo.py:335",
+      "Implementado"
+    ],
+    [
+      "Fotopsia/miodesopsia/alarma por clausula, plurales, negacion y sujeto",
+      "AUDITORIA_CORRELACIONES.md:1006-1014; T1/T9",
+      "app/correlaciones/fondo_de_ojo.py:290,327,335-390",
+      "PARCIAL: veto familiar/descartar por clausula borra paciente actual F02-01/02"
+    ],
+    [
+      "Halos/aura locales, no suprimir miodesopsia reciente/alarma coexistente",
+      "AUDITORIA_CORRELACIONES.md:1015-1021",
+      "app/correlaciones/fondo_de_ojo.py:390-404",
+      "Implementado en ejemplos previstos"
+    ],
+    [
+      "Cronologia local o clausula inmediata; nuevo adyacente; no prestar tiempo de otro motivo",
+      "AUDITORIA_CORRELACIONES.md:1022-1031",
+      "app/correlaciones/fondo_de_ojo.py:290,313,355-367",
+      "Implementado; F02-03 independiente reciente pasa"
+    ],
+    [
+      "Niveles A mismo dia,B48h,C condicional,cronico sin cambio abstencion",
+      "AUDITORIA_CORRELACIONES.md:1032-1048",
+      "app/correlaciones/fondo_de_ojo.py:393-404,2566",
+      "Implementado textos/plazos, no afirma DVP"
+    ],
+    [
+      "Suprimir niveles urgentes #1 y H01 solo prefijo; C no borra seguimiento anual",
+      "AUDITORIA_CORRELACIONES.md:1049-1052",
+      "app/correlaciones/fondo_de_ojo.py:2553;app/inference.py:470",
+      "Implementado; falta cobertura fina de clausulas mixtas"
+    ],
+    [
+      "Hipotesis condicional no episodio actual; certeza antes de prioridad/H01",
+      "AUDITORIA_CORRELACIONES.md:234-255,T10;1006-1014,1032-1052",
+      "app/correlaciones/fondo_de_ojo.py:335,350,2566",
+      "Contraejemplo Si presentara perdida visual subita, volveria. confirmado con AVcc20/40OD: #2 y #56 urgentes/H01. Evidencia original contexto/54-57-casos.json; no duplicada."
+    ]
+  ],
+  "casos": [
+    {
+      "entrada": {
+        "motivo": "Mi madre tuvo fotopsias y yo tengo miodesopsias desde hoy."
+      },
+      "esperado": {
+        "activa": true,
+        "urgente": true,
+        "h01": true,
+        "contiene": [
+          "miodesopsias",
+          "48 horas"
+        ]
+      },
+      "motivo": "Familiar en misma clausula borra miodesopsias propias nuevas."
+    },
+    {
+      "entrada": {
+        "motivo": "Moscas volantes desde hoy para descartar catarata."
+      },
+      "esperado": {
+        "activa": true,
+        "urgente": true,
+        "h01": true
+      },
+      "motivo": "Plan de descartar catarata borra moscas volantes propias nuevas."
+    },
+    {
+      "entrada": {
+        "motivo": "Fotopsias, desde ayer."
+      },
+      "esperado": {
+        "activa": true,
+        "urgente": true,
+        "contiene": [
+          "48 horas"
+        ]
+      }
+    },
+    {
+      "entrada": {
+        "motivo": "Niega moscas volantes. Mi padre tuvo fotopsias desde hoy."
+      },
+      "esperado": {
+        "activa": false,
+        "h01": false
+      }
+    }
+  ],
+  "cobertura": "Corrida agrupada real de 13 archivos de aceptacion/integracion: 1496 aprobadas, 0 fallos, 0 errores, 0 omitidas; JUnit suite-existente.xml. Comando: .venv/Scripts/python.exe -m pytest tests/test_auditoria_correlaciones.py tests/test_revalidacion_ajustes.py tests/test_revalidacion_papila_macula.py tests/test_revalidacion_sintomas_oclusiones.py tests/test_ajuste_c12.py tests/test_ajuste_c13.py tests/test_ajuste_c14.py tests/test_ajuste_c15.py tests/test_ajuste_c16.py tests/test_ajuste_c17.py tests/test_ajuste_c18.py tests/test_ajuste_c19.py tests/test_correlaciones.py -q -p no:cacheprovider --junitxml=auditoria/conformidad-2026-09-29/fondo/suite-existente.xml",
+  "conclusion": "F02-01 y02 pierden sintomas recientes actuales por un veto de clausula completa: parentesco o descartar se interpreta como calificador global aunque afecte otra entidad. F02-03/04 controlan temporalidad adyacente y tercero aislado correctamente. Ademas se confirmo el subjuntivo hipotetico Si presentara perdida visual subita, volveria. con AVcc20/40OD: se convierte en episodio actual urgente de #2/H01. Evidencia original en los informes/JSON de contexto54-57; no se duplica aqui.",
+  "recomendaciones": "Extraer sujeto y certeza por ocurrencia; separar cambio de sujeto yo/paciente y plan para descartar catarata del sintoma afirmado. Conservar los controles que no convierten hipotesis de sintoma ni relato familiar en sintoma actual. Revalidar A/B/C, exclusiones y supresion con #1. Resolver condicionales hipoteticos y subjuntivos antes de prioridad: una instruccion sobre que hacer si apareciera un sintoma no acredita que este presente."
+}

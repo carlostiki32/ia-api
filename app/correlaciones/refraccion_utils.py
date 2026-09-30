@@ -7,10 +7,8 @@ import re
 from app.correlaciones.texto import _join_hallazgos, _normalize_text
 
 
-# Umbral de AV con correccion "limitada": denominador Snellen (en pie) > 25, es
-# decir 20/30 o peor. 20/20 y 20/25 se consideran dentro de limites normales y no
-# disparan la correlacion (evita el ruido y el screening del adulto mayor por una
-# reduccion clinicamente trivial).
+# Seleccion operativa de AV registrada: denominador Snellen >25 (20/30 o peor).
+# No valida gravedad, discapacidad, normalidad por debajo ni protocolo de BCVA.
 _AV_DENOM_LIMITE = 25
 
 # Categorias clinicas formales de baja vision profunda (sub-Snellen):
@@ -151,31 +149,22 @@ def _av_es_limitada(av: str | None) -> bool:
 
 
 def _av_categoria(av: str | None) -> str | None:
+    """Descripcion numerica; no clasifica discapacidad ni gravedad clinica."""
     denominator = _av_denominator(av)
     if denominator is None or denominator <= _AV_DENOM_LIMITE:
         return None
-    if denominator <= 30:
-        return "leve reduccion de la agudeza visual con correccion"
-    if denominator <= 50:
-        return "reduccion moderada de la agudeza visual con correccion"
-    if denominator <= 100:
-        return "reduccion marcada de la agudeza visual con correccion"
-    return "deficit visual severo con correccion"
+    return "AV con correccion registrada inferior a 20/25; pendiente de verificacion"
 
 
 def _equivalente_esferico(esf: float | None, cil: float | None) -> float | None:
     """Calcula el equivalente esferico (esfera + cilindro / 2).
 
-    Diferencia dato no capturado de componente cilindrico nulo:
-    - Si ambos son None: retorna None (refraccion no capturada).
-    - Si esfera es None pero cilindro existe: asume esfera plana (0.00 D) para prescripcion cilindrica.
-    - Si esfera existe y cilindro es None: se interpreta como prescripcion esferica pura (cilindro 0.00 D).
+    Requiere ambos componentes registrados. Un cero explicito es valido;
+    un dato no capturado no equivale a cero (diccionario, seccion 1.2).
     """
-    if esf is None and cil is None:
+    if esf is None or cil is None:
         return None
-    if esf is None:
-        return (cil or 0.0) / 2.0
-    return esf + (cil or 0.0) / 2.0
+    return esf + cil / 2.0
 
 
 def _format_eyes_with_values(values: list[tuple[str, float]], label: str) -> str:

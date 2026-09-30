@@ -1,0 +1,113 @@
+{
+  "numero": 6,
+  "nombre": "fondo_glaucomatoso",
+  "veredicto": "PARCIAL",
+  "requisitos": [
+    [
+      "Extractor C/D: normalizar decimales,n/10,prefijos vertical,todos valores,no coma-separador,estructuras/numeros ajenos,max por ojo",
+      "AUDITORIA_CORRELACIONES.md:1659-1671",
+      "app/correlaciones/fondo_de_ojo.py:601",
+      "Parcial: no conserva pareja sin etiquetas como especifica orden F06-01"
+    ],
+    [
+      "Umbral0.7,pequeño0.6,grande0.8; asimetria>=0.2 salvo tamañosdistintos",
+      "AUDITORIA_CORRELACIONES.md:1672-1676",
+      "app/correlaciones/fondo_de_ojo.py:1092-1120",
+      "Implementado por ojo documentado"
+    ],
+    [
+      "Signos focales afirmados y anclajehemorragia astilla; quitarexcavacion generica",
+      "AUDITORIA_CORRELACIONES.md:1677-1687",
+      "app/correlaciones/fondo_de_ojo.py:1029-1046,1138-1189",
+      "Parcial: plan descarte en misma clausula borra signo presente F06-02"
+    ],
+    [
+      "Texto detalles/ojos,estudio glaucoma,TAMANO por C/D,MIOPIA del ojo afectado<=-3",
+      "AUDITORIA_CORRELACIONES.md:1688-1695",
+      "app/correlaciones/fondo_de_ojo.py:1206-1244",
+      "Parcial: affected_eyes omite asimetria aislada F06-03"
+    ],
+    [
+      "C/D/signo focal/ISNT no causa AV; solo glaucoma avanzado/terminal/neuropatia avanzada",
+      "AUDITORIA_CORRELACIONES.md:1696-1699; posterior56/57:3916,3932",
+      "app/correlaciones/contexto.py:_has_organic_cause_for_low_av",
+      "RedesAV coexisten; presencia organica tampoco veta globalmente tras revisionposterior"
+    ],
+    [
+      "No urgente,no H01; supresion5/4combinado; fusion7mismaorden",
+      "AUDITORIA_CORRELACIONES.md:1700-1703",
+      "app/correlaciones/fondo_de_ojo.py:1071;app/correlaciones/registry.py;app/inference.py:_EMERGENCY_SPECS",
+      "Implementado; fusion revisada separado #7"
+    ],
+    [
+      "Revision posterior56/57: no usar keywords de causa organica como prueba causal completa ni veto de AV; preservar ojos/hechos/prioridad",
+      "AUDITORIA_CORRELACIONES.md:3916,3932",
+      "app/correlaciones/contexto.py:139,157,174",
+      "Los selectores actuales de AV no contienen filtro organico; condiciones originales de causalidad de este bloque se leen bajo esa revision posterior."
+    ]
+  ],
+  "casos": [
+    {
+      "entrada": {
+        "fondo": "C/D 0.2/0.5"
+      },
+      "esperado": {
+        "activa": true,
+        "urgente": false,
+        "contiene": [
+          "asimetria"
+        ]
+      },
+      "motivo": "Pareja C/D sin etiquetas pierde comparacion numerica ordenada; conservar numeros sin inventar ojos."
+    },
+    {
+      "entrada": {
+        "fondo": "Muesca inferior OD para descartar glaucoma."
+      },
+      "esperado": {
+        "activa": true,
+        "urgente": false,
+        "contiene": [
+          "muesca"
+        ]
+      },
+      "motivo": "Plan para descartar glaucoma elimina muesca afirmada."
+    },
+    {
+      "entrada": {
+        "fondo": "C/D 0.2 OD, 0.5 OI",
+        "rx_oi": {
+          "esfera": -6,
+          "cilindro": 0
+        }
+      },
+      "esperado": {
+        "activa": true,
+        "contiene": [
+          "miopia"
+        ]
+      },
+      "motivo": "Asimetria con EE -6 OI no incorpora factor miopico del ojo afectado."
+    },
+    {
+      "entrada": {
+        "fondo": "C/D 0.7 OD",
+        "rx_od": {
+          "esfera": 0,
+          "cilindro": 0,
+          "av_cc": "20/50"
+        }
+      },
+      "esperado": {
+        "activa": true,
+        "h01": false,
+        "activas": [
+          "deficit_visual_inexplicado_refractivo"
+        ]
+      }
+    }
+  ],
+  "cobertura": "Corrida agrupada real de 13 archivos de aceptacion/integracion: 1496 aprobadas, 0 fallos, 0 errores, 0 omitidas; JUnit suite-existente.xml. Comando: .venv/Scripts/python.exe -m pytest tests/test_auditoria_correlaciones.py tests/test_revalidacion_ajustes.py tests/test_revalidacion_papila_macula.py tests/test_revalidacion_sintomas_oclusiones.py tests/test_ajuste_c12.py tests/test_ajuste_c13.py tests/test_ajuste_c14.py tests/test_ajuste_c15.py tests/test_ajuste_c16.py tests/test_ajuste_c17.py tests/test_ajuste_c18.py tests/test_ajuste_c19.py tests/test_correlaciones.py -q -p no:cacheprovider --junitxml=auditoria/conformidad-2026-09-29/fondo/suite-existente.xml",
+  "conclusion": "F06-01 no conserva comparacion de pareja C/D sin etiquetas prescrita por orden. No se recomienda inventar OD/OI: puede conservar valores y describir diferencia con lateralidad sin especificar. F06-02 pierde muesca afirmada al aparecer descartar glaucoma. F06-03 activa asimetria pero omite factor adicional miopia del ojo afectado porque affected_eyes solo incluye valores sobre umbral y focales.",
+  "recomendaciones": "Conservar parejas de valores sin inventar ojos y describir su diferencia conforme a orden; valorar aclaracion contractual del formato. Asociar plan descarte a su objeto sin negar muesca actual. Añadir ojos participantes en asimetria a evaluacion de factor miopico con EE conocido; no tratar cilindro nulo como0. Regresiones de los tres controles y textos fieles a fuentes."
+}

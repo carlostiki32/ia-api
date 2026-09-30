@@ -1,5 +1,6 @@
 import app.correlaciones as corr
 from app.correlaciones import fondo_de_ojo
+from app.correlaciones.registry import evaluar_correlaciones_con_nombres
 from app.schemas import (
     AkrOjo,
     AkrSnapshot,
@@ -32,7 +33,7 @@ def test_av_cc_limitada_ignora_vision_supranormal():
     assert corr.evaluar_correlaciones(req) == []
 
 
-def test_av_cc_limitada_categoria_moderada():
+def test_av_cc_limitada_describe_cifra_sin_categoria_de_gravedad():
     req = _make_request(
         refraccion=Refraccion(
             od=GraduacionOjo(av_cc="20/40"),
@@ -41,9 +42,10 @@ def test_av_cc_limitada_categoria_moderada():
 
     result = corr.evaluar_correlaciones(req)
 
-    assert len(result) == 1
-    assert "OD (20/40)" in result[0]
-    assert "reduccion moderada" in result[0]
+    text = dict(evaluar_correlaciones_con_nombres(req))["av_cc_limitada"]
+    assert "OD: AV con correccion registrada de 20/40" in text
+    assert "no acredita mejor AV corregida" in text and "moderada" not in text
+    assert "deficit_visual_inexplicado_refractivo" in _active_names(req)
 
 
 def test_anisometropia_usa_equivalente_esferico_y_evita_falso_positivo():
@@ -57,7 +59,7 @@ def test_anisometropia_usa_equivalente_esferico_y_evita_falso_positivo():
     assert "anisometropia" not in _active_names(req)
 
 
-def test_ar_rx_espasmo_acomodativo_activa_variante_especifica():
+def test_retiro_espasmo_no_infiere_acomodacion_desde_ar_y_pantallas():
     req = _make_request(
         paciente=ContextoPaciente(edad=25),
         clinica=DatosClinica(uso_pantallas="gt6"),
@@ -68,12 +70,12 @@ def test_ar_rx_espasmo_acomodativo_activa_variante_especifica():
     names = _active_names(req)
     texts = corr.evaluar_correlaciones(req)
 
-    assert "ar_rx_espasmo_acomodativo" in names
+    assert "ar_rx_espasmo_acomodativo" not in names
     assert "ar_rx_variabilidad_inespecifica" not in names
-    assert any("espasmo acomodativo" in text for text in texts)
+    assert not any("espasmo acomodativo" in text for text in texts)
 
 
-def test_ar_rx_cambio_cristalino_activa_variante_especifica():
+def test_retiro_cambio_cristalino_conserva_discrepancia():
     req = _make_request(
         paciente=ContextoPaciente(edad=67),
         refraccion=Refraccion(od=GraduacionOjo(esfera=+1.00)),
@@ -82,8 +84,8 @@ def test_ar_rx_cambio_cristalino_activa_variante_especifica():
 
     names = _active_names(req)
 
-    assert "ar_rx_cambio_cristalino" in names
-    assert "ar_rx_variabilidad_inespecifica" not in names
+    assert "ar_rx_cambio_cristalino" not in names
+    assert "ar_rx_variabilidad_inespecifica" in names
 
 
 def test_ar_rx_variabilidad_inespecifica_activa_como_fallback():
@@ -111,7 +113,7 @@ def test_ar_detecta_astigmatismo_no_prescrito():
     assert "ar_detecta_astigmatismo_no_prescrito" in names
 
 
-def test_ar_detecta_astigmatismo_no_prescrito_requiere_soporte_queratometrico_si_existe():
+def test_ar_rx_cilindros_explicitos_no_se_silencian_por_k_pequena():
     req = _make_request(
         refraccion=Refraccion(od=GraduacionOjo(cilindro=-0.25)),
         akr=AkrSnapshot(
@@ -123,10 +125,10 @@ def test_ar_detecta_astigmatismo_no_prescrito_requiere_soporte_queratometrico_si
         ),
     )
 
-    assert "ar_detecta_astigmatismo_no_prescrito" not in _active_names(req)
+    assert "ar_detecta_astigmatismo_no_prescrito" in _active_names(req)
 
 
-def test_ar_detecta_astigmatismo_no_prescrito_usa_soporte_queratometrico():
+def test_ar_rx_cilindros_explicitos_no_infiere_tolerancia_desde_k():
     req = _make_request(
         refraccion=Refraccion(od=GraduacionOjo(cilindro=-0.25)),
         akr=AkrSnapshot(
@@ -141,7 +143,8 @@ def test_ar_detecta_astigmatismo_no_prescrito_usa_soporte_queratometrico():
     texts = corr.evaluar_correlaciones(req)
 
     assert "ar_detecta_astigmatismo_no_prescrito" in _active_names(req)
-    assert any("cilindro corneal 1.25D" in text for text in texts)
+    assert any("cilindro AR -1.00D y cilindro prescrito -0.25D" in text for text in texts)
+    assert not any("tolerancia clinica adecuada" in text for text in texts)
 
 
 def test_insuficiencia_convergencia_suprime_ppc_y_cover_exoforia():
@@ -159,12 +162,13 @@ def test_insuficiencia_convergencia_suprime_ppc_y_cover_exoforia():
     assert "insuficiencia_convergencia" in names
     assert "ppc_exoforia" not in names
     assert "cover_exoforia_sintomatica" not in names
-    assert any("insuficiencia de convergencia" in text for text in texts)
+    assert any("PPC de 12 cm" in text and "exoforia en OD" in text for text in texts)
+    assert not any("sospecha de insuficiencia" in text for text in texts)
 
 
 def test_papila_patologica_urgente_por_bordes_borrosos():
     req = _make_request(
-        clinica=DatosClinica(fondo_de_ojo="Papila con bordes borrosos en ambos ojos."),
+        clinica=DatosClinica(fondo_de_ojo="Papiledema en ambos ojos."),
     )
 
     names = _active_names(req)
@@ -199,24 +203,26 @@ def test_negacion_por_oracion_evita_falso_positivo_en_dmae():
 def test_hipermetropia_alta_adapta_texto_en_paciente_joven():
     req = _make_request(
         paciente=ContextoPaciente(edad=18),
-        refraccion=Refraccion(od=GraduacionOjo(esfera=+5.50)),
+        refraccion=Refraccion(od=GraduacionOjo(esfera=+5.50, cilindro=0)),
     )
 
     result = corr.evaluar_correlaciones(req)
 
-    assert any("demanda acomodativa significativa" in text for text in result)
+    assert any("EE +5.50D" in text for text in result)
+    assert not any("demanda acomodativa significativa" in text for text in result)
 
 
-def test_hipermetropia_alta_menciona_queratometria_plana():
+def test_hipermetropia_alta_no_atribuye_mecanismo_desde_k_plana():
     req = _make_request(
         paciente=ContextoPaciente(edad=45),
-        refraccion=Refraccion(od=GraduacionOjo(esfera=+5.50)),
+        refraccion=Refraccion(od=GraduacionOjo(esfera=+5.50, cilindro=0)),
         akr=AkrSnapshot(od=AkrOjo(k_promedio_d=40.00)),
     )
 
     result = corr.evaluar_correlaciones(req)
 
-    assert any("curvatura corneal plana" in text for text in result)
+    assert any("EE +5.50D" in text for text in result)
+    assert not any("componente corneal" in text or "curvatura corneal plana" in text for text in result)
 
 
 def test_exotropia_lente_activa():
@@ -243,9 +249,7 @@ def test_desviacion_vertical_activa():
 
 
 def test_astig_oblicuo_no_activa_solo_por_queratometria():
-    """La queratometria por si sola (sin cilindro refractivo oblicuo relevante) no
-    debe disparar astig_oblicuo: la queratometria solo confirma, nunca dispara
-    (ver CORRELACIONES_CLINICAS.md, seccion 5.4)."""
+    """K sola no sustituye cilindro/eje final; la coincidencia angular no confirma causa."""
     req = _make_request(
         akr=AkrSnapshot(
             od=AkrOjo(
@@ -262,7 +266,7 @@ def test_astig_oblicuo_no_activa_solo_por_queratometria():
     assert "astig_oblicuo" not in _active_names(req)
 
 
-def test_astig_oblicuo_confirmado_por_queratometria():
+def test_astig_oblicuo_queratometria_solo_agrega_orientacion():
     req = _make_request(
         refraccion=Refraccion(od=GraduacionOjo(cilindro=-2.50, eje=45)),
         akr=AkrSnapshot(
@@ -281,7 +285,8 @@ def test_astig_oblicuo_confirmado_por_queratometria():
     texts = corr.evaluar_correlaciones(req)
 
     assert "astig_oblicuo" in names
-    assert any("astigmatismo elevado con eje oblicuo confirmado por queratometria" in text for text in texts)
+    assert any("orientacion oblicua" in text for text in texts)
+    assert not any("confirmado" in text or "concordante con queratometria" in text for text in texts)
 
 
 def test_cambio_cristalino_no_activa_si_queratometria_sugiere_irregularidad_corneal():
@@ -303,17 +308,17 @@ def test_cambio_cristalino_no_activa_si_queratometria_sugiere_irregularidad_corn
     assert "ar_rx_variabilidad_inespecifica" in names
 
 
-def test_adulto_mayor_screening_se_suprime_si_ya_hay_patologia_especifica():
+def test_adulto_mayor_av_se_conserva_junto_a_patologia_especifica():
     req = _make_request(
         paciente=ContextoPaciente(edad=72),
         refraccion=Refraccion(od=GraduacionOjo(av_cc="20/40")),
-        clinica=DatosClinica(fondo_de_ojo="Drusas en polo posterior."),
+        clinica=DatosClinica(fondo_de_ojo="Atrofia geografica macular."),
     )
 
     names = _active_names(req)
 
     assert "fondo_macular_dmae" in names
-    assert "adulto_mayor_screening" not in names
+    assert "adulto_mayor_screening" in names
 
 
 def test_fondo_periferico_riesgo_incluye_hallazgo_especifico():
@@ -330,17 +335,18 @@ def test_fondo_periferico_riesgo_incluye_hallazgo_especifico():
 def test_but_critico_esta_antes_que_correlaciones_contextuales():
     names = [correlacion.nombre for correlacion in corr.CORRELACIONES]
 
-    assert names.index("but_critico") < names.index("presbicia_multifocal")
+    assert names.index("but_critico") < names.index("cvs_sospecha")
     assert names.index("but_critico") < names.index("but_pantallas")
 
 
-def test_registro_tiene_57_correlaciones_con_nombres_unicos():
-    """El paquete por dominio debe seguir registrando exactamente las 57
+def test_registro_separa_47_medicas_y_un_recordatorio_tecnico():
+    """47 médicas: las 46 anteriores más la vía sintomática exigida por #27 D6; las
     correlaciones, con nombres unicos. Blinda el ensamblado de registry.py tras
-    el split por dominios y las nuevas expansiones clinicas."""
+    la absorcion de ISNT y el retiro de inferencias funcionales #27 y #28."""
     names = [c.nombre for c in corr.CORRELACIONES]
-    assert len(names) == 57
-    assert len(set(names)) == 57
+    assert len(names) == 47
+    assert len(set(names)) == 47
+    assert [c.nombre for c in corr.RECORDATORIOS_TECNICOS] == ["distancia_vertice_alta_ametropia"]
 
 
 def test_nombres_correlaciones_activas_coincide_con_evaluar():
@@ -395,10 +401,11 @@ def test_amsler_no_se_bloquea_por_normalidad_parcial():
 # --- Regresion: av_cc en notacion metrica y decimal ---
 
 def test_av_cc_limitada_acepta_metrico():
+    """Compatibilidad del helper fuera del catálogo actual; no valida un nuevo payload."""
     req = _make_request(refraccion=Refraccion(od=GraduacionOjo(av_cc="6/12")))
     result = corr.evaluar_correlaciones(req)
-    assert len(result) == 1
-    assert "reduccion moderada" in result[0]
+    text = dict(evaluar_correlaciones_con_nombres(req))["av_cc_limitada"]
+    assert "AV con correccion registrada de 6/12" in text and "moderada" not in text
 
 
 def test_av_cc_limitada_acepta_decimal():
@@ -407,12 +414,12 @@ def test_av_cc_limitada_acepta_decimal():
 
 
 def test_av_cc_limitada_no_dispara_en_20_25():
-    """20/25 se considera dentro de limites normales (umbral > 25)."""
+    """20/25 queda fuera de esta selección operativa; no acredita normalidad."""
     req = _make_request(refraccion=Refraccion(od=GraduacionOjo(av_cc="20/25")))
     assert corr.evaluar_correlaciones(req) == []
 
 
-# --- PPC dependiente de edad (criterio CITT) ---
+# --- PPC registrado no hereda diagnóstico ni cortes CITT por edad ---
 
 def test_ppc_exoforia_dispara_en_joven_con_ppc_intermedio():
     req = _make_request(
@@ -422,12 +429,13 @@ def test_ppc_exoforia_dispara_en_joven_con_ppc_intermedio():
     assert "ppc_exoforia" in _active_names(req)
 
 
-def test_ppc_exoforia_no_dispara_en_presbita_con_ppc_intermedio():
+def test_ppc_exoforia_describe_dato_en_adulto_sin_etiqueta_alejado():
     req = _make_request(
         paciente=ContextoPaciente(edad=55),
         clinica=DatosClinica(ppc_cm=8),
     )
-    assert "ppc_exoforia" not in _active_names(req)
+    assert "ppc_exoforia" in _active_names(req)
+    assert not any("alejado" in t for t in corr.evaluar_correlaciones(req))
 
 
 # --- Correlaciones nuevas disparadas por queratometria ---
@@ -437,7 +445,8 @@ def test_queratocono_ectasia_sospecha_dispara_por_curvatura_alta():
     names = _active_names(req)
     texts = corr.evaluar_correlaciones(req)
     assert "queratocono_ectasia_sospecha" in names
-    assert any("queratocono" in text for text in texts)
+    assert any("K2 registrada 49.00D" in text for text in texts)
+    assert not any("queratocono" in text or "ectasia" in text for text in texts)
 
 
 def test_astigmatismo_corneal_vs_refractivo_dispara_por_discrepancia_de_magnitud():
@@ -451,7 +460,7 @@ def test_astigmatismo_corneal_vs_refractivo_dispara_por_discrepancia_de_magnitud
 def test_astigmatismo_corneal_vs_refractivo_dispara_por_discrepancia_de_eje():
     req = _make_request(
         refraccion=Refraccion(od=GraduacionOjo(cilindro=-2.00, eje=90)),
-        akr=AkrSnapshot(od=AkrOjo(k_cilindro=-2.00, k_cilindro_eje=180)),
+        akr=AkrSnapshot(od=AkrOjo(k1_d=42, k2_d=44, k1_eje=180, k2_eje=90, k_cilindro=-2.00, k_cilindro_eje=180)),
     )
     assert "astigmatismo_corneal_vs_refractivo" in _active_names(req)
 
@@ -464,14 +473,14 @@ def test_astigmatismo_corneal_vs_refractivo_no_dispara_si_concuerdan():
     assert "astigmatismo_corneal_vs_refractivo" not in _active_names(req)
 
 
-def test_presbicia_sin_adicion_dispara():
+def test_retiro_presbicia_sin_adicion_no_infiere_deficit():
     req = _make_request(
         paciente=ContextoPaciente(edad=50),
         refraccion=Refraccion(od=GraduacionOjo(esfera=+0.50)),
         tipo_lente="monofocal",
     )
     names = _active_names(req)
-    assert "presbicia_sin_adicion" in names
+    assert "presbicia_sin_adicion" not in names
     assert "presbicia_multifocal" not in names
 
 
@@ -483,8 +492,8 @@ def test_presbicia_sin_adicion_no_dispara_si_hay_adicion():
     assert "presbicia_sin_adicion" not in _active_names(req)
 
 
-def test_presbicia_sin_adicion_no_dispara_en_miope_funcional():
-    """Un miope de -2.50 lee quitandose los lentes: la falta de add es lo esperable."""
+def test_presbicia_sin_adicion_retirada_en_rx_miopica():
+    """La receta sola no acredita función de cerca ni estrategia de uso de gafas."""
     req = _make_request(
         paciente=ContextoPaciente(edad=52),
         refraccion=Refraccion(od=GraduacionOjo(esfera=-2.50), oi=GraduacionOjo(esfera=-2.75)),
@@ -500,7 +509,7 @@ def test_adicion_incongruente_por_add_alta_para_la_edad():
         paciente=ContextoPaciente(edad=46),
         refraccion=Refraccion(od=GraduacionOjo(add=2.75)),
     )
-    assert "adicion_incongruente_edad" in _active_names(req)
+    assert "adicion_incongruente_edad" not in _active_names(req)
 
 
 def test_adicion_incongruente_por_add_en_no_presbita():
@@ -508,7 +517,7 @@ def test_adicion_incongruente_por_add_en_no_presbita():
         paciente=ContextoPaciente(edad=28),
         refraccion=Refraccion(od=GraduacionOjo(add=1.50)),
     )
-    assert "adicion_incongruente_edad" in _active_names(req)
+    assert "adicion_incongruente_edad" not in _active_names(req)
 
 
 def test_adicion_congruente_no_dispara():
@@ -532,21 +541,23 @@ def test_hipermetropia_alta_invarianza_transposicion_plus_minus():
     )
     assert _active_names(req_plus) == _active_names(req_minus)
     assert "hipermetropia_alta" in _active_names(req_plus)
-    assert "distancia_vertice_alta_ametropia" in _active_names(req_plus)
+    assert "distancia_vertice_alta_ametropia" not in _active_names(req_plus)
+    assert corr.evaluar_recordatorios_tecnicos(req_plus) == corr.evaluar_recordatorios_tecnicos(req_minus)
     assert corr.evaluar_correlaciones(req_plus) == corr.evaluar_correlaciones(req_minus)
 
 
 def test_ambliopia_sospecha_por_anisometropia_y_av_limitada():
     req = _make_request(
         refraccion=Refraccion(
-            od=GraduacionOjo(esfera=-0.50, av_cc="20/20"),
-            oi=GraduacionOjo(esfera=-3.00, av_cc="20/60", av_sc="20/200"),
+            od=GraduacionOjo(esfera=-0.50, cilindro=0, av_cc="20/20"),
+            oi=GraduacionOjo(esfera=-3.00, cilindro=0, av_cc="20/60", av_sc="20/200"),
         ),
     )
     names = _active_names(req)
     texts = corr.evaluar_correlaciones(req)
     assert "ambliopia_sospecha" in names
-    assert any("ambliopia" in t and "20/200" in t for t in texts)
+    assert any("20/200" in t and "20/60" in t for t in texts)
+    assert not any("sospecha de ambliopia" in t for t in texts)
 
 
 def test_ambliopia_sospecha_se_suprime_si_hay_causa_organica():
@@ -578,8 +589,8 @@ def test_convergencia_no_usa_ocupacion_como_sustituto_de_sintoma():
     assert "insuficiencia_convergencia" not in names
     assert "ppc_exoforia" in names
     texts = corr.evaluar_correlaciones(req)
-    assert any("punto proximo de convergencia alejado (12 cm)" in t for t in texts)
-    assert any("tendencia divergente" in t for t in texts)
+    assert any("PPC de 12 cm" in t for t in texts)
+    assert any("exoforia en OD" in t for t in texts)
     assert not any("sintomatologia de vision proxima" in t for t in texts)
 
 
@@ -592,8 +603,9 @@ def test_convergencia_con_ocupacion_y_sintomas_reales_si_dispara():
         clinica=DatosClinica(ppc_cm=12, cover_test="OD: Exo y Foria | OI: Orto"),
     )
     names = _active_names(req)
-    assert "insuficiencia_convergencia" in names
-    assert "ppc_exoforia" not in names
+    assert "insuficiencia_convergencia" not in names
+    assert "ppc_exoforia" in names
+    assert "cover_exoforia_sintomatica" in names
 
 
 # --- Refuerzo de disparadores en texto libre (sinonimos, coloquialismos, abreviaturas) ---
@@ -602,7 +614,8 @@ def test_anexos_dispara_por_coloquialismo_carnosidad():
     req = _make_request(clinica=DatosClinica(anexos_oculares="Se observa carnosidad nasal en OD."))
     result = corr.evaluar_correlaciones(req)
     assert "anexos_patologicos" in _active_names(req)
-    assert any("pterigion" in t for t in result)
+    assert any("carnosidad nasal OD" in t for t in result)
+    assert not any("pterigion" in t for t in result)
 
 
 def test_anexos_dispara_por_calacio_y_perrilla():
@@ -623,7 +636,8 @@ def test_pupilas_dispara_por_rapd_variante_inglesa():
     req = _make_request(clinica=DatosClinica(reflejos_pupilares="RAPD positivo en OI."))
     texts = corr.evaluar_correlaciones(req)
     assert "pupilas_alteradas" in _active_names(req)
-    assert any("urgente" in t for t in texts)
+    assert any("retina y via visual aferente" in t for t in texts)
+    assert not any("Hallazgo urgente:" in t for t in texts)
 
 
 def test_campos_dispara_por_vision_tubular():
@@ -637,13 +651,18 @@ def test_amsler_dispara_por_micropsia():
 
 
 def test_fondo_vascular_diabetico_dispara_por_termino_directo():
-    req = _make_request(clinica=DatosClinica(fondo_de_ojo="Datos de retinopatia diabetica no proliferativa."))
-    assert "fondo_vascular_diabetico" in _active_names(req)
+    # Etiqueta diagnostica aislada sin lesion concreta no dispara
+    req_etiqueta = _make_request(clinica=DatosClinica(fondo_de_ojo="Datos de retinopatia diabetica no proliferativa."))
+    assert "fondo_vascular_diabetico" not in _active_names(req_etiqueta)
+
+    # Con lesion concreta documentada dispara
+    req_lesion = _make_request(clinica=DatosClinica(fondo_de_ojo="Datos de retinopatia diabetica no proliferativa con microaneurismas."))
+    assert "fondo_vascular_diabetico" in _active_names(req_lesion)
 
 
 def test_opacidad_cristaliniana_dispara_por_iol():
     req = _make_request(clinica=DatosClinica(anexos_oculares="Se observa IOL en saco capsular en OD."))
-    assert "opacidad_cristaliniana" in _active_names(req)
+    assert "opacidad_cristaliniana" not in _active_names(req)
 
 
 def test_cvs_dispara_por_fatiga_ocular():
@@ -663,11 +682,13 @@ def test_insuficiencia_convergencia_dispara_por_contexto_computadora():
 
 
 def test_abreviaturas_cortas_no_generan_falsos_positivos_por_substring():
-    """irma/adie/iol como substring de palabras comunes no deben disparar."""
+    """irma/adie/iol/nve como substring de palabras comunes no deben disparar."""
     r_irma = _make_request(clinica=DatosClinica(fondo_de_ojo="El paciente afirma no tener sintomas."))
     r_adie = _make_request(clinica=DatosClinica(reflejos_pupilares="No hay nadie con anisocoria en la familia."))
     r_iol = _make_request(clinica=DatosClinica(anexos_oculares="Coloracion violeta del parpado por trauma."))
+    r_nve = _make_request(clinica=DatosClinica(fondo_de_ojo="Nevus coroideo convexo estable."))
     assert "fondo_vascular_diabetico" not in _active_names(r_irma)
+    assert "fondo_vascular_diabetico" not in _active_names(r_nve)
     assert "opacidad_cristaliniana" not in _active_names(r_iol)
     # 'nadie' no debe disparar la pupila tonica de adie; anisocoria sigue su regla aparte
     nombres_adie = _active_names(r_adie)
@@ -710,7 +731,7 @@ def test_cover_hiper_sin_clasificar_dispara_desviacion_vertical():
     texts = corr.evaluar_correlaciones(req)
 
     assert "desviacion_vertical" in names
-    assert any("desviacion vertical no clasificada" in text for text in texts)
+    assert any("hiperdesviacion no clasificada" in text for text in texts)
 
 
 def test_cover_orto_ambos_ojos_no_dispara_binoculares():
@@ -739,7 +760,7 @@ def test_cover_endo_sin_clasificar_no_dispara_endotropia_lente():
 # ---------------------------------------------------------------------------
 
 
-def test_flat_top_cuenta_como_multifocal_para_presbicia():
+def test_retiro_presbicia_no_avala_flat_top():
     req = _make_request(
         paciente=ContextoPaciente(edad=55),
         refraccion=Refraccion(od=GraduacionOjo(esfera=+1.00, add=2.00)),
@@ -749,8 +770,8 @@ def test_flat_top_cuenta_como_multifocal_para_presbicia():
     names = _active_names(req)
     texts = corr.evaluar_correlaciones(req)
 
-    assert "presbicia_multifocal" in names
-    assert any("lente multifocal indicado" in text for text in texts)
+    assert "presbicia_multifocal" not in names
+    assert not any("justifica" in text for text in texts)
 
 
 def test_flat_top_suprime_presbicia_sin_adicion():
@@ -790,8 +811,8 @@ def test_add_cero_no_dispara_presbicia_multifocal():
     names = _active_names(req)
 
     assert "presbicia_multifocal" not in names
-    # Sin add real, la red de seguridad correcta es presbicia_sin_adicion.
-    assert "presbicia_sin_adicion" in names
+    # La ausencia de add no demuestra una necesidad visual no atendida.
+    assert "presbicia_sin_adicion" not in names
 
 
 def test_eje_fuera_de_rango_se_normaliza_y_dispara_astig_oblicuo():
@@ -878,7 +899,7 @@ def test_nueva_correlacion_horner_o_tercer_par_sospecha():
     )
     names = _active_names(req)
     assert "horner_o_tercer_par_sospecha" in names
-    assert "pupilas_alteradas" not in names  # Suprimida
+    assert "pupilas_alteradas" not in names  # Retirada
 
 
 def test_nueva_correlacion_isnt_violada_papila():
@@ -886,7 +907,10 @@ def test_nueva_correlacion_isnt_violada_papila():
         clinica=DatosClinica(fondo_de_ojo="Regla ISNT violada en papila de OD.")
     )
     names = _active_names(req)
-    assert "isnt_violada_papila" in names
+    assert "fondo_glaucomatoso" in names
+    assert "isnt_violada_papila" not in names
+    texts = corr.evaluar_correlaciones(req)
+    assert any("regla ISNT" in t for t in texts)
 
 
 def test_nueva_correlacion_cornea_plana_extrema():
@@ -897,14 +921,14 @@ def test_nueva_correlacion_cornea_plana_extrema():
     assert "cornea_plana_extrema" in names
 
 
-def test_nueva_correlacion_astigmatismo_lenticular_puro():
+def test_retiro_astigmatismo_lenticular_puro_conserva_discrepancia():
     req = _make_request(
         akr=AkrSnapshot(od=AkrOjo(k1_d=43.00, k2_d=43.25)),
         refraccion=Refraccion(od=GraduacionOjo(cilindro=-2.00, eje=180)),
     )
     names = _active_names(req)
-    assert "astigmatismo_lenticular_puro" in names
-    assert "astigmatismo_corneal_vs_refractivo" not in names  # Suprimida
+    assert "astigmatismo_lenticular_puro" not in names
+    assert "astigmatismo_corneal_vs_refractivo" in names  # Discrepancia sin etiologia inferida
 
 
 def test_nueva_correlacion_ojo_seco_evaporativo_dgm():
@@ -918,11 +942,11 @@ def test_nueva_correlacion_ojo_seco_evaporativo_dgm():
     assert "ojo_seco_evaporativo_dgm" in names
 
 
-def test_nueva_correlacion_aniseiconia_queratometrica_severa():
+def test_aniseiconia_retirada_conserva_asimetria_descriptiva():
     req = _make_request(
         refraccion=Refraccion(
-            od=GraduacionOjo(esfera=-1.00),
-            oi=GraduacionOjo(esfera=-4.00),
+            od=GraduacionOjo(esfera=-1.00, cilindro=0),
+            oi=GraduacionOjo(esfera=-4.00, cilindro=0),
         ),
         akr=AkrSnapshot(
             od=AkrOjo(k_promedio_d=42.00),
@@ -930,17 +954,18 @@ def test_nueva_correlacion_aniseiconia_queratometrica_severa():
         ),
     )
     names = _active_names(req)
-    assert "aniseiconia_queratometrica_severa" in names
+    assert "aniseiconia_queratometrica_severa" not in names
+    assert "anisometropia" in names
 
 
-def test_nueva_correlacion_insuficiencia_acomodacion_joven():
+def test_retiro_insuficiencia_acomodacion_joven():
     req = _make_request(
         paciente=ContextoPaciente(edad=22, motivo_consulta="Cansancio visual y fatiga al leer"),
         refraccion=Refraccion(od=GraduacionOjo(add=1.00)),
     )
     names = _active_names(req)
-    assert "insuficiencia_acomodacion_joven" in names
-    assert "adicion_incongruente_edad" not in names  # Suprimida
+    assert "insuficiencia_acomodacion_joven" not in names
+    assert "adicion_incongruente_edad" not in names  # Retirada
 
 
 def test_nueva_correlacion_deficit_visual_inexplicado_refractivo():
@@ -975,8 +1000,8 @@ def test_auditoria_bloque_a_falsos_negativos():
     req = _make_request(clinica=DatosClinica(fondo_de_ojo="se solicita descarte de glaucoma por excavacion 0.8"))
     assert "fondo_glaucomatoso" in _active_names(req)
 
-    # A-05: Blefaritis tras 'ao sin pterigion' sin puntuacion
-    req = _make_request(clinica=DatosClinica(anexos_oculares="ao sin pterigion blefaritis moderada bilateral"))
+    # A-05: Blefaritis tras 'ao sin pterigion' separada por coma (T1 has_comma_break)
+    req = _make_request(clinica=DatosClinica(anexos_oculares="ao sin pterigion, blefaritis moderada bilateral"))
     assert "anexos_patologicos" in _active_names(req)
 
     # A-06 & A-07: Escotoma y Metamorfopsia seguidos de 'resto normal'
@@ -1065,9 +1090,10 @@ def test_auditoria_bloque_b_falsos_positivos():
     req = _make_request(clinica=DatosClinica(motilidad_ocular="nistagmo optocinetico presente y simetrico"))
     assert "motilidad_alterada" not in _active_names(req)
 
-    # B-15: Astigmatismo corneal regular 4.10 D con Kmax normal
+    # B-15: magnitud corneal elevada describe datos, sin demostrar ectasia
     req = _make_request(akr=AkrSnapshot(od=AkrOjo(k1_d=42.0, k2_d=46.1, k1_eje=180)))
-    assert "queratocono_ectasia_sospecha" not in _active_names(req)
+    assert "queratocono_ectasia_sospecha" in _active_names(req)
+    assert not any("ectasia" in t for t in corr.evaluar_correlaciones(req))
 
     # B-16: Meibomio permeable
     req = _make_request(clinica=DatosClinica(anexos_oculares="glandulas de meibomio permeables y de buena expresibilidad", ojo_seco_but_seg=8))
@@ -1087,10 +1113,15 @@ def test_auditoria_bloque_b_falsos_positivos():
 
     # B-20: Vision borrosa sola con pantallas
     req = _make_request(paciente=ContextoPaciente(edad=35, motivo_consulta="vision borrosa"), clinica=DatosClinica(uso_pantallas="btw2_6"))
-    assert "cvs_sospecha" not in _active_names(req)
+    assert "cvs_sospecha" in _active_names(req)
+    assert not any("sindrome visual informatico" in t for t in corr.evaluar_correlaciones(req))
 
     # B-21: Tortuosidad vascular aislada
     req = _make_request(clinica=DatosClinica(fondo_de_ojo="tortuosidad vascular aumentada"))
+    assert "fondo_hipertensivo" not in _active_names(req)
+
+    # B-21b: Cruces arteriovenosos ambiguos sin patologia (antiguo golden C10-01)
+    req = _make_request(clinica=DatosClinica(fondo_de_ojo="Cruces arteriovenosos y tortuosidad vascular."))
     assert "fondo_hipertensivo" not in _active_names(req)
 
     # B-22: Exudado algodonoso sin dato de diabetes
@@ -1162,7 +1193,8 @@ def test_aniseiconia_fallback_k1_k2_sin_k_promedio():
             oi=AkrOjo(k1_d=43.50, k2_d=44.50),  # Promedio 44.00 D -> Dif 2.00 D (>=1.50 D)
         ),
     )
-    assert "aniseiconia_queratometrica_severa" in _active_names(req)
+    assert "aniseiconia_queratometrica_severa" not in _active_names(req)
+    assert "anisometropia" in _active_names(req)
 
 
 def test_deficit_visual_inexplicado_dispara_sin_av_sc():
@@ -1176,6 +1208,26 @@ def test_deficit_visual_inexplicado_dispara_sin_av_sc():
         ),
     )
     assert "deficit_visual_inexplicado_refractivo" in _active_names(req)
+
+
+def test_retiro_lenticular_no_suprime_discrepancia_del_otro_ojo():
+    req = _make_request(
+        refraccion=Refraccion(
+            od=GraduacionOjo(cilindro=-1.50, eje=0),
+            oi=GraduacionOjo(cilindro=-1.50, eje=0),
+        ),
+        akr=AkrSnapshot(
+            od=AkrOjo(k1_d=42, k2_d=45, k1_eje=0, k2_eje=90),
+            oi=AkrOjo(k1_d=42, k2_d=42.50),
+        ),
+    )
+    names = _active_names(req)
+    assert "astigmatismo_lenticular_puro" not in names
+    assert "astigmatismo_corneal_vs_refractivo" in names
+    texts = corr.evaluar_correlaciones(req)
+    text = dict(evaluar_correlaciones_con_nombres(req))["astigmatismo_corneal_vs_refractivo"]
+    assert "OD" in text and "-1.50D" in text and "3.00D" in text
+    assert not any("ectopia lentis" in t or "componente astigmatico lenticular" in t for t in texts)
 
 
 def test_astigmatismo_lenticular_puro_requiere_cilindro_rx():
@@ -1193,7 +1245,7 @@ def test_astigmatismo_lenticular_puro_requiere_cilindro_rx():
     )
     assert "astigmatismo_lenticular_puro" not in _active_names(req_ar_solo)
 
-    # Caso 2: Rx final SI prescribe cilindro >= 1.50 con cornea esferica (<=0.50D) -> SI dispara
+    # Caso 2: Rx con cilindro y K casi iguales tampoco acredita origen lenticular puro.
     req_rx_real = _make_request(
         refraccion=Refraccion(
             od=GraduacionOjo(esfera=-1.00, cilindro=-1.75),
@@ -1203,23 +1255,23 @@ def test_astigmatismo_lenticular_puro_requiere_cilindro_rx():
             od=AkrOjo(k1_d=43.00, k2_d=43.25, cilindro=-1.75),
         ),
     )
-    assert "astigmatismo_lenticular_puro" in _active_names(req_rx_real)
+    assert "astigmatismo_lenticular_puro" not in _active_names(req_rx_real)
 
 
-def test_h1_suprime_causa_organica_glaucoma_especifico():
-    """H1: adulto_mayor_screening debe suprimirse si se detecta ISNT violada o glaucoma asimetrico."""
+def test_h1_hallazgos_papilares_sin_av_no_inventan_av_reducida():
+    """H1: Sin cifra AV registrada no se activa la revisión de AV del adulto mayor."""
     req_isnt = _make_request(
         paciente=ContextoPaciente(edad=68),
         clinica=DatosClinica(fondo_de_ojo="Regla ISNT violada en OD"),
     )
     names_isnt = _active_names(req_isnt)
-    assert "isnt_violada_papila" in names_isnt
+    assert "fondo_glaucomatoso" in names_isnt
     assert "adulto_mayor_screening" not in names_isnt
 
     req_asimetrico = _make_request(
         paciente=ContextoPaciente(edad=65),
         clinica=DatosClinica(
-            fondo_de_ojo="Excavacion aumentada en papila",
+            fondo_de_ojo="Excavacion c/d 0.8 en OD, 0.4 en OI.",
             reflejos_pupilares="DPAR positivo en OD",
         ),
     )
@@ -1269,27 +1321,29 @@ def test_nueva_correlacion_distancia_vertice_alta_ametropia():
         refraccion=Refraccion(od=GraduacionOjo(esfera=-4.50)),
     )
     names = _active_names(req)
-    assert "distancia_vertice_alta_ametropia" in names
+    assert "distancia_vertice_alta_ametropia" not in names
+    assert corr.evaluar_recordatorios_tecnicos(req)[0][0] == "distancia_vertice_alta_ametropia"
 
 
-def test_nueva_correlacion_antimetropia_pura_acomodativa():
+def test_antimetropia_retirada_conserva_anisometropia():
     req = _make_request(
         refraccion=Refraccion(
-            od=GraduacionOjo(esfera=-1.50),
-            oi=GraduacionOjo(esfera=+1.50),
+            od=GraduacionOjo(esfera=-1.50, cilindro=0),
+            oi=GraduacionOjo(esfera=+1.50, cilindro=0),
         ),
     )
     names = _active_names(req)
-    assert "antimetropia_pura_acomodativa" in names
+    assert "antimetropia_pura_acomodativa" not in names
+    assert "anisometropia" in names
 
 
-def test_nueva_correlacion_astigmatismo_contra_regla_joven():
+def test_retirada_astigmatismo_contra_regla_joven():
     req = _make_request(
         paciente=ContextoPaciente(edad=25),
         refraccion=Refraccion(od=GraduacionOjo(cilindro=-1.75, eje=90)),
     )
     names = _active_names(req)
-    assert "astigmatismo_contra_regla_joven" in names
+    assert "astigmatismo_contra_regla_joven" not in names
 
 
 def test_nueva_correlacion_queratometria_asimetrica_interocular():
@@ -1416,7 +1470,7 @@ def test_audit_fondo_oclusion_vascular_crvo_y_trombosis():
 # ---------------------------------------------------------------------------
 
 def test_audit_fondo_glaucomatoso_relacion_copa_disco():
-    """H1: fondo_glaucomatoso debe reconocer 'relacion copa/disco', 'copa/disco', 'copa disco', 'relacion c/d' >= 0.6."""
+    """H1: fondo_glaucomatoso debe reconocer 'relacion copa/disco', 'copa/disco', 'copa disco', 'relacion c/d' >= 0.70 por defecto."""
     req1 = _make_request(
         clinica=DatosClinica(fondo_de_ojo="Relacion copa/disco 0.7 en ambos ojos"),
     )
@@ -1425,12 +1479,15 @@ def test_audit_fondo_glaucomatoso_relacion_copa_disco():
     req2 = _make_request(
         clinica=DatosClinica(fondo_de_ojo="copa/disco: 0.8 con palidez temporal"),
     )
-    assert "fondo_glaucomatoso" in _active_names(req2)
+    # Palidez + excavacion aumentada se canaliza a papila_patologica (PALIDEZ_EXCAVACION), suprimiendo fondo_glaucomatoso
+    assert "papila_patologica" in _active_names(req2)
+    assert "fondo_glaucomatoso" not in _active_names(req2)
 
     req3 = _make_request(
         clinica=DatosClinica(fondo_de_ojo="copa disco 0.6 bilateral"),
     )
-    assert "fondo_glaucomatoso" in _active_names(req3)
+    # C/D 0.6 sin mención de microdisco ni asimetría no alcanza el umbral general de 0.70
+    assert "fondo_glaucomatoso" not in _active_names(req3)
 
     req4 = _make_request(
         clinica=DatosClinica(fondo_de_ojo="relacion c/d 0.75"),
@@ -1458,26 +1515,27 @@ def test_audit_adulto_mayor_miopia_magna_no_suprime_screening():
     assert "adulto_mayor_screening" in names
 
 
-def test_audit_aniseiconia_queratometrica_ley_de_knapp():
-    """H3: aniseiconia_queratometrica_severa solo aplica si la direccion es consistente con Knapp."""
+def test_aniseiconia_retirada_en_ambas_direcciones_queratometricas():
+    """K y Rx no demuestran mecanismo ni aniseiconia en ninguna direccion."""
     # Consistente: ojo mas miope (OI -4.00 vs OD -1.00) tiene cornea mas curva (OI 44.25 vs OD 42.00)
     req_consistente = _make_request(
         refraccion=Refraccion(
-            od=GraduacionOjo(esfera=-1.00),
-            oi=GraduacionOjo(esfera=-4.00),
+            od=GraduacionOjo(esfera=-1.00, cilindro=0),
+            oi=GraduacionOjo(esfera=-4.00, cilindro=0),
         ),
         akr=AkrSnapshot(
             od=AkrOjo(k_promedio_d=42.00),
             oi=AkrOjo(k_promedio_d=44.25),
         ),
     )
-    assert "aniseiconia_queratometrica_severa" in _active_names(req_consistente)
+    assert "aniseiconia_queratometrica_severa" not in _active_names(req_consistente)
+    assert "anisometropia" in _active_names(req_consistente)
 
-    # Invertida (Knapp refractado/axial): ojo mas miope (OI -4.00 vs OD -1.00) tiene cornea mas PLANA (OI 42.00 vs OD 44.25)
+    # Direccion invertida, sin inferir predominio axial: ojo mas miope (OI -4.00 vs OD -1.00) tiene cornea mas PLANA (OI 42.00 vs OD 44.25)
     req_invertida = _make_request(
         refraccion=Refraccion(
-            od=GraduacionOjo(esfera=-1.00),
-            oi=GraduacionOjo(esfera=-4.00),
+            od=GraduacionOjo(esfera=-1.00, cilindro=0),
+            oi=GraduacionOjo(esfera=-4.00, cilindro=0),
         ),
         akr=AkrSnapshot(
             od=AkrOjo(k_promedio_d=44.25),
@@ -1518,33 +1576,34 @@ def test_audit_desambiguacion_marcus_gunn():
     )
     assert "glaucoma_asimetrico" not in _active_names(req_mandibular)
 
-    # Chip ambiguo Marcus Gunn sin calificacion no activa DPAR urgente
+    # Chip Marcus Gunn es DPAR; la ausencia de fecha no demuestra una urgencia nueva.
     req_chip_ambiguo = _make_request(
         clinica=DatosClinica(
             reflejos_pupilares="Marcus Gunn",
         ),
     )
     texts = corr.evaluar_correlaciones(req_chip_ambiguo)
-    assert not any("Hallazgo urgente: la presencia de defecto pupilar aferente relativo es indicativa" in t for t in texts)
+    assert any("defecto pupilar aferente relativo" in t and "retina y via visual aferente" in t for t in texts)
+    assert not any("Hallazgo urgente:" in t for t in texts)
 
     # Marcus Gunn pupilar confirmado con fondo patologico activa glaucoma asimetrico
     req_pupilar = _make_request(
         clinica=DatosClinica(
             reflejos_pupilares="Marcus Gunn: DPAR en OD",
-            fondo_de_ojo="Excavacion c/d 0.8 en OD.",
+            fondo_de_ojo="Excavacion c/d 0.8 en OD, 0.4 en OI.",
         ),
     )
     assert "glaucoma_asimetrico" in _active_names(req_pupilar)
 
 
 def test_audit_astig_oblicuo_vs_contra_regla_joven_ejes_70_110():
-    """H8: desempate en ejes 70 y 110: pertenecen a contra la regla, no a oblicuo."""
+    """Ejes 70 y 110 no son oblicuos ni justifican el aviso retirado de ectasia."""
     req_70 = _make_request(
         paciente=ContextoPaciente(edad=25),
         refraccion=Refraccion(od=GraduacionOjo(cilindro=-2.50, eje=70)),
     )
     names_70 = _active_names(req_70)
-    assert "astigmatismo_contra_regla_joven" in names_70
+    assert "astigmatismo_contra_regla_joven" not in names_70
     assert "astig_oblicuo" not in names_70
 
     req_110 = _make_request(
@@ -1552,7 +1611,7 @@ def test_audit_astig_oblicuo_vs_contra_regla_joven_ejes_70_110():
         refraccion=Refraccion(od=GraduacionOjo(cilindro=-2.50, eje=110)),
     )
     names_110 = _active_names(req_110)
-    assert "astigmatismo_contra_regla_joven" in names_110
+    assert "astigmatismo_contra_regla_joven" not in names_110
     assert "astig_oblicuo" not in names_110
 
     # 45 grados sigue siendo oblicuo puro
@@ -1586,14 +1645,17 @@ def test_audit_lenguaje_no_diagnostico_textos():
         refraccion=Refraccion(od=GraduacionOjo(cilindro=-2.00, eje=180)),
     )
     text_astig = corr.evaluar_correlaciones(req_astig)[0]
-    assert "lo que sugiere un componente cristaliniano/interno" in text_astig
+    assert "ni establece la causa de la diferencia" in text_astig
+    assert "ectopia" not in text_astig
+    assert "cristaliniano" not in text_astig
     assert "confirma" not in text_astig
 
     # but_critico
     req_but = _make_request(clinica=DatosClinica(ojo_seco_but_seg=3))
     text_but = corr.evaluar_correlaciones(req_but)[0]
     assert "compatible con ojo seco clinico" not in text_but
-    assert "sugiriendo sospecha de disfuncion" in text_but
+    assert "corroborar la medicion" in text_but
+    assert "disfuncion" not in text_but
 
     # ojo_seco_evaporativo_dgm
     req_dgm = _make_request(clinica=DatosClinica(
@@ -1602,7 +1664,8 @@ def test_audit_lenguaje_no_diagnostico_textos():
     ))
     texts_dgm = corr.evaluar_correlaciones(req_dgm)
     assert not any("configura un cuadro compatible" in t for t in texts_dgm)
-    assert any("orienta a sospecha de ojo seco" in t for t in texts_dgm)
+    assert any("alteracion meibomiana descrita" in t for t in texts_dgm)
+    assert not any("evaporativo" in t for t in texts_dgm)
 
     # ar_rx_variabilidad_inespecifica
     req_var = _make_request(
@@ -1612,112 +1675,37 @@ def test_audit_lenguaje_no_diagnostico_textos():
     )
     texts_var = corr.evaluar_correlaciones(req_var)
     assert not any("compatible con variabilidad refractiva" in t for t in texts_var)
-    assert any("lo que sugiere variabilidad refractiva" in t for t in texts_var)
+    assert not any("lo que sugiere variabilidad refractiva" in t for t in texts_var)
+    assert any("Rx prescrita" in t for t in texts_var)
 
 
 def test_audit_barrido_completo_no_diagnostico():
-    """LA API NO DIAGNOSTICA: barrido completo de expresiones 'compatible con' y 'para confirmar el diagnostico'."""
-    from app.correlaciones import (
-        akr,
-        binocularidad,
-        campos_amsler,
-        contexto,
-        corneal,
-        fondo_de_ojo,
-        refractivas,
-    )
+    """Los avisos revisados describen datos, sin recuperar inferencias retiradas."""
+    from tests.test_correlaciones_golden import GOLDEN
 
-    # 1. binocularidad
-    assert "sugiere sospecha de insuficiencia de convergencia" in binocularidad._texto_insuficiencia_convergencia
-    assert "para complementar la evaluacion funcional binocular" in binocularidad._texto_insuficiencia_convergencia
-    assert "compatible con" not in binocularidad._texto_insuficiencia_convergencia
-    assert "confirmar el diagnostico" not in binocularidad._texto_insuficiencia_convergencia
-
-    assert "sugestiva de descompensacion forica" in binocularidad._texto_cover_exoforia_sintomatica
-    assert "compatible con" not in binocularidad._texto_cover_exoforia_sintomatica
-
-    req_endo = _make_request(
-        clinica=DatosClinica(cover_test="OD: Endo y Foria | OI: Orto"),
-        paciente=ContextoPaciente(motivo_consulta="cefalea"),
-    )
-    text_endo = binocularidad._texto_cover_endoforia_sintomatica(req_endo)
-    assert "sugestiva de disfuncion de la vision binocular" in text_endo
-    assert "compatible con" not in text_endo
-
-    # 2. campos_amsler
-    assert "sugestiva de alteracion macular funcional" in campos_amsler._texto_amsler_alterado
-    assert "compatible con" not in campos_amsler._texto_amsler_alterado
-
-    # 3. contexto
-    req_amb = _make_request(refraccion=Refraccion(
-        od=GraduacionOjo(esfera=-0.50, av_cc="20/20"),
-        oi=GraduacionOjo(esfera=-3.00, av_cc="20/60", av_sc="20/200"),
-    ))
-    text_amb = contexto._texto_ambliopia_sospecha(req_amb)
-    assert "patron sugestivo de ambliopia" in text_amb
-    assert "compatible con" not in text_amb
-
-    req_iso = _make_request(
-        paciente=ContextoPaciente(edad=8),
-        refraccion=Refraccion(od=GraduacionOjo(esfera=5.00, av_cc="20/50"), oi=GraduacionOjo(esfera=5.00, av_cc="20/50")),
-    )
-    text_iso = contexto._texto_ambliopia_isoametropica_bilateral(req_iso)
-    assert "el cuadro orienta a sospecha de ambliopia isoametropica" in text_iso
-    assert "compatible con" not in text_iso
-
-    assert "sugestiva de fatiga visual digital / sindrome visual informatico" in contexto._texto_cvs_sospecha
-    assert "compatible con" not in contexto._texto_cvs_sospecha
-
-    # 4. corneal
-    req_qc = _make_request(akr=AkrSnapshot(od=AkrOjo(k2_d=49.00, k_cilindro=-2.00)))
-    text_qc = corneal._texto_queratocono_ectasia_sospecha(req_qc)
-    assert "sugestivo de irregularidad en la curvatura corneal o sospecha de ectasia incipiente" in text_qc
-    assert "compatible con" not in text_qc
-
-    # 5. refractivas
-    req_hip = _make_request(
-        paciente=ContextoPaciente(edad=45),
-        refraccion=Refraccion(od=GraduacionOjo(esfera=5.50)),
-        akr=AkrSnapshot(od=AkrOjo(k_promedio_d=40.00)),
-    )
-    text_hip = refractivas._texto_hipermetropia_alta(req_hip)
-    assert "sugestivo de un componente corneal" in text_hip
-    assert "compatible con" not in text_hip
-
-    req_av = _make_request(
-        refraccion=Refraccion(od=GraduacionOjo(av_cc="20/40")),
-        akr=AkrSnapshot(od=AkrOjo(k2_d=49.00)),
-    )
-    text_av = refractivas._texto_av_cc_limitada(req_av)
-    assert "que orienta a irregularidad de la superficie corneal" in text_av
-    assert "compatible con" not in text_av
-
-    # 6. akr
-    assert "patron sugestivo de sobreacomodacion / espasmo acomodativo" in akr._texto_ar_rx_espasmo_acomodativo
-    assert "compatible con" not in akr._texto_ar_rx_espasmo_acomodativo
-
-    # 7. fondo_de_ojo
-    req_pap = _make_request(clinica=DatosClinica(fondo_de_ojo="Bordes borrosos de papila en AO."))
-    text_pap = fondo_de_ojo._texto_papila_patologica(req_pap)
-    assert "orientan a sospecha de edema de papila" in text_pap
-    assert "compatibles con" not in text_pap
+    prohibidas = ("sospecha de ambliopia", "descompensacion forica", "sospecha de ectasia",
+                  "demanda acomodativa significativa", "sindrome visual informatico",
+                  "sugestivo de un componente corneal", "para confirmar el diagnostico")
+    for _, req, _ in GOLDEN:
+        for texto in corr.evaluar_correlaciones(req):
+            assert not any(p in texto.lower() for p in prohibidas), texto
 
 
 def test_h03_lattice_con_destellos_activa_urgencia_y_sintomas():
-    """H03: lattice con destellos agudos debe activar fondo_periferico_riesgo (urgente) y sintomas_alarma_traccion_vitreoretina."""
+    """H03: lattice con destellos agudos debe activar fondo_periferico_riesgo (urgente) y suprime sintomas_alarma_traccion_vitreoretina."""
     req = _make_request(
         paciente=ContextoPaciente(motivo_consulta="destellos nuevos desde ayer"),
         clinica=DatosClinica(fondo_de_ojo="degeneracion lattice"),
     )
     names = _active_names(req)
     assert "fondo_periferico_riesgo" in names
-    assert "sintomas_alarma_traccion_vitreoretina" in names
+    assert "sintomas_alarma_traccion_vitreoretina" not in names
 
     text_fondo = fondo_de_ojo._texto_fondo_periferico_riesgo(req)
     assert "Hallazgo urgente:" in text_fondo
     assert "degeneracion lattice" in text_fondo
-    assert "sintomas agudos de traccion vitreorretiniana" in text_fondo
-    assert "riesgo de rotura retiniana" in text_fondo
+    assert "sintomas visuales de inicio reciente" in text_fondo
+    assert "valoracion retinologica urgente" in text_fondo
     assert "midriasis" in text_fondo
     assert "educacion sobre sintomas de alarma" not in text_fondo
 
@@ -1733,8 +1721,8 @@ def test_h03_lattice_asintomatico_mantiene_preventivo():
 
     text_fondo = fondo_de_ojo._texto_fondo_periferico_riesgo(req)
     assert "Hallazgo urgente:" not in text_fondo
-    assert "seguimiento retinologico preventivo" in text_fondo
-    assert "educacion sobre sintomas de alarma (fotopsias y miodesopsias)" in text_fondo
+    assert "exploracion programada de la periferia bajo midriasis" in text_fondo
+    assert "educacion al paciente para acudir a revision sin esperar a la cita programada" in text_fondo
 
 
 def test_h03_desgarro_comprobado_suprime_descarte_subclinico():
@@ -1750,18 +1738,19 @@ def test_h03_desgarro_comprobado_suprime_descarte_subclinico():
     text_fondo = fondo_de_ojo._texto_fondo_periferico_riesgo(req)
     assert "Hallazgo urgente:" in text_fondo
     assert "desgarro retiniano" in text_fondo
-    assert "posible tratamiento profilactico" in text_fondo
+    assert "posible tratamiento profilactico" not in text_fondo
+    assert "indentacion escleral" in text_fondo
 
 
 def test_h03_otras_lesiones_perifericas_con_fotopsias():
-    """H03: baba de caracol o retinosquisis con fotopsias tambien elevan a urgente y no silencian sintomas."""
+    """H03: baba de caracol o retinosquisis con fotopsias tambien elevan a urgente y suprimen sintomas."""
     req = _make_request(
         paciente=ContextoPaciente(motivo_consulta="fotopsias y destellos recientes"),
         clinica=DatosClinica(fondo_de_ojo="degeneracion en baba de caracol"),
     )
     names = _active_names(req)
     assert "fondo_periferico_riesgo" in names
-    assert "sintomas_alarma_traccion_vitreoretina" in names
+    assert "sintomas_alarma_traccion_vitreoretina" not in names
 
     text_fondo = fondo_de_ojo._texto_fondo_periferico_riesgo(req)
     assert "Hallazgo urgente:" in text_fondo
@@ -1791,7 +1780,7 @@ def test_h04_cvs_negado_no_activa_sospecha():
 
 def test_h04_acomodacion_negada_no_activa_insuficiencia():
     """H04: 'sin fatiga ni dificultad para enfocar' con add +1 a los 25 anos no afirma sintomas acomodativos.
-    En su lugar, activa adicion_incongruente_edad como alerta clinica objetiva."""
+    La edad y la adicion no prueban un error refractivo; la regla #51 fue retirada."""
     req_neg = _make_request(
         paciente=ContextoPaciente(edad=25, motivo_consulta="sin fatiga ni dificultad para enfocar"),
         refraccion=Refraccion(
@@ -1801,9 +1790,9 @@ def test_h04_acomodacion_negada_no_activa_insuficiencia():
     )
     names_neg = _active_names(req_neg)
     assert "insuficiencia_acomodacion_joven" not in names_neg
-    assert "adicion_incongruente_edad" in names_neg
+    assert "adicion_incongruente_edad" not in names_neg
 
-    # Control positivo: con astenopia si activa insuficiencia_acomodacion_joven y suprime adicion_incongruente
+    # La astenopia con adicion tampoco demuestra insuficiencia acomodativa; #51 y #52 retiradas
     req_pos = _make_request(
         paciente=ContextoPaciente(edad=25, motivo_consulta="fatiga y dificultad para enfocar de cerca"),
         refraccion=Refraccion(
@@ -1812,7 +1801,7 @@ def test_h04_acomodacion_negada_no_activa_insuficiencia():
         ),
     )
     names_pos = _active_names(req_pos)
-    assert "insuficiencia_acomodacion_joven" in names_pos
+    assert "insuficiencia_acomodacion_joven" not in names_pos
     assert "adicion_incongruente_edad" not in names_pos
 
 
@@ -1925,16 +1914,15 @@ def test_h05_ci_sin_sintomas_describe_signos_sin_afirmar_sintomatologia():
     texts = corr.evaluar_correlaciones(req)
     assert len(texts) == 1
     t = texts[0]
-    assert "punto proximo de convergencia alejado (8 cm)" in t
-    assert "tendencia divergente" in t
-    assert "ameritando evaluacion binocular completa" in t
+    assert "PPC de 8 cm" in t
+    assert "exoforia en OD" in t
+    assert "Verificar el protocolo" in t and "alejado" not in t
     assert "sintomatologia" not in t
     assert "insuficiencia de convergencia" not in t
 
 
-def test_h05_ci_limite_6cm_dispara_con_sintomas_en_joven():
-    """H05: En pre-presbitas (edad < 40), el umbral CITT de PPC alejado es >= 6 cm.
-    Con sintomas reales ('fatiga al leer') y exoforia, 6 cm exactos si activa sospecha."""
+def test_h05_ppc_6cm_con_exoforia_y_sintomas_describe_coocurrencia():
+    """H05: PPC, exoforia y molestias actuales se describen sin diagnóstico CITT."""
     req = _make_request(
         paciente=ContextoPaciente(edad=25, motivo_consulta="fatiga al leer"),
         clinica=DatosClinica(ppc_cm=6, cover_test="exoforia"),
@@ -1944,38 +1932,35 @@ def test_h05_ci_limite_6cm_dispara_con_sintomas_en_joven():
     assert "ppc_exoforia" not in names
 
     texts = corr.evaluar_correlaciones(req)
-    assert any("insuficiencia de convergencia" in t for t in texts)
+    assert any("PPC de 6 cm" in t for t in texts)
 
 
-def test_h05_ppc_5cm_en_joven_es_normal():
-    """H05: PPC de 5 cm en pre-presbita esta dentro del rango normal (< 6 cm),
-    por lo que no se clasifica como PPC alejado ni activa insuficiencia de convergencia."""
+def test_h05_ppc_5cm_no_se_declara_normal_ni_alejado():
+    """H05: La cifra sola no acredita protocolo ni clasifica normalidad."""
     req = _make_request(
         paciente=ContextoPaciente(edad=25, motivo_consulta="fatiga al leer"),
         clinica=DatosClinica(ppc_cm=5, cover_test="exoforia"),
     )
     names = _active_names(req)
-    assert "insuficiencia_convergencia" not in names
-    # Dispara cover_exoforia_sintomatica porque hay exoforia y queja binocular, pero PPC es normal
-    assert "cover_exoforia_sintomatica" in names
+    assert "insuficiencia_convergencia" in names
+    # La coocurrencia se resume en #42 sin repetir el mismo aviso en #44.
+    assert "cover_exoforia_sintomatica" not in names
+    assert not any("alejado" in t for t in corr.evaluar_correlaciones(req))
 
 
-def test_h05_presbita_umbral_conservador_10cm():
-    """H05: En pacientes de 40 o mas anos, el umbral de PPC alejado es > 10 cm (corte heuristico
-    conservador para no sobre-disparar por alejamiento fisiologico senil)."""
-    # 45 anos con PPC 8 cm: no es alejado para su edad
-    req_normal_presbita = _make_request(
+def test_h05_adulto_ppc_8_y_12cm_no_infiere_causa_por_edad():
+    """H05: Ambas cifras se registran con síntomas sin umbral diagnóstico por edad."""
+    req_ppc_8 = _make_request(
         paciente=ContextoPaciente(edad=45, motivo_consulta="fatiga al leer"),
         clinica=DatosClinica(ppc_cm=8, cover_test="exoforia"),
     )
-    assert "insuficiencia_convergencia" not in _active_names(req_normal_presbita)
+    assert "insuficiencia_convergencia" in _active_names(req_ppc_8)
 
-    # 45 anos con PPC 12 cm: si es alejado (> 10 cm) y con sintomas activa insuficiencia
-    req_alejado_presbita = _make_request(
+    req_ppc_12 = _make_request(
         paciente=ContextoPaciente(edad=45, motivo_consulta="fatiga al leer"),
         clinica=DatosClinica(ppc_cm=12, cover_test="exoforia"),
     )
-    assert "insuficiencia_convergencia" in _active_names(req_alejado_presbita)
+    assert "insuficiencia_convergencia" in _active_names(req_ppc_12)
 
 
 # ============================================================================
@@ -1996,16 +1981,15 @@ def test_h06_ar_sin_refraccion_subjetiva_no_dispara():
 
 
 def test_h06_ar_con_rx_esferica_si_dispara():
-    """H06: Si el AR detecta astigmatismo (-2.00D) y la refraccion subjetiva final
-    prescribe unicamente esfera (cilindro omitido deliberadamente), SI se activa la alerta."""
+    """H06: Una Rx esférica documenta cilindro 0; ausencia no expresa omisión deliberada."""
     req = _make_request(
         akr=AkrSnapshot(od=AkrOjo(cilindro=-2.00)),
-        refraccion=Refraccion(od=GraduacionOjo(esfera=-1.00)),
+        refraccion=Refraccion(od=GraduacionOjo(esfera=-1.00, cilindro=0.00)),
     )
     names = _active_names(req)
     assert "ar_detecta_astigmatismo_no_prescrito" in names
     texts = corr.evaluar_correlaciones(req)
-    assert any("astigmatismo no incluido en la refraccion subjetiva final en OD" in t for t in texts)
+    assert any("OD: cilindro AR -2.00D y cilindro prescrito +0.00D" in t for t in texts)
 
 
 def test_h06_ar_con_rx_solo_cilindro_coincidente_no_dispara():
@@ -2031,13 +2015,12 @@ def test_h06_ar_con_rx_en_otro_ojo_no_activa_ojo_sin_rx():
 
 
 def test_h06_equivalente_esferico_con_ausentes():
-    """H06: _equivalente_esferico no debe asumir esfera o cilindro nulos cuando ambos son ausentes,
-    pero debe permitir calcular cuando uno de ellos esta presente."""
+    """H06: El EE requiere ambos componentes explícitos; un cero es dato válido."""
     from app.correlaciones.refraccion_utils import _equivalente_esferico
 
     assert _equivalente_esferico(None, None) is None
-    assert _equivalente_esferico(-2.0, None) == -2.0
-    assert _equivalente_esferico(None, -1.0) == -0.5
+    assert _equivalente_esferico(-2.0, None) is None
+    assert _equivalente_esferico(None, -1.0) is None
     assert _equivalente_esferico(0.0, -1.0) == -0.5
     assert _equivalente_esferico(-2.0, -1.0) == -2.5
 
@@ -2048,7 +2031,8 @@ def test_h06_av_categoria_no_afirma_correccion_optima():
     from app.correlaciones.refraccion_utils import _av_categoria
 
     cat = _av_categoria("20/200")
-    assert cat == "deficit visual severo con correccion"
+    assert "AV con correccion registrada" in cat and "pendiente de verificacion" in cat
+    assert "severo" not in cat
     assert "optima" not in cat
 
 
@@ -2064,7 +2048,8 @@ def test_h06_textos_redactan_datos_disponibles_sin_afirmar_examen_normal():
         refraccion=Refraccion(od=GraduacionOjo(esfera=-1.00, av_cc="20/50", av_sc="20/100")),
     )
     txt_deficit = _texto_deficit_visual_inexplicado_refractivo(req_deficit)
-    assert "en los datos disponibles" in txt_deficit
+    assert "segun la edad y el metodo utilizado" in txt_deficit
+    assert "sin equipararla a la mejor AV corregida" in txt_deficit
     assert "en el examen actual" not in txt_deficit
 
     req_adulto = _make_request(
@@ -2072,7 +2057,8 @@ def test_h06_textos_redactan_datos_disponibles_sin_afirmar_examen_normal():
         refraccion=Refraccion(od=GraduacionOjo(av_cc="20/50")),
     )
     txt_adulto = _texto_adulto_mayor_screening(req_adulto)
-    assert "en los datos disponibles" in txt_adulto
+    assert "segun la edad y el metodo utilizado" in txt_adulto
+    assert "sin equipararla a la mejor AV corregida" in txt_adulto
     assert "en el examen actual" not in txt_adulto
 
 
@@ -2187,7 +2173,7 @@ def test_h07_pl_con_tilde_activa_av_cc_limitada():
     assert "av_cc_limitada" in names
 
     texts = corr.evaluar_correlaciones(req)
-    assert any("OD (percepción de luz): deficit visual severo con correccion" in t for t in texts)
+    assert any("OD: AV con correccion registrada de percepción de luz" in t for t in texts)
 
 
 def test_h07_cd_con_distancia_activa_av_cc_limitada():
@@ -2200,7 +2186,7 @@ def test_h07_cd_con_distancia_activa_av_cc_limitada():
     assert "av_cc_limitada" in names
 
     texts = corr.evaluar_correlaciones(req)
-    assert any("OD (cuenta dedos a 50 cm): deficit visual severo con correccion" in t for t in texts)
+    assert any("OD: AV con correccion registrada de cuenta dedos a 50 cm" in t for t in texts)
 
 
 def test_h07_centinelas_orden_y_constantes():
@@ -2265,19 +2251,19 @@ def test_h08_invarianza_astigmatismo_contra_regla_joven():
         refraccion=Refraccion(od=GraduacionOjo(esfera=-1.00, cilindro=-2.00, eje=90)),
     )
     assert _active_names(req_plus) == _active_names(req_minus)
-    assert "astigmatismo_contra_regla_joven" in _active_names(req_plus)
+    assert "astigmatismo_contra_regla_joven" not in _active_names(req_plus)
 
 
 def test_h08_distancia_vertice_en_astigmatismo_puro_elevado():
     """H08: Un paciente con cilindro puro de -5.00 D (0.00 / -5.00) tiene un meridiano
-    principal de -5.00 D (|potencia| >= 4.00 D) y requiere compensacion de distancia al vertice."""
+    principal de -5.00 D (|potencia| >= 4.00 D), seleccionado para revisión técnica del plano de uso."""
     req = _make_request(
         refraccion=Refraccion(od=GraduacionOjo(esfera=0.00, cilindro=-5.00, eje=180)),
     )
-    names = _active_names(req)
+    names = [n for n, _ in corr.evaluar_recordatorios_tecnicos(req)]
     assert "distancia_vertice_alta_ametropia" in names
-    texts = corr.evaluar_correlaciones(req)
-    assert any("OD (-5.00D)" in t for t in texts)
+    texts = [t for _, t in corr.evaluar_recordatorios_tecnicos(req)]
+    assert any("S+C -5.00D" in t for t in texts)
 
 
 def test_h08_distancia_vertice_meridiano_principal_compuesto():
@@ -2286,17 +2272,17 @@ def test_h08_distancia_vertice_meridiano_principal_compuesto():
     req = _make_request(
         refraccion=Refraccion(od=GraduacionOjo(esfera=-1.00, cilindro=-4.00, eje=90)),
     )
-    names = _active_names(req)
+    names = [n for n, _ in corr.evaluar_recordatorios_tecnicos(req)]
     assert "distancia_vertice_alta_ametropia" in names
-    texts = corr.evaluar_correlaciones(req)
-    assert any("OD (-5.00D)" in t for t in texts)
+    texts = [t for _, t in corr.evaluar_recordatorios_tecnicos(req)]
+    assert any("S+C -5.00D" in t for t in texts)
 
 
 def test_h08_cilindro_positivo_puro_sin_esfera_transpone_adecuadamente():
-    """H08: Prescripcion de solo cilindro positivo (cilindro=+2.00, eje=90) sin esfera
-    debe transponer asumiendo esfera plana 0.00 D -> esfera=+2.00, cilindro=-2.00, eje=180."""
+    """Compatibilidad legacy del schema fuera del contrato de cilindro final negativo.
+    Esta coerción no valida calcular EE clínico desde componentes ausentes."""
     ojo = GraduacionOjo(cilindro=+2.00, eje=90)
-    assert ojo.esfera == 2.00
+    assert ojo.esfera is None
     assert ojo.cilindro == -2.00
     assert ojo.eje == 180
 
@@ -2340,11 +2326,11 @@ def test_h09_cornea_plana_invarianza_promedio_redundante():
     assert "cornea_plana_extrema" in names_sin
     assert "cornea_plana_extrema" in names_con
 
-    text_sin = corr.evaluar_correlaciones(req_sin_prom)
-    text_con = corr.evaluar_correlaciones(req_con_prom)
-    # Ambos textos deben ser identicos reportando el meridiano mas plano (37.00D)
+    text_sin = dict(evaluar_correlaciones_con_nombres(req_sin_prom))["cornea_plana_extrema"]
+    text_con = dict(evaluar_correlaciones_con_nombres(req_con_prom))["cornea_plana_extrema"]
+    # El hallazgo de K baja conserva fuente, valor y texto al aportar la media.
     assert text_sin == text_con
-    assert any("OD (37.00D)" in t for t in text_sin)
+    assert "OD (K1 registrada 37.00D" in text_sin
 
 
 def test_h09_queratometria_contradictoria_promedio_discordante():
@@ -2421,7 +2407,7 @@ def test_h09_tolerancia_instrumental_aceptada():
 
 
 # ---------------------------------------------------------------------------
-# Tests H10: Supresiones por lateralidad y capacidad explicativa
+# Tests H10: AV por ojo y contexto orgánico sin atribuir causa exclusiva
 # ---------------------------------------------------------------------------
 
 def test_h10_perdida_oi_con_lattice_od_activa_deficit_inexplicado():
@@ -2441,12 +2427,11 @@ def test_h10_perdida_oi_con_lattice_od_activa_deficit_inexplicado():
 
     from app.correlaciones.contexto import _texto_deficit_visual_inexplicado_refractivo
     txt = _texto_deficit_visual_inexplicado_refractivo(req)
-    assert "en OI con correccion (20/100)" in txt
+    assert "AV con correccion 20/100 en OI" in txt
 
 
-def test_h10_patologia_organica_mismo_ojo_suprime_deficit():
-    """H10: Si la causa organica explicativa (catarata) esta en el mismo ojo que tiene
-    el deficit, el deficit si queda explicado y se suprime deficit_visual_inexplicado_refractivo."""
+def test_h10_patologia_organica_mismo_ojo_no_demuestra_causa_exclusiva():
+    """H10: La palabra catarata no explica por sí sola toda la reducción de AV."""
     req = _make_request(
         paciente=ContextoPaciente(edad=30),
         refraccion=Refraccion(
@@ -2458,12 +2443,11 @@ def test_h10_patologia_organica_mismo_ojo_suprime_deficit():
     )
     names = _active_names(req)
     assert "opacidad_cristaliniana" in names
-    assert "deficit_visual_inexplicado_refractivo" not in names
+    assert "deficit_visual_inexplicado_refractivo" in names
 
 
-def test_h10_caso_mixto_ojo_explicado_y_ojo_inexplicado():
-    """H10: Caso mixto: OD tiene catarata (explicada), pero OI tiene 20/100 con fondo normal (inexplicado).
-    deficit_visual_inexplicado_refractivo debe disparar especificamente para OI."""
+def test_h10_caso_mixto_describe_ambos_ojos_sin_causa_exclusiva():
+    """H10: AV y hallazgos documentados de ambos ojos se conservan sin inventar etiología."""
     req = _make_request(
         paciente=ContextoPaciente(edad=35),
         refraccion=Refraccion(
@@ -2481,8 +2465,8 @@ def test_h10_caso_mixto_ojo_explicado_y_ojo_inexplicado():
 
     from app.correlaciones.contexto import _texto_deficit_visual_inexplicado_refractivo
     txt = _texto_deficit_visual_inexplicado_refractivo(req)
-    assert "en OI con correccion (20/80)" in txt
-    assert "en OD" not in txt
+    assert "AV con correccion 20/80 en OI" in txt
+    assert "AV con correccion 20/100 en OD" in txt
 
 
 def test_h10_lesion_periferica_mismo_ojo_no_suprime_deficit_central():
@@ -2534,8 +2518,8 @@ def test_h10_ambliopia_sospecha_no_suprimida_por_hallazgo_contralateral_incident
     req = _make_request(
         paciente=ContextoPaciente(edad=20),
         refraccion=Refraccion(
-            od=GraduacionOjo(esfera=-0.50, av_cc="20/20"),
-            oi=GraduacionOjo(esfera=-3.50, av_cc="20/60", av_sc="20/200"),
+            od=GraduacionOjo(esfera=-0.50, cilindro=0, av_cc="20/20"),
+            oi=GraduacionOjo(esfera=-3.50, cilindro=0, av_cc="20/60", av_sc="20/200"),
         ),
         clinica=DatosClinica(fondo_de_ojo="OD: lattice periferico. OI: polo posterior normal"),
     )
@@ -2558,8 +2542,8 @@ def test_h10_bilateral_deficit_inexplicado_reporta_ambos_ojos():
 
     from app.correlaciones.contexto import _texto_deficit_visual_inexplicado_refractivo
     txt = _texto_deficit_visual_inexplicado_refractivo(req)
-    assert "OD (20/60)" in txt
-    assert "OI (20/80)" in txt
+    assert "AV con correccion 20/60 en OD" in txt
+    assert "AV con correccion 20/80 en OI" in txt
 
 
 # ==============================================================================
@@ -2592,7 +2576,7 @@ def test_h11_ipsilateral_activa_horner():
     )
     names = _active_names(req)
     assert "horner_o_tercer_par_sospecha" in names
-    assert "pupilas_alteradas" not in names  # Suprimida por Horner
+    assert "pupilas_alteradas" not in names  # Retirada por Horner
 
 
 def test_h11_ptosis_congenita_ipsilateral_no_activa_urgencia():

@@ -1,0 +1,105 @@
+{
+  "numero": 7,
+  "nombre": "fondo_glaucomatoso",
+  "veredicto": "PARCIAL",
+  "requisitos": [
+    [
+      "Retirar isnt_violada_papila registro/funciones/imports,sin alias; incorporara6",
+      "AUDITORIA_CORRELACIONES.md:1817-1821",
+      "app/correlaciones/registry.py; app/correlaciones/fondo_de_ojo.py:1071; app/correlaciones/contexto.py",
+      "Cumple retirada, test de ausencia del identificador"
+    ],
+    [
+      "Grupo ISNT completo, frases no se cumple/no respeta como positivas; no ISNT negativa ni anillo temporal sin comparador",
+      "AUDITORIA_CORRELACIONES.md:1822-1829",
+      "app/correlaciones/fondo_de_ojo.py:58-72,1180",
+      "Cumple variantes especificadas y controles negativos"
+    ],
+    [
+      "Signos focales cualquier sector nivel A; detalles escritos individuales, no inventar violacion junto a muesca",
+      "AUDITORIA_CORRELACIONES.md:1830-1831,1837-1838",
+      "app/correlaciones/fondo_de_ojo.py:1151-1162,1206-1233",
+      "Parcial: sectores/ojos de muescas distintas se fusionan infielmente F07-01"
+    ],
+    [
+      "Nivel B solo ISNT tamizaje; Aconvarios signosconserva hemorragia,ISNT,sectores y no faseinicial",
+      "AUDITORIA_CORRELACIONES.md:1832-1838",
+      "app/correlaciones/fondo_de_ojo.py:1197-1204,1206-1233",
+      "A/B implementados; F07-02conserva hemorragia/escotadura"
+    ],
+    [
+      "Grupo ISNT ysignosfocales no causa AV; documentacion4.4/tabla supresiones T6",
+      "AUDITORIA_CORRELACIONES.md:1839-1843; posterior56/57:3916,3932",
+      "app/correlaciones/contexto.py:_has_organic_cause_for_low_av; CORRELACIONES_CLINICAS.md",
+      "AV coactivacion prevista; documentacion global revisada por raiz, no certificada aqui"
+    ],
+    [
+      "Revision posterior56/57: no usar keywords de causa organica como prueba causal completa ni veto de AV; preservar ojos/hechos/prioridad",
+      "AUDITORIA_CORRELACIONES.md:3916,3932",
+      "app/correlaciones/contexto.py:139,157,174",
+      "Los selectores actuales de AV no contienen filtro organico; condiciones originales de causalidad de este bloque se leen bajo esa revision posterior."
+    ]
+  ],
+  "casos": [
+    {
+      "entrada": {
+        "fondo": "Escotadura superior OD y muesca inferior OI."
+      },
+      "esperado": {
+        "activa": true,
+        "contiene": [
+          "superior",
+          "inferior",
+          "OD",
+          "OI"
+        ]
+      },
+      "motivo": "Sectores y ojos se fusionan: inferior AO pierde superior OD e inventa inferior OD."
+    },
+    {
+      "entrada": {
+        "fondo": "Escotadura inferior con hemorragia en astilla."
+      },
+      "esperado": {
+        "activa": true,
+        "no_activas": [
+          "isnt_violada_papila"
+        ],
+        "contiene": [
+          "escotadura",
+          "hemorragia"
+        ]
+      }
+    },
+    {
+      "entrada": {
+        "fondo": "Regla ISNT: no se cumple en OD."
+      },
+      "esperado": {
+        "activa": true,
+        "urgente": false,
+        "h01": false,
+        "contiene": [
+          "completar estudio de glaucoma"
+        ],
+        "no_activas": [
+          "isnt_violada_papila"
+        ]
+      }
+    },
+    {
+      "entrada": {
+        "fondo": "Anillo temporal mas grueso que el nasal. ISNT: negativa."
+      },
+      "esperado": {
+        "activa": false,
+        "no_activas": [
+          "isnt_violada_papila"
+        ]
+      }
+    }
+  ],
+  "cobertura": "Corrida agrupada real de 13 archivos de aceptacion/integracion: 1496 aprobadas, 0 fallos, 0 errores, 0 omitidas; JUnit suite-existente.xml. Comando: .venv/Scripts/python.exe -m pytest tests/test_auditoria_correlaciones.py tests/test_revalidacion_ajustes.py tests/test_revalidacion_papila_macula.py tests/test_revalidacion_sintomas_oclusiones.py tests/test_ajuste_c12.py tests/test_ajuste_c13.py tests/test_ajuste_c14.py tests/test_ajuste_c15.py tests/test_ajuste_c16.py tests/test_ajuste_c17.py tests/test_ajuste_c18.py tests/test_ajuste_c19.py tests/test_correlaciones.py -q -p no:cacheprovider --junitxml=auditoria/conformidad-2026-09-29/fondo/suite-existente.xml",
+  "conclusion": "La retirada del identificador #7 y fusion A/B se cumplen. F07-01 revela que muesca_detail se sobreescribe con ultimo sector/termino y detail_eyes une ambos ojos: salida muesca inferior en AO, perdiendo escotadura superior OD e inventando inferior OD. No basta fusionar palabras y ojos por separado.",
+  "recomendaciones": "Conservar por ocurrencia la pareja termino-sector-ojo antes de deduplicar; deduplicar solo hechos identicos. Cubrir dos sectores distintos en ojos distintos y ambos sectores en mismo ojo. Mantener supresion de identificador retirado y niveles A/B sin estadificar. Verificar documentación global de fusion y causasAV con raiz."
+}

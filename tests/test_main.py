@@ -147,7 +147,10 @@ def test_health_when_ollama_offline_returns_503():
     assert concurrencia["max_en_cola"] == main.settings.max_queue_size
 
 
-def test_health_when_ollama_ready_returns_200():
+def test_health_when_ollama_ready_returns_200(monkeypatch):
+    # Producción exige API_KEY: sin ella el POST clínico responde 500 y /health debe degradarse.
+    monkeypatch.setattr(main.settings, "api_key", "secret-token")
+
     class FakeResponse:
         def __init__(self, data):
             self._data = data

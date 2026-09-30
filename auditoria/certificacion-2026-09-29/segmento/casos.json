@@ -1,0 +1,1553 @@
+[
+  {
+    "numero": 12,
+    "nombre": "horner_o_tercer_par_sospecha",
+    "id": "F12-01",
+    "entrada": {
+      "pupilas": "Posible miosis OD desde hoy.",
+      "anexos": "Ptosis OD desde hoy."
+    },
+    "esperado": {
+      "activa": true,
+      "contiene": [
+        "posible"
+      ],
+      "no_contiene": [
+        "se documentan ptosis OD de inicio reciente y miosis OD de inicio reciente"
+      ]
+    },
+    "motivo": "La novedad puede conservar prioridad, pero miosis posible no debe declararse documentada sin su certeza."
+  },
+  {
+    "numero": 12,
+    "nombre": "horner_o_tercer_par_sospecha",
+    "id": "F12-02",
+    "entrada": {
+      "pupilas": "Miosis OD.",
+      "anexos": "Ptosis OD.",
+      "motivo": "Mi madre tiene dolor cervical desde hoy."
+    },
+    "esperado": {
+      "activa": true,
+      "urgente": false,
+      "h01": false,
+      "no_contiene": [
+        "dolor cervical referido"
+      ]
+    },
+    "motivo": "El signo propio carece de cronologia; el dolor es de la madre."
+  },
+  {
+    "numero": 12,
+    "nombre": "horner_o_tercer_par_sospecha",
+    "id": "F12-03",
+    "entrada": {
+      "pupilas": "Miosis OD.",
+      "anexos": "Proptosis OD."
+    },
+    "esperado": {
+      "activa": false,
+      "h01": false
+    }
+  },
+  {
+    "numero": 12,
+    "nombre": "horner_o_tercer_par_sospecha",
+    "id": "F12-04",
+    "entrada": {
+      "pupilas": "Reflejos normales.",
+      "anexos": "Ptosis OD desde hoy.",
+      "motilidad": "Limitacion de aduccion OD desde hoy.",
+      "motivo": "Diplopia desde hoy."
+    },
+    "esperado": {
+      "activa": true,
+      "urgente": true,
+      "h01": true,
+      "contiene": [
+        "aduccion",
+        "el mismo dia"
+      ]
+    }
+  },
+  {
+    "numero": 12,
+    "nombre": "horner_o_tercer_par_sospecha",
+    "id": "F12-05",
+    "entrada": {
+      "pupilas": "Miosis OD.",
+      "anexos": "Ptosis OD.",
+      "motivo": "Dolor cervical desde hoy."
+    },
+    "esperado": {
+      "activa": true,
+      "urgente": true,
+      "h01": true
+    }
+  },
+  {
+    "numero": 12,
+    "nombre": "horner_o_tercer_par_sospecha",
+    "id": "F12-06",
+    "entrada": {
+      "pupilas": "Miosis OD. DPAR OI.",
+      "anexos": "Ptosis OD."
+    },
+    "esperado": {
+      "activa": true,
+      "urgente": false,
+      "activas": [
+        "pupilas_alteradas"
+      ]
+    }
+  },
+  {
+    "numero": 13,
+    "nombre": "pupilas_alteradas",
+    "id": "F13-01",
+    "entrada": {
+      "pupilas": "DPAR OD.",
+      "motivo": "Mi madre tiene perdida visual desde hoy."
+    },
+    "esperado": {
+      "activa": true,
+      "urgente": false,
+      "h01": false,
+      "no_contiene": [
+        "perdida visual referida"
+      ]
+    },
+    "motivo": "DPAR propio sin fecha; alarma visual de tercero."
+  },
+  {
+    "numero": 13,
+    "nombre": "pupilas_alteradas",
+    "id": "F13-02",
+    "entrada": {
+      "pupilas": "Mi madre tiene DPAR OD."
+    },
+    "esperado": {
+      "activa": false,
+      "h01": false
+    },
+    "motivo": "Campo textual no autoriza cambiar sujeto explicitamente descrito."
+  },
+  {
+    "numero": 13,
+    "nombre": "pupilas_alteradas",
+    "id": "F13-03",
+    "entrada": {
+      "pupilas": "Sin reflejo fotomotor OD."
+    },
+    "esperado": {
+      "activa": true,
+      "urgente": false,
+      "contiene": [
+        "respuesta fotomotora ausente OD"
+      ],
+      "no_contiene": [
+        "defecto pupilar aferente"
+      ]
+    }
+  },
+  {
+    "numero": 13,
+    "nombre": "pupilas_alteradas",
+    "id": "F13-04",
+    "entrada": {
+      "pupilas": "DPAR OD dudoso.",
+      "motivo": "Perdida visual OD desde hoy."
+    },
+    "esperado": {
+      "activa": true,
+      "urgente": true,
+      "h01": true,
+      "contiene": [
+        "no concluyente",
+        "el mismo dia"
+      ]
+    }
+  },
+  {
+    "numero": 13,
+    "nombre": "pupilas_alteradas",
+    "id": "F13-05",
+    "entrada": {
+      "pupilas": "DPAR OD conocido desde hace diez anos, estable y en seguimiento."
+    },
+    "esperado": {
+      "activa": true,
+      "urgente": false,
+      "h01": false,
+      "no_contiene": [
+        "inicio reciente"
+      ]
+    }
+  },
+  {
+    "numero": 13,
+    "nombre": "pupilas_alteradas",
+    "id": "F13-06",
+    "entrada": {
+      "pupilas": "Reflejo corneal ausente OD."
+    },
+    "esperado": {
+      "activa": false,
+      "h01": false
+    }
+  },
+  {
+    "numero": 14,
+    "nombre": "motilidad_alterada",
+    "id": "F14-01",
+    "entrada": {
+      "motilidad": "Limitacion de abduccion OD.",
+      "motivo": "Mi madre tiene diplopia desde hoy."
+    },
+    "esperado": {
+      "activa": true,
+      "urgente": false,
+      "h01": false,
+      "no_contiene": [
+        "diplopia referida"
+      ]
+    },
+    "motivo": "La diplopia nueva pertenece a tercero, no fecha el deficit del paciente."
+  },
+  {
+    "numero": 14,
+    "nombre": "motilidad_alterada",
+    "id": "F14-02",
+    "entrada": {
+      "motilidad": "Limitacion OD de abduccion para descartar paresia."
+    },
+    "esperado": {
+      "activa": true,
+      "contiene": [
+        "abduccion",
+        "descartar"
+      ],
+      "no_contiene": [
+        "y paresia,"
+      ]
+    },
+    "motivo": "La limitacion es afirmada; la paresia se solicita para descartar, no se documenta."
+  },
+  {
+    "numero": 14,
+    "nombre": "motilidad_alterada",
+    "id": "F14-03",
+    "entrada": {
+      "motilidad": "Ducciones completas. Dolor al mover los ojos.",
+      "motivo": "Mi madre tiene perdida visual desde ayer."
+    },
+    "esperado": {
+      "activa": true,
+      "urgente": false,
+      "h01": false,
+      "no_contiene": [
+        "disminucion visual referida"
+      ]
+    },
+    "motivo": "Dolor propio; deterioro visual ajeno no integra su episodio."
+  },
+  {
+    "numero": 14,
+    "nombre": "motilidad_alterada",
+    "id": "F14-04",
+    "entrada": {
+      "motilidad": "Nistagmo vertical OD. OKN conservado."
+    },
+    "esperado": {
+      "activa": true,
+      "urgente": false,
+      "contiene": [
+        "nistagmo vertical OD"
+      ]
+    }
+  },
+  {
+    "numero": 14,
+    "nombre": "motilidad_alterada",
+    "id": "F14-05",
+    "entrada": {
+      "motilidad": "Ducciones completas. Dolor al mover los ojos."
+    },
+    "esperado": {
+      "activa": true,
+      "urgente": false,
+      "contiene": [
+        "paciente refiere dolor"
+      ],
+      "no_contiene": [
+        "limitacion",
+        "paresia"
+      ]
+    }
+  },
+  {
+    "numero": 14,
+    "nombre": "motilidad_alterada",
+    "id": "F14-06",
+    "entrada": {
+      "motilidad": "Sacadicos: lentos OD. Seguimiento: entrecortado OI."
+    },
+    "esperado": {
+      "activa": true,
+      "urgente": false,
+      "contiene": [
+        "sacadicos lentos OD",
+        "entrecortado OI"
+      ]
+    }
+  },
+  {
+    "numero": 15,
+    "nombre": "campos_visuales_alterados",
+    "id": "F15-01",
+    "entrada": {
+      "campos": "Sin defectos perifericos evidentes.",
+      "motivo": "Mi padre perdio la mitad derecha del campo visual desde hoy."
+    },
+    "esperado": {
+      "activa": false,
+      "h01": false
+    },
+    "motivo": "Cambio visual paterno no es sintoma del paciente."
+  },
+  {
+    "numero": 15,
+    "nombre": "campos_visuales_alterados",
+    "id": "F15-02",
+    "entrada": {
+      "campos": "Sin defectos perifericos evidentes.",
+      "motivo": "Posible perdida de la mitad del campo visual OD desde hoy."
+    },
+    "esperado": {
+      "activa": true,
+      "contiene": [
+        "posible"
+      ]
+    },
+    "motivo": "La necesidad de triage puede mantenerse, pero el sintoma debe conservar su certeza."
+  },
+  {
+    "numero": 15,
+    "nombre": "campos_visuales_alterados",
+    "id": "F15-03",
+    "entrada": {
+      "campos": "Escotoma central OD desde hoy.",
+      "motivo": "Mi madre tiene debilidad desde hoy."
+    },
+    "esperado": {
+      "activa": true,
+      "urgente": true,
+      "h01": true,
+      "contiene": [
+        "el mismo dia"
+      ],
+      "no_contiene": [
+        "debilidad referida",
+        "inmediata en urgencias"
+      ]
+    },
+    "motivo": "Escotoma central propio no incorpora focalidad neurologica materna."
+  },
+  {
+    "numero": 15,
+    "nombre": "campos_visuales_alterados",
+    "id": "F15-04",
+    "entrada": {
+      "campos": "No se observa en OD escotoma central."
+    },
+    "esperado": {
+      "activa": false,
+      "h01": false
+    }
+  },
+  {
+    "numero": 15,
+    "nombre": "campos_visuales_alterados",
+    "id": "F15-05",
+    "entrada": {
+      "campos": "Hemianopsia antigua OD estable. Escotoma central nuevo OI."
+    },
+    "esperado": {
+      "activa": true,
+      "urgente": true,
+      "h01": true,
+      "contiene": [
+        "escotoma central OI",
+        "el mismo dia"
+      ],
+      "no_contiene": [
+        "hemianopsia OD"
+      ]
+    }
+  },
+  {
+    "numero": 15,
+    "nombre": "campos_visuales_alterados",
+    "id": "F15-06",
+    "entrada": {
+      "campos": "Sin defectos perifericos evidentes.",
+      "motivo": "Perdi la mitad derecha del campo visual desde hoy."
+    },
+    "esperado": {
+      "activa": true,
+      "urgente": true,
+      "h01": true,
+      "contiene": [
+        "paciente refiere",
+        "inmediata en urgencias"
+      ],
+      "no_contiene": [
+        "confrontacion documenta perdida"
+      ]
+    }
+  },
+  {
+    "numero": 16,
+    "nombre": "amsler_alterado",
+    "id": "F16-01",
+    "entrada": {
+      "amsler": "Sin descendencia de patologia aparente.",
+      "motivo": "Mi madre tiene metamorfopsia desde hoy."
+    },
+    "esperado": {
+      "activa": false,
+      "h01": false
+    },
+    "motivo": "La metamorfopsia materna no es percepcion del paciente."
+  },
+  {
+    "numero": 16,
+    "nombre": "amsler_alterado",
+    "id": "F16-02",
+    "entrada": {
+      "amsler": "Distorsion OD para descartar metamorfopsia."
+    },
+    "esperado": {
+      "activa": true,
+      "contiene": [
+        "distorsion OD",
+        "descartar"
+      ],
+      "no_contiene": [
+        "OD y metamorfopsia."
+      ]
+    },
+    "motivo": "Distorsion afirmada y metamorfopsia solicitada deben conservar certeza independiente."
+  },
+  {
+    "numero": 16,
+    "nombre": "amsler_alterado",
+    "id": "F16-03",
+    "entrada": {
+      "amsler": "Posible distorsion OD, prueba no confiable."
+    },
+    "esperado": {
+      "activa": true,
+      "urgente": false,
+      "h01": false,
+      "contiene": [
+        "no concluyente",
+        "Repetir"
+      ],
+      "no_contiene": [
+        "se refiere distorsion"
+      ]
+    }
+  },
+  {
+    "numero": 16,
+    "nombre": "amsler_alterado",
+    "id": "F16-04",
+    "entrada": {
+      "amsler": "Sin distorsion OD. Lineas onduladas nuevas OI."
+    },
+    "esperado": {
+      "activa": true,
+      "urgente": true,
+      "h01": true,
+      "contiene": [
+        "lineas onduladas OI"
+      ],
+      "no_contiene": [
+        "distorsion OD"
+      ]
+    }
+  },
+  {
+    "numero": 16,
+    "nombre": "amsler_alterado",
+    "id": "F16-05",
+    "entrada": {
+      "amsler": "Sin descendencia de patologia aparente.",
+      "motivo": "Mancha central fija OD desde hoy."
+    },
+    "esperado": {
+      "activa": true,
+      "urgente": true,
+      "h01": true,
+      "contiene": [
+        "paciente refiere",
+        "mancha central OD"
+      ],
+      "no_contiene": [
+        "rejilla de Amsler se refiere mancha"
+      ]
+    }
+  },
+  {
+    "numero": 17,
+    "nombre": "anexos_riesgo_glaucoma_secundario",
+    "id": "F17-01",
+    "entrada": {
+      "anexos": "Posible pigmento en endotelio corneal OD con defectos de transiluminacion iridiana."
+    },
+    "esperado": {
+      "activa": true,
+      "contiene": [
+        "sin establecer"
+      ]
+    },
+    "motivo": "Rama descriptiva reconstruye hecho firme y elimina posible."
+  },
+  {
+    "numero": 17,
+    "nombre": "anexos_riesgo_glaucoma_secundario",
+    "id": "F17-02",
+    "entrada": {
+      "anexos": "Pigmento endotelial OD con transiluminacion corneal."
+    },
+    "esperado": {
+      "activa": false
+    },
+    "motivo": "No hay defecto iridiano descrito; no procede construir la combinacion especifica."
+  },
+  {
+    "numero": 17,
+    "nombre": "anexos_riesgo_glaucoma_secundario",
+    "id": "F17-03",
+    "entrada": {
+      "anexos": "Huso de Krukenberg OD.",
+      "motivo": "Mi madre tiene dolor ocular intenso con halos desde hoy."
+    },
+    "esperado": {
+      "activa": true,
+      "urgente": false,
+      "h01": false,
+      "no_contiene": [
+        "dolor ocular intenso",
+        "halos"
+      ],
+      "no_activas": [
+        "anexos_patologicos"
+      ]
+    },
+    "motivo": "El signo del paciente no se combina con sintomas maternos."
+  },
+  {
+    "numero": 17,
+    "nombre": "anexos_riesgo_glaucoma_secundario",
+    "id": "F17-04",
+    "entrada": {
+      "anexos": "Pigmento en endotelio corneal OD y defectos de transiluminacion iridiana OI."
+    },
+    "esperado": {
+      "activa": true,
+      "contiene": [
+        "OD",
+        "OI"
+      ],
+      "no_contiene": [
+        "en ambos ojos"
+      ]
+    },
+    "motivo": "Cada signo pertenece a un ojo distinto; no existe la combinacion completa bilateral."
+  },
+  {
+    "numero": 17,
+    "nombre": "anexos_riesgo_glaucoma_secundario",
+    "id": "F17-05",
+    "entrada": {
+      "anexos": "Sin pseudoexfoliacion",
+      "fondo": "Huso de Krukenberg OD."
+    },
+    "esperado": {
+      "activa": true,
+      "contiene": [
+        "huso de Krukenberg OD en fondo de ojo"
+      ],
+      "no_contiene": [
+        "biomicroscopia realizada"
+      ]
+    }
+  },
+  {
+    "numero": 17,
+    "nombre": "anexos_riesgo_glaucoma_secundario",
+    "id": "F17-06",
+    "entrada": {
+      "anexos": "Dispersion pigmentaria retiniana periferica OD."
+    },
+    "esperado": {
+      "activa": false,
+      "h01": false
+    }
+  },
+  {
+    "numero": 17,
+    "nombre": "anexos_riesgo_glaucoma_secundario",
+    "id": "F17-07",
+    "entrada": {
+      "anexos": "Huso de Krukenberg OD.",
+      "motivo": "Dolor ocular intenso OD con halos desde hoy."
+    },
+    "esperado": {
+      "activa": true,
+      "urgente": true,
+      "h01": true,
+      "contiene": [
+        "el mismo dia"
+      ],
+      "activas": [
+        "anexos_patologicos"
+      ]
+    }
+  },
+  {
+    "numero": 18,
+    "nombre": "opacidad_cristaliniana",
+    "id": "F18-01",
+    "entrada": {
+      "anexos": "Catarata OD no operada."
+    },
+    "esperado": {
+      "activa": true,
+      "contiene": [
+        "opacidad del cristalino OD"
+      ]
+    },
+    "motivo": "La cirugia explicitamente negada no transforma la catarata actual en antecedente operado."
+  },
+  {
+    "numero": 18,
+    "nombre": "opacidad_cristaliniana",
+    "id": "F18-02",
+    "entrada": {
+      "anexos": "Catarata secundaria a traumatismo OD."
+    },
+    "esperado": {
+      "activa": true,
+      "contiene": [
+        "opacidad del cristalino OD"
+      ],
+      "no_contiene": [
+        "capsula posterior"
+      ]
+    },
+    "motivo": "Secundaria a un trauma describe causa referida; no identifica capsula posterior ni pseudofaquia."
+  },
+  {
+    "numero": 18,
+    "nombre": "opacidad_cristaliniana",
+    "id": "F18-03",
+    "entrada": {
+      "anexos": "Cirugia de catarata OD hace tres dias. Pseudofaquia OD.",
+      "motivo": "Mi madre tiene perdida visual desde hoy."
+    },
+    "esperado": {
+      "activa": false,
+      "h01": false
+    },
+    "motivo": "Cirugia propia y perdida visual materna no son combinacion posoperatoria del paciente."
+  },
+  {
+    "numero": 18,
+    "nombre": "opacidad_cristaliniana",
+    "id": "F18-04",
+    "entrada": {
+      "anexos": "Cristalino subluxado OD.",
+      "motivo": "Mi padre tuvo traumatismo OD desde hoy."
+    },
+    "esperado": {
+      "activa": true,
+      "urgente": false,
+      "h01": false,
+      "no_contiene": [
+        "con traumatismo"
+      ]
+    },
+    "motivo": "La posicion propia debe evaluarse; trauma de padre no fecha/agrava el episodio propio."
+  },
+  {
+    "numero": 18,
+    "nombre": "opacidad_cristaliniana",
+    "id": "F18-05",
+    "entrada": {
+      "anexos": "Pseudofaquia OD con capsula transparente. Catarata cortical OI."
+    },
+    "esperado": {
+      "activa": true,
+      "urgente": false,
+      "contiene": [
+        "opacidad del cristalino cortical OI"
+      ],
+      "no_contiene": [
+        "opacidad del cristalino OD"
+      ]
+    }
+  },
+  {
+    "numero": 18,
+    "nombre": "opacidad_cristaliniana",
+    "id": "F18-06",
+    "entrada": {
+      "anexos": "Lente intraocular faquica OD. Cristalino transparente."
+    },
+    "esperado": {
+      "activa": false,
+      "h01": false
+    }
+  },
+  {
+    "numero": 18,
+    "nombre": "opacidad_cristaliniana",
+    "id": "F18-07",
+    "entrada": {
+      "anexos": "Leucocoria OD.",
+      "edad": 2
+    },
+    "esperado": {
+      "activa": true,
+      "urgente": true,
+      "h01": true,
+      "contiene": [
+        "leucocoria OD",
+        "pediatrica",
+        "el mismo dia"
+      ],
+      "no_contiene": [
+        "catarata",
+        "retinoblastoma"
+      ]
+    }
+  },
+  {
+    "numero": 18,
+    "nombre": "opacidad_cristaliniana",
+    "id": "F18-08",
+    "entrada": {
+      "fondo": "No se logra observar fondo OD por catarata densa."
+    },
+    "esperado": {
+      "activa": true,
+      "contiene": [
+        "opacidad del cristalino densa OD"
+      ]
+    }
+  },
+  {
+    "numero": 19,
+    "nombre": "anexos_patologicos",
+    "id": "F19-01",
+    "entrada": {
+      "anexos": "Erosion corneal OD.",
+      "motivo": "Dolor ocular OD desde hoy."
+    },
+    "esperado": {
+      "activa": true,
+      "urgente": true,
+      "h01": true,
+      "contiene": [
+        "erosion corneal OD",
+        "el mismo dia"
+      ]
+    },
+    "motivo": "Anatomia corneal y dolor reciente propios; la familia erosion no entra en superficie de _alarma_anexos."
+  },
+  {
+    "numero": 19,
+    "nombre": "anexos_patologicos",
+    "id": "F19-02",
+    "entrada": {
+      "anexos": "Queratitis OD.",
+      "motivo": "Mi madre tiene dolor ocular OD desde hoy."
+    },
+    "esperado": {
+      "activa": true,
+      "urgente": false,
+      "h01": false,
+      "no_contiene": [
+        "dolor ocular"
+      ]
+    },
+    "motivo": "La queratitis propia no adquiere dolor de tercero."
+  },
+  {
+    "numero": 19,
+    "nombre": "anexos_patologicos",
+    "id": "F19-03",
+    "entrada": {
+      "anexos": "Disfuncion glandular lagrimal OD. Carnosidad palpebral OI."
+    },
+    "esperado": {
+      "activa": true,
+      "urgente": false,
+      "contiene": [
+        "disfuncion glandular lagrimal OD",
+        "carnosidad palpebral OI"
+      ],
+      "no_contiene": [
+        "meibomio",
+        "pterigion"
+      ]
+    }
+  },
+  {
+    "numero": 19,
+    "nombre": "anexos_patologicos",
+    "id": "F19-04",
+    "entrada": {
+      "anexos": "Infiltrado corneal OD. Defecto epitelial conjuntival OI."
+    },
+    "esperado": {
+      "activa": true,
+      "urgente": false,
+      "h01": false,
+      "contiene": [
+        "infiltrado corneal OD",
+        "defecto epitelial conjuntival OI"
+      ]
+    }
+  },
+  {
+    "numero": 19,
+    "nombre": "anexos_patologicos",
+    "id": "F19-05",
+    "entrada": {
+      "anexos": "Posible queratitis OD.",
+      "motivo": "Dolor ocular intenso OD con halos desde hoy."
+    },
+    "esperado": {
+      "activa": true,
+      "urgente": true,
+      "h01": true,
+      "contiene": [
+        "sin establecer",
+        "queratitis OD",
+        "el mismo dia"
+      ],
+      "no_contiene": [
+        "glaucoma confirmado"
+      ]
+    }
+  },
+  {
+    "numero": 19,
+    "nombre": "anexos_patologicos",
+    "id": "F19-06",
+    "entrada": {
+      "anexos": "Xantelasma OD conocido y estable."
+    },
+    "esperado": {
+      "activa": false,
+      "h01": false
+    }
+  },
+  {
+    "numero": 12,
+    "nombre": "horner_o_tercer_par_sospecha",
+    "id": "S12-01",
+    "entrada": {
+      "pupilas": "Miosis OD.",
+      "anexos": "Ptosis OD.",
+      "motivo": "Mi madre tiene dolor cervical y perdida visual desde hoy."
+    },
+    "esperado": {
+      "activa": true,
+      "urgente": false,
+      "h01": false,
+      "no_contiene": [
+        "dolor cervical referido",
+        "perdida visual referida"
+      ]
+    }
+  },
+  {
+    "numero": 12,
+    "nombre": "horner_o_tercer_par_sospecha",
+    "id": "S12-02",
+    "entrada": {
+      "pupilas": "Miosis OD.",
+      "anexos": "Ptosis OD.",
+      "motivo": "Tengo dolor cervical desde hoy mientras cuido a mi madre."
+    },
+    "esperado": {
+      "activa": true,
+      "urgente": true,
+      "h01": true
+    }
+  },
+  {
+    "numero": 12,
+    "nombre": "horner_o_tercer_par_sospecha",
+    "id": "S12-03",
+    "entrada": {
+      "pupilas": "Miosis OD.",
+      "anexos": "Ptosis OD.",
+      "motivo": "Volver si presenta dolor cervical o diplopia desde hoy."
+    },
+    "esperado": {
+      "activa": true,
+      "urgente": false,
+      "h01": false
+    }
+  },
+  {
+    "numero": 12,
+    "nombre": "horner_o_tercer_par_sospecha",
+    "id": "S12-04",
+    "entrada": {
+      "pupilas": "Miosis OI.",
+      "anexos": "No se observa en OD ptosis; ptosis OI."
+    },
+    "esperado": {
+      "activa": true,
+      "contiene": [
+        "ptosis OI"
+      ],
+      "no_contiene": [
+        "ptosis OD"
+      ]
+    }
+  },
+  {
+    "numero": 13,
+    "nombre": "pupilas_alteradas",
+    "id": "S13-01",
+    "entrada": {
+      "pupilas": "Mi madre tiene anisocoria y DPAR OD."
+    },
+    "esperado": {
+      "activa": false,
+      "h01": false
+    }
+  },
+  {
+    "numero": 13,
+    "nombre": "pupilas_alteradas",
+    "id": "S13-02",
+    "entrada": {
+      "pupilas": "DPAR OD.",
+      "motivo": "Tengo perdida visual OD desde hoy mientras cuido a mi padre."
+    },
+    "esperado": {
+      "activa": true,
+      "urgente": true,
+      "h01": true
+    }
+  },
+  {
+    "numero": 13,
+    "nombre": "pupilas_alteradas",
+    "id": "S13-03",
+    "entrada": {
+      "pupilas": "DPAR OD.",
+      "motivo": "Volver si presenta perdida visual OD desde hoy."
+    },
+    "esperado": {
+      "activa": true,
+      "urgente": false,
+      "h01": false
+    }
+  },
+  {
+    "numero": 13,
+    "nombre": "pupilas_alteradas",
+    "id": "S13-04",
+    "entrada": {
+      "pupilas": "No se aprecia en OD DPAR; DPAR OI."
+    },
+    "esperado": {
+      "activa": true,
+      "contiene": [
+        "defecto pupilar aferente relativo OI"
+      ],
+      "no_contiene": [
+        "relativo OD"
+      ]
+    }
+  },
+  {
+    "numero": 14,
+    "nombre": "motilidad_alterada",
+    "id": "S14-01",
+    "entrada": {
+      "motilidad": "Limitacion de abduccion OD.",
+      "motivo": "Descartar diplopia nueva desde hoy."
+    },
+    "esperado": {
+      "activa": true,
+      "urgente": false,
+      "h01": false
+    }
+  },
+  {
+    "numero": 14,
+    "nombre": "motilidad_alterada",
+    "id": "S14-02",
+    "entrada": {
+      "motilidad": "Limitacion de abduccion OD.",
+      "motivo": "Tengo diplopia desde ayer mientras cuido a mi madre."
+    },
+    "esperado": {
+      "activa": true,
+      "urgente": true,
+      "h01": true
+    }
+  },
+  {
+    "numero": 14,
+    "nombre": "motilidad_alterada",
+    "id": "S14-03",
+    "entrada": {
+      "motilidad": "Limitacion de abduccion OD.",
+      "motivo": "Mi madre tiene dolor ocular y diplopia desde hoy."
+    },
+    "esperado": {
+      "activa": true,
+      "urgente": false,
+      "h01": false
+    }
+  },
+  {
+    "numero": 14,
+    "nombre": "motilidad_alterada",
+    "id": "S14-04",
+    "entrada": {
+      "pupilas": "Reflejos normales.",
+      "anexos": "Ptosis OD desde hoy.",
+      "motilidad": "Limitacion de abduccion OD desde hoy. Paresia del VI par OD."
+    },
+    "esperado": {
+      "activa": true,
+      "contiene": [
+        "paresia del VI par OD"
+      ],
+      "activas": [
+        "horner_o_tercer_par_sospecha"
+      ]
+    }
+  },
+  {
+    "numero": 15,
+    "nombre": "campos_visuales_alterados",
+    "id": "S15-01",
+    "entrada": {
+      "campos": "Sin defectos perifericos evidentes.",
+      "motivo": "Perdi la mitad derecha del campo visual desde hoy mientras cuido a mi padre."
+    },
+    "esperado": {
+      "activa": true,
+      "urgente": true,
+      "h01": true
+    }
+  },
+  {
+    "numero": 15,
+    "nombre": "campos_visuales_alterados",
+    "id": "S15-02",
+    "entrada": {
+      "campos": "Sin defectos perifericos evidentes.",
+      "motivo": "Volver si presenta perdida de la mitad del campo visual desde hoy."
+    },
+    "esperado": {
+      "activa": false,
+      "h01": false
+    }
+  },
+  {
+    "numero": 15,
+    "nombre": "campos_visuales_alterados",
+    "id": "S15-03",
+    "entrada": {
+      "campos": "Sin defectos perifericos evidentes.",
+      "motivo": "Descartar perdida de la mitad del campo visual OD desde hoy."
+    },
+    "esperado": {
+      "activa": true,
+      "urgente": false,
+      "h01": false,
+      "contiene": [
+        "sin establecer",
+        "descartar"
+      ],
+      "no_contiene": [
+        "El paciente refiere"
+      ]
+    }
+  },
+  {
+    "numero": 15,
+    "nombre": "campos_visuales_alterados",
+    "id": "S15-04",
+    "entrada": {
+      "campos": "Escotoma central OD desde hoy.",
+      "motivo": "Mi madre tiene debilidad y dificultad del habla desde hoy."
+    },
+    "esperado": {
+      "activa": true,
+      "urgente": true,
+      "contiene": [
+        "el mismo dia"
+      ],
+      "no_contiene": [
+        "debilidad referida",
+        "dificultad del habla",
+        "inmediata en urgencias"
+      ]
+    }
+  },
+  {
+    "numero": 16,
+    "nombre": "amsler_alterado",
+    "id": "S16-01",
+    "entrada": {
+      "amsler": "Sin descendencia de patologia aparente.",
+      "motivo": "Mi madre tiene metamorfopsia y micropsia desde hoy."
+    },
+    "esperado": {
+      "activa": false,
+      "h01": false
+    }
+  },
+  {
+    "numero": 16,
+    "nombre": "amsler_alterado",
+    "id": "S16-02",
+    "entrada": {
+      "amsler": "Sin descendencia de patologia aparente.",
+      "motivo": "Noto metamorfopsia OD desde hoy mientras cuido a mi madre."
+    },
+    "esperado": {
+      "activa": true,
+      "urgente": true,
+      "h01": true,
+      "contiene": [
+        "paciente refiere"
+      ]
+    }
+  },
+  {
+    "numero": 16,
+    "nombre": "amsler_alterado",
+    "id": "S16-03",
+    "entrada": {
+      "amsler": "Sin descendencia de patologia aparente.",
+      "motivo": "Volver si presenta metamorfopsia desde hoy."
+    },
+    "esperado": {
+      "activa": false,
+      "h01": false
+    }
+  },
+  {
+    "numero": 16,
+    "nombre": "amsler_alterado",
+    "id": "S16-04",
+    "entrada": {
+      "amsler": "Metamorfopsia estable OD, pero empeora desde hoy."
+    },
+    "esperado": {
+      "activa": true,
+      "urgente": true,
+      "h01": true,
+      "contiene": [
+        "empeoramiento"
+      ]
+    }
+  },
+  {
+    "numero": 16,
+    "nombre": "amsler_alterado",
+    "id": "S16-05",
+    "entrada": {
+      "amsler": "Distorsion OD para descartar metamorfopsia y micropsia."
+    },
+    "esperado": {
+      "activa": true,
+      "contiene": [
+        "distorsion OD",
+        "sin establecer"
+      ],
+      "no_contiene": [
+        "se refieren distorsion OD y metamorfopsia"
+      ]
+    }
+  },
+  {
+    "numero": 16,
+    "nombre": "fondo_macular_dmae",
+    "id": "S16-A2",
+    "entrada": {
+      "fondo": "Drusas blandas maculares OD.",
+      "edad": 70,
+      "amsler": "Metamorfopsia estable OD, pero empeora desde hoy."
+    },
+    "esperado": {
+      "activa": true,
+      "urgente": true,
+      "h01": true,
+      "contiene": [
+        "1 dia habil"
+      ]
+    }
+  },
+  {
+    "numero": 16,
+    "nombre": "amsler_alterado",
+    "id": "S16-06",
+    "entrada": {
+      "amsler": "Sin descendencia de patologia aparente.",
+      "motivo": "Metamorfopsia OD y dolor de cabeza desde hoy."
+    },
+    "esperado": {
+      "activa": true,
+      "urgente": false,
+      "h01": false,
+      "no_contiene": [
+        "inicio reciente"
+      ]
+    }
+  },
+  {
+    "numero": 17,
+    "nombre": "anexos_riesgo_glaucoma_secundario",
+    "id": "S17-01",
+    "entrada": {
+      "anexos": "Pigmento en endotelio corneal OD con defectos de transiluminacion iridiana OD conocidos y estables."
+    },
+    "esperado": {
+      "activa": false,
+      "h01": false
+    }
+  },
+  {
+    "numero": 17,
+    "nombre": "anexos_riesgo_glaucoma_secundario",
+    "id": "S17-02",
+    "entrada": {
+      "anexos": "Mi madre presenta pigmento en endotelio corneal OD con defectos de transiluminacion iridiana OD."
+    },
+    "esperado": {
+      "activa": false,
+      "h01": false
+    }
+  },
+  {
+    "numero": 17,
+    "nombre": "anexos_riesgo_glaucoma_secundario",
+    "id": "S17-03",
+    "entrada": {
+      "anexos": "Pigmento en endotelio corneal OD y posibles defectos de transiluminacion iridiana OI."
+    },
+    "esperado": {
+      "activa": true,
+      "contiene": [
+        "OD",
+        "OI",
+        "sin establecer"
+      ],
+      "no_contiene": [
+        "en ambos ojos"
+      ]
+    }
+  },
+  {
+    "numero": 17,
+    "nombre": "anexos_riesgo_glaucoma_secundario",
+    "id": "S17-04",
+    "entrada": {
+      "anexos": "Huso de Krukenberg OD.",
+      "motivo": "Tengo dolor ocular intenso OD con halos desde hoy mientras cuido a mi madre."
+    },
+    "esperado": {
+      "activa": true,
+      "urgente": true,
+      "h01": true
+    }
+  },
+  {
+    "numero": 18,
+    "nombre": "opacidad_cristaliniana",
+    "id": "S18-01",
+    "entrada": {
+      "anexos": "Catarata OD con cirugia programada."
+    },
+    "esperado": {
+      "activa": true,
+      "contiene": [
+        "opacidad del cristalino OD"
+      ]
+    }
+  },
+  {
+    "numero": 18,
+    "nombre": "opacidad_cristaliniana",
+    "id": "S18-02",
+    "entrada": {
+      "anexos": "Catarata operada OD hace tres anos. Pseudofaquia OD con capsula transparente."
+    },
+    "esperado": {
+      "activa": false,
+      "h01": false
+    }
+  },
+  {
+    "numero": 18,
+    "nombre": "opacidad_cristaliniana",
+    "id": "S18-03",
+    "entrada": {
+      "anexos": "Cirugia de catarata OD hace tres dias. Pseudofaquia OD.",
+      "motivo": "Tengo vision reducida OD desde hoy mientras cuido a mi madre."
+    },
+    "esperado": {
+      "activa": true,
+      "urgente": true,
+      "h01": true,
+      "contiene": [
+        "el mismo dia"
+      ]
+    }
+  },
+  {
+    "numero": 18,
+    "nombre": "opacidad_cristaliniana",
+    "id": "S18-04",
+    "entrada": {
+      "anexos": "Cristalino subluxado OD.",
+      "motivo": "Mi padre tuvo traumatismo y dolor intenso OD desde hoy."
+    },
+    "esperado": {
+      "activa": true,
+      "urgente": false,
+      "h01": false
+    }
+  },
+  {
+    "numero": 18,
+    "nombre": "opacidad_cristaliniana",
+    "id": "S18-05",
+    "entrada": {
+      "anexos": "Catarata secundaria OD."
+    },
+    "esperado": {
+      "activa": true,
+      "contiene": [
+        "localizacion por verificar"
+      ],
+      "no_contiene": [
+        "capsula posterior",
+        "opacidad del cristalino"
+      ]
+    }
+  },
+  {
+    "numero": 18,
+    "nombre": "opacidad_cristaliniana",
+    "id": "S18-06",
+    "entrada": {
+      "anexos": "Opacidad de capsula posterior OD."
+    },
+    "esperado": {
+      "activa": true,
+      "contiene": [
+        "opacidad de capsula posterior OD"
+      ],
+      "no_contiene": [
+        "opacidad del cristalino"
+      ]
+    }
+  },
+  {
+    "numero": 18,
+    "nombre": "opacidad_cristaliniana",
+    "id": "S18-07",
+    "entrada": {
+      "anexos": "Cristalino subluxado OD tras traumatismo de hoy."
+    },
+    "esperado": {
+      "activa": true,
+      "urgente": true,
+      "h01": true,
+      "contiene": [
+        "traumatismo",
+        "el mismo dia"
+      ]
+    }
+  },
+  {
+    "numero": 19,
+    "nombre": "anexos_patologicos",
+    "id": "S19-01",
+    "entrada": {
+      "but": 7,
+      "anexos": "Defecto epitelial corneal OD.",
+      "motivo": "Dolor ocular intenso OD con vision reducida desde hoy."
+    },
+    "esperado": {
+      "activa": true,
+      "urgente": true,
+      "h01": true,
+      "contiene": [
+        "defecto epitelial corneal OD",
+        "perdida o disminucion visual OD",
+        "el mismo dia"
+      ]
+    }
+  },
+  {
+    "numero": 19,
+    "nombre": "anexos_patologicos",
+    "id": "S19-02",
+    "entrada": {
+      "anexos": "Erosion cutanea palpebral OD.",
+      "motivo": "Dolor ocular OD desde hoy."
+    },
+    "esperado": {
+      "activa": true,
+      "urgente": false,
+      "h01": false,
+      "no_contiene": [
+        "erosion corneal"
+      ]
+    }
+  },
+  {
+    "numero": 19,
+    "nombre": "anexos_patologicos",
+    "id": "S19-03",
+    "entrada": {
+      "anexos": "Erosion OD.",
+      "motivo": "Dolor ocular OD desde hoy."
+    },
+    "esperado": {
+      "activa": true,
+      "urgente": false,
+      "h01": false,
+      "no_contiene": [
+        "erosion corneal"
+      ]
+    }
+  },
+  {
+    "numero": 19,
+    "nombre": "anexos_patologicos",
+    "id": "S19-04",
+    "entrada": {
+      "anexos": "Defecto epitelial corneal OD.",
+      "motivo": "Dolor ocular intenso OI desde hoy."
+    },
+    "esperado": {
+      "activa": true,
+      "urgente": false,
+      "h01": false
+    }
+  },
+  {
+    "numero": 19,
+    "nombre": "anexos_patologicos",
+    "id": "S19-05",
+    "entrada": {
+      "anexos": "Erosion corneal OD.",
+      "motivo": "Tengo dolor ocular OD desde hoy mientras cuido a mi madre."
+    },
+    "esperado": {
+      "activa": true,
+      "urgente": true,
+      "h01": true
+    }
+  },
+  {
+    "numero": 19,
+    "nombre": "anexos_patologicos",
+    "id": "S19-06",
+    "entrada": {
+      "anexos": "Queratitis OD.",
+      "motivo": "Mi madre tiene dolor ocular OD y fotofobia desde hoy."
+    },
+    "esperado": {
+      "activa": true,
+      "urgente": false,
+      "h01": false
+    }
+  },
+  {
+    "numero": 19,
+    "nombre": "anexos_patologicos",
+    "id": "S19-07",
+    "entrada": {
+      "anexos": "Defecto epitelial conjuntival OD.",
+      "motivo": "Dolor ocular OD desde hoy."
+    },
+    "esperado": {
+      "activa": true,
+      "urgente": false,
+      "h01": false
+    }
+  },
+  {
+    "numero": 19,
+    "nombre": "anexos_patologicos",
+    "id": "S19-08",
+    "entrada": {
+      "anexos": "Queratitis OD.",
+      "motivo": "Volver si presenta dolor ocular OD y fotofobia desde hoy."
+    },
+    "esperado": {
+      "activa": true,
+      "urgente": false,
+      "h01": false
+    }
+  },
+  {
+    "numero": 15,
+    "nombre": "campos_visuales_alterados",
+    "id": "S15-05",
+    "entrada": {
+      "campos": "Sin defectos perifericos evidentes.",
+      "motivo": "Perdida de la mitad del campo visual OD y cefalea desde hoy."
+    },
+    "esperado": {
+      "activa": true,
+      "urgente": false,
+      "h01": false,
+      "no_contiene": [
+        "inicio reciente"
+      ]
+    }
+  },
+  {
+    "numero": 19,
+    "nombre": "anexos_patologicos",
+    "id": "S19-09",
+    "entrada": {
+      "anexos": "Erosion cutanea OD, cornea normal.",
+      "motivo": "Dolor ocular OD desde hoy."
+    },
+    "esperado": {
+      "activa": true,
+      "urgente": false,
+      "h01": false,
+      "contiene": [
+        "erosion cutanea OD"
+      ],
+      "no_contiene": [
+        "erosion corneal"
+      ]
+    }
+  }
+]

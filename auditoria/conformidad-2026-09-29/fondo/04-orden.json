@@ -1,0 +1,114 @@
+{
+  "numero": 4,
+  "nombre": "papila_patologica",
+  "veredicto": "PARCIAL",
+  "requisitos": [
+    [
+      "Clasificacion local edema/noia,bordes anclados,signos verdaderos,atribucion benigna,palidez,antecedente; plurales y negacion",
+      "AUDITORIA_CORRELACIONES.md:1352-1361",
+      "app/correlaciones/fondo_de_ojo.py:676-856",
+      "Implementado cobertura; F04-01 reproduce negacion OD rota"
+    ],
+    [
+      "Bordes no pertenecen a drusa/nevus/exudado/cicatriz; no bajar por Rx sola",
+      "AUDITORIA_CORRELACIONES.md:1356,1358",
+      "app/correlaciones/fondo_de_ojo.py:781-818",
+      "Implementado anclaje y 4 palabras previas"
+    ],
+    [
+      "Nivel A edema o bordes+signo o bordes/benigno+HIC; cefalea sola no escala",
+      "AUDITORIA_CORRELACIONES.md:1362-1366",
+      "app/correlaciones/fondo_de_ojo.py:858-875",
+      "PARCIAL: HIC de tercero escala F04-02"
+    ],
+    [
+      "B preferente; palidez; combinado solo con excavacion y supresion #6; antecedente no urgente",
+      "AUDITORIA_CORRELACIONES.md:1367-1369",
+      "app/correlaciones/fondo_de_ojo.py:883-914;app/correlaciones/fondo_de_ojo.py:1071",
+      "Implementado ramas; coexistencia independiente revisar #6"
+    ],
+    [
+      "Textos/exploracion/plazos y ACG>=50 sin asumir edad",
+      "AUDITORIA_CORRELACIONES.md:1370-1380",
+      "app/correlaciones/fondo_de_ojo.py:872-914",
+      "Textos descriptivos, verificar sustituye confirmar de T5 posterior"
+    ],
+    [
+      "Causa AV solo A,palidez,combinado,antecedente mismo ojo; B nunca",
+      "AUDITORIA_CORRELACIONES.md:1381-1383; posterior56:3916",
+      "app/correlaciones/contexto.py:_has_organic_cause_for_low_av",
+      "No usar pseudoedema como explicacion automatica; controles F04-04"
+    ],
+    [
+      "H01 prefijo y metadatos24h, no urgente vocabulario prohibido",
+      "AUDITORIA_CORRELACIONES.md:1384-1386;234-255",
+      "app/inference.py:228,470",
+      "Implementado prefijo; F04-01/02 causan H01 por extraccion falsa"
+    ],
+    [
+      "Revision posterior56/57: no usar keywords de causa organica como prueba causal completa ni veto de AV; preservar ojos/hechos/prioridad",
+      "AUDITORIA_CORRELACIONES.md:3916,3932",
+      "app/correlaciones/contexto.py:139,157,174",
+      "Los selectores actuales de AV no contienen filtro organico; condiciones originales de causalidad de este bloque se leen bajo esa revision posterior."
+    ]
+  ],
+  "casos": [
+    {
+      "entrada": {
+        "fondo": "No se observa en OD edema de papila."
+      },
+      "esperado": {
+        "activa": false,
+        "h01": false
+      },
+      "motivo": "Negacion con OD interpuesto activa edema de papila urgente/H01."
+    },
+    {
+      "entrada": {
+        "fondo": "Papila OD con bordes borrosos.",
+        "motivo": "Mi padre tiene diplopia desde ayer; yo sin molestias."
+      },
+      "esperado": {
+        "activa": true,
+        "urgente": false,
+        "h01": false
+      },
+      "motivo": "Diplopia paterna eleva bordes papilares propios a urgencia/H01."
+    },
+    {
+      "entrada": {
+        "fondo": "Drusas blandas de bordes mal definidos en macula OI."
+      },
+      "esperado": {
+        "activa": false,
+        "h01": false
+      }
+    },
+    {
+      "entrada": {
+        "fondo": "Disco inclinado por miopia OD.",
+        "edad": 30,
+        "rx_od": {
+          "esfera": -1,
+          "cilindro": 0,
+          "av_cc": "20/50"
+        },
+        "rx_oi": {
+          "esfera": -1,
+          "cilindro": 0,
+          "av_cc": "20/20"
+        }
+      },
+      "esperado": {
+        "activa": true,
+        "urgente": false,
+        "activas": [
+          "deficit_visual_inexplicado_refractivo"
+        ]
+      }
+    }
+  ],
+  "cobertura": "Corrida agrupada real de 13 archivos de aceptacion/integracion: 1496 aprobadas, 0 fallos, 0 errores, 0 omitidas; JUnit suite-existente.xml. Comando: .venv/Scripts/python.exe -m pytest tests/test_auditoria_correlaciones.py tests/test_revalidacion_ajustes.py tests/test_revalidacion_papila_macula.py tests/test_revalidacion_sintomas_oclusiones.py tests/test_ajuste_c12.py tests/test_ajuste_c13.py tests/test_ajuste_c14.py tests/test_ajuste_c15.py tests/test_ajuste_c16.py tests/test_ajuste_c17.py tests/test_ajuste_c18.py tests/test_ajuste_c19.py tests/test_correlaciones.py -q -p no:cacheprovider --junitxml=auditoria/conformidad-2026-09-29/fondo/suite-existente.xml",
+  "conclusion": "Los niveles y caracter descriptivo cumplen en ramas ordinarias. F04-01 evidencia una negacion convertida en edema urgente. El control de HIC familiar F04-02 exige no escalar por sintomas de otra persona; evidencia JSON determina resultado real. No puede certificarse sujeto por coincidencias globales.",
+  "recomendaciones": "Usar evidencia del paciente afirmada para HIC, con negacion y sujeto locales. Reparar la negacion ocular interpuesta sin suprimir ojos contrarios positivos. Probar bordes, pseudoedema y palidez con sintomas familiares/negados y conservar preferencia sin H01 cuando corresponda. Revalidar causa AV por ojo y coexistencia con #6."
+}

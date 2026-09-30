@@ -1,0 +1,101 @@
+{
+  "numero": 11,
+  "nombre": "fondo_vascular_diabetico",
+  "veredicto": "PARCIAL",
+  "requisitos": [
+    [
+      "Hallazgosmicrovasculares neutrales; DMpersonalexplicitacontexto,no diagnostico/descontrol nuevo",
+      "AUDITORIA_CORRELACIONES.md:2314,2322",
+      "app/correlaciones/fondo_de_ojo.py:2008,2164-2177",
+      "Implementado texto, contextoDMmismo paciente revisable"
+    ],
+    [
+      "Lesion+anatomia+actualidad+ojo/fuente; implícitaretinasolo si nootraubicacion",
+      "AUDITORIA_CORRELACIONES.md:2315",
+      "app/correlaciones/fondo_de_ojo.py:2050,2080-2126",
+      "PARCIAL: cornea declaradaprevia no excluye exudados F11-01"
+    ],
+    [
+      "Sin vetoalgodonoso, negacionporlesion y rutas desde10; word-boundaryNVD/NVE; coroidea8,corneal19,irisalsoanexos",
+      "AUDITORIA_CORRELACIONES.md:2316-2317",
+      "app/correlaciones/fondo_de_ojo.py:1973-2005,2093",
+      "Listas/rutas principales implementadas"
+    ],
+    [
+      "Noproliferativo neutral, IRMA/arrosariamiento/macularpreferente,NVactualtriageurgente sin DM/AV requerida",
+      "AUDITORIA_CORRELACIONES.md:2318",
+      "app/correlaciones/fondo_de_ojo.py:2142-2177",
+      "Implementado"
+    ],
+    [
+      "Hemorragia prerretiniananueva/perdidasubita/dolorintenso episodiospropios; histórico inactivo noactividad ni tratadODvetaOI",
+      "AUDITORIA_CORRELACIONES.md:2319",
+      "app/correlaciones/fondo_de_ojo.py:2050-2077,2100-2156",
+      "PARCIAL: dolorocular sin tiempo se llama agudo conrubeosis F11-02"
+    ],
+    [
+      "NoETDRS/EMCSinferido; OCTcuandohallazgo; supresionmisma lesión/ojode3, conservaciónindependientes y9contexto",
+      "AUDITORIA_CORRELACIONES.md:2320-2321",
+      "app/correlaciones/fondo_de_ojo.py:2117-2126,2174",
+      "Sinestadificacion; F11-03/04 independiente ynegativo"
+    ],
+    [
+      "Texto urgencia localizacionreal, corto solo si explicitosepisodio; H01metadatos/preservaranual",
+      "AUDITORIA_CORRELACIONES.md:2323",
+      "app/correlaciones/fondo_de_ojo.py:2139-2160; app/inference.py:258,470",
+      "Prefijo cubierto; temporalidad agudano demostrada F11-02"
+    ]
+  ],
+  "casos": [
+    {
+      "entrada": {
+        "fondo": "Cornea OD con exudados duros."
+      },
+      "esperado": {
+        "activa": false,
+        "h01": false
+      },
+      "motivo": "Exudados duros explicitamente corneales se consideran retinianos."
+    },
+    {
+      "entrada": {
+        "anexos": "Rubeosis iridis OD.",
+        "motivo": "Dolor ocular OD."
+      },
+      "esperado": {
+        "activa": true,
+        "urgente": true,
+        "no_contiene": [
+          "sintomas agudos"
+        ]
+      },
+      "motivo": "Dolor ocular sin fecha se llama sintomas agudos; el plazo se analiza por separado."
+    },
+    {
+      "entrada": {
+        "fondo": "Exudados duros OI; OVCR OD."
+      },
+      "esperado": {
+        "activa": true,
+        "activas": [
+          "fondo_oclusion_vascular_urgente"
+        ],
+        "contiene": [
+          "OI"
+        ]
+      }
+    },
+    {
+      "entrada": {
+        "fondo": "Nevus coroideo convexo estable."
+      },
+      "esperado": {
+        "activa": false,
+        "h01": false
+      }
+    }
+  ],
+  "cobertura": "Corrida agrupada real de 13 archivos de aceptacion/integracion: 1496 aprobadas, 0 fallos, 0 errores, 0 omitidas; JUnit suite-existente.xml. Comando: .venv/Scripts/python.exe -m pytest tests/test_auditoria_correlaciones.py tests/test_revalidacion_ajustes.py tests/test_revalidacion_papila_macula.py tests/test_revalidacion_sintomas_oclusiones.py tests/test_ajuste_c12.py tests/test_ajuste_c13.py tests/test_ajuste_c14.py tests/test_ajuste_c15.py tests/test_ajuste_c16.py tests/test_ajuste_c17.py tests/test_ajuste_c18.py tests/test_ajuste_c19.py tests/test_correlaciones.py -q -p no:cacheprovider --junitxml=auditoria/conformidad-2026-09-29/fondo/suite-existente.xml",
+  "conclusion": "F11-01 interpreta exudados duros explicitamente corneales como retinianos. F11-02 añade la palabra agudos a dolor ocular sin cronologia. Este segundo desvio es la agudeza inventada; no se declara incumplimiento del plazo: la rubeosis vigente justifica contacto urgente para triage conforme2318/2323. Los controles conservan lesion contralateral y limites de palabra.",
+  "recomendaciones": "Vincular anatomia antes y despues del match al mismo hecho; retina no puede ser implicita ante cornea explicita. Conservar el dolor ocular actual sin inventar comienzo agudo. Mantener el contacto urgente/triage del signo iridiano y las alarmas propias, sin diagnosticar glaucoma ni PIO; distinguir prioridad de certeza temporal. Añadir controles con dolor sin fecha, antiguo, nuevo y contralateral; conservar lesiones independientes, planes/dudas y contexto metabolico personal. Verificar11/19/H01 y modelo aparte."
+}

@@ -1,14 +1,16 @@
-"""Dominio: refraccion final prescrita (5 correlaciones).
+"""Dominio: refraccion final prescrita y recordatorio tecnico de vertice.
 
 miopia_magna, hipermetropia_alta, anisometropia, astig_oblicuo, av_cc_limitada.
-Se disparan por la Rx final (esfera/cilindro/eje/AV); la queratometria se usa
-solo como confirmacion o matiz corneal, nunca como disparador independiente.
+Se seleccionan por datos registrados de Rx (esfera/cilindro/eje/AV).
+La queratometria solo aporta mediciones independientes o coincidencia angular;
+no determina mecanismo refractivo ni causa de la AV registrada.
 """
 from __future__ import annotations
 
 from app.correlaciones.base import _memoize_cond
 from app.correlaciones.queratometria import (
     _corneal_cyl_abs,
+    _contexto_mediciones,
     _format_corneal_irregularity,
     _format_flat_keratometry,
     _has_keratometry,
@@ -19,7 +21,7 @@ from app.correlaciones.queratometria import (
     _ojo_akr,
 )
 from app.correlaciones.refraccion_utils import (
-    _av_categoria,
+    _av_denominator,
     _av_es_limitada,
     _equivalente_esferico,
     _format_eyes_with_values,
@@ -35,7 +37,7 @@ def _cond_miopia_magna(req: ImpresionClinicaRequest) -> bool:
         return False
     for ojo in (refraccion.od, refraccion.oi):
         ee = _equivalente_esferico(ojo.esfera, ojo.cilindro)
-        if ee is not None and ee <= -6.00:
+        if (ee is not None and ee <= -6.00) or (ojo.esfera is not None and ojo.esfera <= -6.00 and ojo.cilindro is None):
             return True
     return False
 
@@ -45,76 +47,49 @@ def _texto_miopia_magna(req: ImpresionClinicaRequest) -> str:
     for label, ojo in [("OD", req.refraccion.od), ("OI", req.refraccion.oi)]:
         ee = _equivalente_esferico(ojo.esfera, ojo.cilindro)
         if ee is not None and ee <= -6.00:
-            ojos.append((label, ee))
-    muy_alta = any(ee <= -8.00 for _, ee in ojos)
-    severidad = "muy alta" if muy_alta else "alta"
-    riesgo = "riesgo significativamente elevado" if muy_alta else "mayor riesgo"
+            ojos.append(f"{label} (EE {ee:+.2f}D)")
+        elif ojo.esfera is not None and ojo.esfera <= -6.00 and ojo.cilindro is None:
+            ojos.append(f"{label} (esfera {ojo.esfera:+.2f}D; cilindro no registrado, EE exacto no calculable)")
     texto = (
-        f"Se documenta miopia de magnitud {severidad} en {_format_eyes_with_values(ojos, 'EE')}, "
-        f"lo que conlleva {riesgo} de patologia retiniana periferica y macular."
+        f"La refraccion final registrada presenta {' y '.join(ojos)}, dentro del rango refractivo "
+        "de miopia alta. Este dato amerita valoracion de retina central y periferica y seguimiento "
+        "segun los hallazgos y los controles ya documentados. La graduacion no determina por si sola "
+        "lesiones, mecanismo axial ni progresion."
     )
-    cornea = _format_corneal_irregularity(req)
-    if cornea:
-        texto += (
-            f" La queratometria muestra curvatura corneal pronunciada en {cornea}, lo que sugiere "
-            "un componente corneal (no exclusivamente axial) en la magnitud miopica, y amerita "
-            "estudio topografico antes de asumir el mismo riesgo de patologia retiniana periferica "
-            "asociado a la miopia axial pura."
-        )
-    return texto
+    return texto + _contexto_mediciones(req)
 
 
-# Hipermetropia alta: EE >= +5.00 D pero con un componente esferico genuinamente
-# hipermetropico (>= +3.00 D). El piso de esfera evita clasificar como "hipermetropia
-# alta" a un gran astigmata (p. ej. +1.00 esf +8.00 cil, EE +5.00) cuyo riesgo de
-# cierre angular/acomodativo lo determina la esfera, no el cilindro.
+# Seleccion operativa por magnitud de la Rx; no es un clasificador angular.
 _HIPERMETROPIA_EE_MIN = 5.00
-_HIPERMETROPIA_ESFERA_MIN = 3.00
 
 
 def _es_hipermetropia_alta(ojo) -> bool:
     ee = _equivalente_esferico(ojo.esfera, ojo.cilindro)
-    return (
-        ee is not None
-        and ee >= _HIPERMETROPIA_EE_MIN
-        and ojo.esfera is not None
-        and ojo.esfera >= _HIPERMETROPIA_ESFERA_MIN
-    )
+    return ee is not None and ee >= _HIPERMETROPIA_EE_MIN
 
 
 def _cond_hipermetropia_alta(req: ImpresionClinicaRequest) -> bool:
-    """Caso clinico: equivalente esferico de +5.00D o mayor (con esfera >= +3.00D) activa hipermetropia alta."""
-    refraccion = req.refraccion
-    if refraccion is None:
+    if req.refraccion is None:
         return False
-    return any(_es_hipermetropia_alta(ojo) for ojo in (refraccion.od, refraccion.oi))
+    return any(_es_hipermetropia_alta(ojo) for ojo in (req.refraccion.od, req.refraccion.oi))
 
 
 def _texto_hipermetropia_alta(req: ImpresionClinicaRequest) -> str:
-    ojos = []
-    for label, ojo in [("OD", req.refraccion.od), ("OI", req.refraccion.oi)]:
-        if _es_hipermetropia_alta(ojo):
-            ee = _equivalente_esferico(ojo.esfera, ojo.cilindro)
-            ojos.append((label, ee))
-    base = f"Se documenta hipermetropia alta en {_format_eyes_with_values(ojos, 'EE')}"
-    edad = req.paciente.edad if req.paciente is not None else None
-    if edad is None or edad >= 40:
-        texto = (
-            f"{base}, lo que amerita evaluacion de la profundidad de camara anterior "
-            "ante el riesgo asociado de angulo camerular estrecho."
-        )
-    else:
-        texto = (
-            f"{base}, con demanda acomodativa significativa que amerita vigilancia de "
-            "esoforia o esotropia acomodativa."
-        )
-    cornea = _format_corneal_irregularity(req)
-    plana = _format_flat_keratometry(req)
-    if cornea:
-        texto += f" La queratometria documenta curvatura corneal pronunciada en {cornea}, hallazgo que no explica por si solo la hipermetropia alta pero si modifica la interpretacion del astigmatismo asociado."
-    elif plana:
-        texto += f" La queratometria muestra curvatura corneal plana en {plana}, sugestivo de un componente corneal (y no exclusivamente axial) de la hipermetropia."
-    return texto
+    ojos = [(label, _equivalente_esferico(ojo.esfera, ojo.cilindro))
+            for label, ojo in (("OD", req.refraccion.od), ("OI", req.refraccion.oi))
+            if _es_hipermetropia_alta(ojo)]
+    texto = (
+        f"La refraccion final registrada presenta {_format_eyes_with_values(ojos, 'EE')}, "
+        "de magnitud hipermetropica elevada. Conviene completar la valoracion ocular y ajustar "
+        "el seguimiento a la agudeza visual, alineacion y examen del segmento anterior. "
+        "Valorar la camara anterior y el angulo segun antecedentes y exploraciones documentadas; "
+        "la graduacion no demuestra estrechez angular ni esfuerzo acomodativo residual."
+    )
+    edad = req.paciente.edad if req.paciente else None
+    if edad is not None and edad < 18:
+        texto += " En edad pediatrica, revisar el desarrollo visual y la alineacion con la correccion indicada."
+    return texto + _contexto_mediciones(req)
+
 
 
 def _cond_anisometropia(req: ImpresionClinicaRequest) -> bool:
@@ -132,30 +107,18 @@ def _texto_anisometropia(req: ImpresionClinicaRequest) -> str:
     ee_od = _equivalente_esferico(req.refraccion.od.esfera, req.refraccion.od.cilindro)
     ee_oi = _equivalente_esferico(req.refraccion.oi.esfera, req.refraccion.oi.cilindro)
     diff = abs(ee_od - ee_oi)
-    if diff < 2.00:
-        severidad = "leve"
-        cierre = "con posible impacto en la fusion binocular"
-    elif diff <= 3.00:
-        severidad = "moderada"
-        cierre = "con posible impacto en la fusion binocular"
-    else:
-        severidad = "severa"
-        cierre = "con diferencia significativa entre ambos ojos"
-    if ee_od * ee_oi < 0:
-        cierre = "antimetropia con posible compromiso fusional"
     texto = (
-        f"Existe anisometropia {severidad} por diferencia de equivalente esferico de {diff:.2f}D "
-        f"entre OD ({ee_od:+.2f}) y OI ({ee_oi:+.2f}); {cierre}."
+        f"Las refracciones finales registradas difieren {diff:.2f}D en equivalente esferico "
+        f"entre OD ({ee_od:+.2f}D) y OI ({ee_oi:+.2f}D). Conviene valorar la agudeza visual "
+        "de cada ojo y la tolerancia binocular con la correccion indicada."
     )
-    # La anisometropia es factor de ambliopia solo dentro del periodo de
-    # maduracion visual (~hasta los 8-9 anos); en el adulto con anisometropia de
-    # larga data el impacto suele limitarse a la fusion/aniseiconia. Se modula el
-    # mensaje segun la edad cuando esta disponible.
+    if ee_od * ee_oi < 0:
+        texto += " Los equivalentes esfericos registrados tienen signos opuestos (antimetropia)."
     edad = req.paciente.edad if req.paciente is not None else None
-    if edad is not None and edad <= 8:
+    if edad is not None and edad < 18:
         texto += (
-            " En este grupo de edad la anisometropia es factor de riesgo de ambliopia, "
-            "por lo que amerita correccion optica temprana y control del desarrollo visual."
+            " En edad pediatrica, revisar el desarrollo visual y valorar evaluacion especializada "
+            "segun agudeza visual y alineacion; la diferencia aislada no diagnostica ambliopia."
         )
     od_akr = _ojo_akr(req, "od")
     oi_akr = _ojo_akr(req, "oi")
@@ -169,8 +132,8 @@ def _texto_anisometropia(req: ImpresionClinicaRequest) -> str:
             and _corneal_cyl_abs(oi_akr) is not None
             and abs(_corneal_cyl_abs(od_akr) - _corneal_cyl_abs(oi_akr)) >= 1.50
         ):
-            texto += " La queratometria agrega asimetria interocular relevante del cilindro corneal."
-    return texto
+            texto += f" La queratometria agrega diferencia de cilindro corneal de {abs(_corneal_cyl_abs(od_akr) - _corneal_cyl_abs(oi_akr)):.2f}D (OD {_corneal_cyl_abs(od_akr):.2f}D; OI {_corneal_cyl_abs(oi_akr):.2f}D)."
+    return texto + _contexto_mediciones(req)
 
 
 def _cond_av_cc_limitada(req: ImpresionClinicaRequest) -> bool:
@@ -182,21 +145,33 @@ def _cond_av_cc_limitada(req: ImpresionClinicaRequest) -> bool:
 
 def _texto_av_cc_limitada(req: ImpresionClinicaRequest) -> str:
     partes = []
-    for label, side, av in [
-        ("OD", "od", req.refraccion.od.av_cc),
-        ("OI", "oi", req.refraccion.oi.av_cc),
-    ]:
+    for label, ojo in [("OD", req.refraccion.od), ("OI", req.refraccion.oi)]:
+        av = ojo.av_cc
         if not _av_es_limitada(av):
             continue
-        detalle = f"{label} ({av}): {_av_categoria(av)}"
-        ojo_akr = _ojo_akr(req, side)
-        if _keratometry_suggests_corneal_irregularity(ojo_akr):
+        detalle = f"{label}: AV con correccion registrada de {av}"
+        av_sc = _av_denominator(ojo.av_sc)
+        av_cc = _av_denominator(av)
+        if av_sc is not None and av_cc is not None and av_sc < av_cc:
             detalle += (
-                ", con queratometria que orienta a irregularidad de la superficie corneal, "
-                "lo que puede explicar la limitacion de la agudeza visual pese a la correccion"
+                f"; la AV sin correccion registrada ({ojo.av_sc}) es mejor: "
+                "revisar esta inconsistencia antes de interpretar la diferencia"
             )
         partes.append(detalle)
-    return "; ".join(partes) + "."
+    texto = "; ".join(partes) + (
+        ". Verificar medicion y correccion utilizada; el registro no acredita mejor AV corregida. "
+        "Si persiste reducida sin explicacion documentada, requiere evaluacion oftalmologica; "
+        "ajustar el seguimiento a las causas y controles ya consignados."
+    )
+    edad = req.paciente.edad if req.paciente else None
+    if edad is not None and edad < 18:
+        texto += (
+            " En edad pediatrica, interpretar la cifra con pruebas adecuadas a la edad "
+            "y al desarrollo visual; esta seleccion numerica no diagnostica enfermedad."
+        )
+    elif edad is None:
+        texto += " La edad no esta registrada; limitar la interpretacion hasta completar ese contexto."
+    return texto + _contexto_mediciones(req)
 
 
 def _es_eje_oblicuo(eje: int) -> bool:
@@ -235,80 +210,19 @@ def _texto_astig_oblicuo(req: ImpresionClinicaRequest) -> str:
         eje = ojo.eje
         if cil is None or eje is None or abs(cil) <= 2.00 or not _es_eje_oblicuo(eje):
             continue
-        mag = abs(cil)
-        if mag <= 3.00:
-            descripcion = "astigmatismo elevado con eje oblicuo"
-        elif mag <= 4.00:
-            descripcion = "astigmatismo alto con eje oblicuo"
-        else:
-            descripcion = "astigmatismo de magnitud muy alta con eje oblicuo"
+        descripcion = f"{label}: la prescripcion registra cilindro de {cil:+.2f}D a {eje % 180} grados, con orientacion oblicua"
         akr_eye = _ojo_akr(req, side)
         if (
             _keratometry_supports_astigmatism(akr_eye, min_cyl=1.00)
             and _keratometry_axis_matches(akr_eye, eje)
         ):
-            descripcion += " confirmado por queratometria"
-        partes.append(f"{label} ({cil:+.2f} x {eje}): {descripcion}")
-    return "; ".join(partes) + "."
-
-
-def _asimetria_k_interocular(req: ImpresionClinicaRequest) -> float | None:
-    od_akr = _ojo_akr(req, "od")
-    oi_akr = _ojo_akr(req, "oi")
-    if od_akr is None or oi_akr is None:
-        return None
-    od_k = _k_promedio(od_akr)
-    oi_k = _k_promedio(oi_akr)
-    if od_k is None or oi_k is None:
-        return None
-    return abs(od_k - oi_k)
-
-
-@_memoize_cond
-def _cond_aniseiconia_queratometrica_severa(req: ImpresionClinicaRequest) -> bool:
-    """Caso clinico: anisometropia con asimetria queratometrica interocular significativa (>= 1.50 D),
-    concordante en direccion con la ley de Knapp (la cornea mas curva se encuentra en el ojo
-    con equivalente esferico mas miope / menos hipermetrope)."""
-    if not _cond_anisometropia(req):
-        return False
-    if req.refraccion is None:
-        return False
-    od_rx = req.refraccion.od
-    oi_rx = req.refraccion.oi
-    ee_od = _equivalente_esferico(od_rx.esfera, od_rx.cilindro)
-    ee_oi = _equivalente_esferico(oi_rx.esfera, oi_rx.cilindro)
-    if ee_od is None or ee_oi is None:
-        return False
-    od_akr = _ojo_akr(req, "od")
-    oi_akr = _ojo_akr(req, "oi")
-    if od_akr is None or oi_akr is None:
-        return False
-    od_k = _k_promedio(od_akr)
-    oi_k = _k_promedio(oi_akr)
-    if od_k is None or oi_k is None:
-        return False
-    diff = abs(od_k - oi_k)
-    if diff < 1.50:
-        return False
-    # Ley de Knapp: para que la anisometropia tenga un componente corneal / refractivo
-    # que justifique la adaptacion de lentes de contacto para reducir aniseiconia,
-    # la cornea de mayor poder refractivo (K mas alto) debe corresponder al ojo mas miope
-    # (o menos hipermetrope). Si la cornea mas plana esta en el ojo mas miope,
-    # la diferencia refractiva es preponderantemente axial en direccion contraria.
-    delta_ee = ee_od - ee_oi
-    delta_k = od_k - oi_k
-    return (delta_ee * delta_k) < 0
-
-
-def _texto_aniseiconia_queratometrica_severa(req: ImpresionClinicaRequest) -> str:
-    diff = _asimetria_k_interocular(req)
-    val = f"{diff:.2f}D" if diff is not None else "relevante"
-    return (
-        f"La asimetria queratometrica interocular significativa ({val}) sugiere que la "
-        "anisometropia posee un fuerte componente corneal, lo que predispone a aniseiconia "
-        "sintomatica con lentes aereos; se sugiere considerar la adaptacion de lentes de contacto "
-        "para optimizar la fusion binocular."
-    )
+            descripcion += "; la orientacion queratometrica es aproximadamente coincidente, sin establecer igual magnitud ni origen exclusivo"
+        partes.append(descripcion)
+    texto = "; ".join(partes) + "."
+    edad = req.paciente.edad if req.paciente else None
+    if edad is not None and edad < 18:
+        texto += " Comprobar agudeza visual monocular y desarrollo visual con la correccion indicada."
+    return texto + _contexto_mediciones(req)
 
 
 def _vertice_parts(req: ImpresionClinicaRequest) -> list[str]:
@@ -316,88 +230,28 @@ def _vertice_parts(req: ImpresionClinicaRequest) -> list[str]:
         return []
     parts = []
     for label, eye in [("OD", req.refraccion.od), ("OI", req.refraccion.oi)]:
-        if eye is None or (eye.esfera is None and eye.cilindro is None):
+        if eye is None or eye.esfera is None:
             continue
-        m1 = eye.esfera or 0.0
-        m2 = m1 + (eye.cilindro or 0.0)
-        max_p = m1 if abs(m1) >= abs(m2) else m2
-        if abs(max_p) >= 4.00:
-            parts.append(f"{label} ({max_p:+.2f}D)")
+        meridianos = [("S", eye.esfera)]
+        if eye.cilindro is not None:
+            meridianos.append(("S+C", eye.esfera + eye.cilindro))
+        valores = [f"{nombre} {potencia:+.2f}D" for nombre, potencia in meridianos if abs(potencia) >= 4.00]
+        if valores:
+            parts.append(f"{label} ({'; '.join(valores)})")
     return parts
 
 
 @_memoize_cond
 def _cond_distancia_vertice_alta_ametropia(req: ImpresionClinicaRequest) -> bool:
-    """Caso clinico: ametropia relevante en al menos un meridiano principal (|potencia| >= 4.00 D)
-    hace que la distancia al vertice sea clinicamente significativa."""
+    """Recordatorio optico operativo; no es una correlacion medica."""
     return bool(_vertice_parts(req))
 
 
 def _texto_distancia_vertice_alta_ametropia(req: ImpresionClinicaRequest) -> str:
-    partes = _vertice_parts(req)
-    ojos = ", ".join(partes) if partes else "la refraccion prescrita"
+    ojos = ", ".join(_vertice_parts(req))
     return (
-        f"La magnitud de la ametropia en {ojos} (|esfera| >= 4.00D) hace que la distancia al vertice "
-        "tenga impacto optico clinicamente significativo; se recomienda registrar la distancia al vertice "
-        "de examen para la elaboracion del lente aereo o calcular la potencia efectiva compensada en caso "
-        "de adaptacion de lentes de contacto."
-    )
-
-
-@_memoize_cond
-def _cond_antimetropia_pura_acomodativa(req: ImpresionClinicaRequest) -> bool:
-    """Caso clinico: un ojo miopico (EE <= -0.75 D) y contralateral hipermetropico (EE >= +0.75 D)."""
-    if req.refraccion is None:
-        return False
-    od = req.refraccion.od
-    oi = req.refraccion.oi
-    od_ee = _equivalente_esferico(od.esfera, od.cilindro)
-    oi_ee = _equivalente_esferico(oi.esfera, oi.cilindro)
-    if od_ee is None or oi_ee is None:
-        return False
-    return (od_ee <= -0.75 and oi_ee >= 0.75) or (oi_ee <= -0.75 and od_ee >= 0.75)
-
-
-def _texto_antimetropia_pura_acomodativa(req: ImpresionClinicaRequest) -> str:
-    od = req.refraccion.od
-    oi = req.refraccion.oi
-    od_ee = _equivalente_esferico(od.esfera, od.cilindro)
-    oi_ee = _equivalente_esferico(oi.esfera, oi.cilindro)
-    od_str = f"OD ({od_ee:+.2f}D)" if od_ee is not None else "OD"
-    oi_str = f"OI ({oi_ee:+.2f}D)" if oi_ee is not None else "OI"
-    return (
-        f"Se documenta antimetropia ({od_str} vs {oi_str}), condicion con un ojo miope y el contralateral "
-        "hipermetrope que induce demandas acomodativas asimetricas y anisoforia con lentes aereos; se recomienda "
-        "vigilar el balance binocular y considerar lentes de contacto para facilitar la fusion."
-    )
-
-
-def _astig_contra_regla_parts(req: ImpresionClinicaRequest) -> list[str]:
-    if req.refraccion is None or req.paciente is None or req.paciente.edad is None:
-        return []
-    if req.paciente.edad >= 40:
-        return []
-    parts = []
-    for label, eye in [("OD", req.refraccion.od), ("OI", req.refraccion.oi)]:
-        if eye is not None and eye.cilindro is not None and eye.eje is not None:
-            if eye.cilindro <= -1.00 and (70 <= eye.eje <= 110):
-                parts.append(f"{label} ({eye.cilindro:+.2f} x {eye.eje})")
-    return parts
-
-
-@_memoize_cond
-def _cond_astigmatismo_contra_regla_joven(req: ImpresionClinicaRequest) -> bool:
-    """Caso clinico: astigmatismo contra la regla (cilindro <= -1.00 D, eje 70-110) en menor de 40 anos."""
-    return bool(_astig_contra_regla_parts(req))
-
-
-def _texto_astigmatismo_contra_regla_joven(req: ImpresionClinicaRequest) -> str:
-    partes = _astig_contra_regla_parts(req)
-    ojos = ", ".join(partes) if partes else "la refraccion"
-    return (
-        f"Se documenta astigmatismo contra la regla en paciente joven en {ojos}, orientacion no habitual "
-        "para el grupo etario que amerita valoracion del segmento anterior y topografia corneal para descartar "
-        "irregularidad corneal o ectasia incipiente."
-    )
-
-
+        f"Recordatorio tecnico: la potencia registrada en {ojos} aconseja comprobar la distancia "
+        "al vertice al adaptar la correccion y valorar compensacion si cambia el plano de uso. "
+        "Se requieren las distancias de origen y destino de esta prescripcion; la VD del AKR "
+        "no las sustituye. Considerar las verificaciones de adaptacion ya documentadas."
+    ) + _contexto_mediciones(req)

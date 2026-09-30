@@ -1,0 +1,103 @@
+{
+  "numero": 5,
+  "nombre": "glaucoma_asimetrico",
+  "veredicto": "PARCIAL",
+  "requisitos": [
+    [
+      "DPAR explicitamente lateralizado OD/OI, chip Marcus Gunn y no AO/None",
+      "AUDITORIA_CORRELACIONES.md:1506-1508",
+      "app/correlaciones/fondo_de_ojo.py:934-948; app/correlaciones/pupilas_motilidad.py:586,457",
+      "Implementado lateralidad"
+    ],
+    [
+      "C/D completos diferencia>=0.20 mismo ojo o signo focal unilateral; no hemorragia/genérico/simetría",
+      "AUDITORIA_CORRELACIONES.md:1509-1518",
+      "app/correlaciones/fondo_de_ojo.py:974-1002",
+      "Implementado condicion; precision renderizada parcial F05-01"
+    ],
+    [
+      "Banderas rojas afirmadas fondo, edad<50, AV del ojo>40, campos; null no bandera",
+      "AUDITORIA_CORRELACIONES.md:1519-1526",
+      "app/correlaciones/fondo_de_ojo.py:952-970",
+      "Implementado; negativos no son banderas"
+    ],
+    [
+      "Texto no urgente por ojo, hallazgo realmente documentado, etiologia abierta y evaluacion preferente",
+      "AUDITORIA_CORRELACIONES.md:1527-1530;234-255",
+      "app/correlaciones/fondo_de_ojo.py:981,1006",
+      "PARCIAL: C/D0.65 y0.45 se redondean a0.7 y0.5; incertidumbre DPAR no preservada"
+    ],
+    [
+      "Supresion #13/#6 solo cuando dispara; retirar H01 urgente de #5",
+      "AUDITORIA_CORRELACIONES.md:1531-1536; posterior13:2511,2549-2551",
+      "app/correlaciones/fondo_de_ojo.py:1071; app/correlaciones/pupilas_motilidad.py:789; app/inference.py:_EMERGENCY_SPECS",
+      "No urgente ni H01; revision13 exige preservar pupilas independientes"
+    ]
+  ],
+  "casos": [
+    {
+      "entrada": {
+        "pupilas": "DPAR OD",
+        "fondo": "C/D 0.65 OD, 0.45 OI",
+        "edad": 60,
+        "rx_od": {
+          "av_cc": "20/25"
+        }
+      },
+      "esperado": {
+        "activa": true,
+        "urgente": false,
+        "h01": false,
+        "contiene": [
+          "0.65",
+          "0.45"
+        ]
+      },
+      "motivo": "Redondea C/D 0.65/0.45 a0.7/0.5; perdida de precision separada de sujeto/ojo/urgencia."
+    },
+    {
+      "entrada": {
+        "pupilas": "Posible DPAR OD",
+        "fondo": "C/D 0.8 OD, 0.4 OI",
+        "edad": 60
+      },
+      "esperado": {
+        "activa": true,
+        "urgente": false,
+        "contiene": [
+          "posible"
+        ]
+      },
+      "motivo": "Posible DPAR se afirma documentado en la combinacion."
+    },
+    {
+      "entrada": {
+        "pupilas": "DPAR OI",
+        "fondo": "C/D 0.8 OD, 0.4 OI",
+        "edad": 60
+      },
+      "esperado": {
+        "activa": false,
+        "activas": [
+          "pupilas_alteradas"
+        ]
+      }
+    },
+    {
+      "entrada": {
+        "pupilas": "Marcus Gunn",
+        "fondo": "C/D 0.8 OD, 0.4 OI",
+        "edad": 60
+      },
+      "esperado": {
+        "activa": false,
+        "activas": [
+          "pupilas_alteradas"
+        ]
+      }
+    }
+  ],
+  "cobertura": "Corrida agrupada real de 13 archivos de aceptacion/integracion: 1496 aprobadas, 0 fallos, 0 errores, 0 omitidas; JUnit suite-existente.xml. Comando: .venv/Scripts/python.exe -m pytest tests/test_auditoria_correlaciones.py tests/test_revalidacion_ajustes.py tests/test_revalidacion_papila_macula.py tests/test_revalidacion_sintomas_oclusiones.py tests/test_ajuste_c12.py tests/test_ajuste_c13.py tests/test_ajuste_c14.py tests/test_ajuste_c15.py tests/test_ajuste_c16.py tests/test_ajuste_c17.py tests/test_ajuste_c18.py tests/test_ajuste_c19.py tests/test_correlaciones.py -q -p no:cacheprovider --junitxml=auditoria/conformidad-2026-09-29/fondo/suite-existente.xml",
+  "conclusion": "Concordancia lateral y banderas descritas en orden implementadas. F05-01 distingue seleccion numerica correcta de texto infiel: redondear C/D0.65/0.45 a una cifra altera datos explicitamente registrados. F05-02 verifica preservacion de posible DPAR; el codigo no diferencia certeza en su texto.",
+  "recomendaciones": "Conservar precision del C/D registrado y calificador de duda del DPAR, sin afirmar asimetria funcional demostrada desde posible DPAR. Añadir casos con centesimas y sospecha/descartado. Preservar salida #13 para alteraciones pupilares independientes segun revision posterior #13, no veto global."
+}

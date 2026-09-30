@@ -1,0 +1,172 @@
+{
+  "numero": 58,
+  "nombre": "fondo_embolo_retiniano",
+  "veredicto": "PARCIAL",
+  "requisitos": [
+    [
+      "Ajuste1: hallazgo ocular actual Hollenhorst/embolo retinovascular; retirar brillo sin anatomia/sistemico/extravascular; conservar duda/verificar; abstenerse sin soporte",
+      "AUD 3961",
+      "app/correlaciones/fondo_de_ojo.py:2425,2468,2474,2478,2480,2486",
+      "Filtros anatomicos y certeza posible implementados; F58-01 probable se convierte en firme, F58-03 negacion con ojo no respetada."
+    ],
+    [
+      "Ajuste2: texto/ojo/subtipo/vaso real; no calcio/plaquetas->colesterol ni vena->arteriola; sujeto/historia; no carotida/oclusion inferidos",
+      "AUD 3962",
+      "app/correlaciones/fondo_de_ojo.py:2476,2488,2500,2507",
+      "F58-02 placa de hermana se atribuye al paciente; F58-05 subtipo calcificado plural desaparece. No origen causal inventado en controles."
+    ],
+    [
+      "Ajuste3: sintomas agudos/asintomatico explicito/desconocido distintos; fuente contractual; ausencia de dato no ambulatorio",
+      "AUD 3963",
+      "app/correlaciones/fondo_de_ojo.py:2437,2519,2533",
+      "F58-07/08 ausencia explicita/desconocida correctas; F58-04 sintomas maternos se heredan tras conector."
+    ],
+    [
+      "Ajuste4: fugaz vs congenita/persistente/remota; variantes transitoria/subita; borrosa no amaurosis; discordancia ojos conserva ambos sin causa automatica",
+      "AUD 3964",
+      "app/correlaciones/fondo_de_ojo.py:2428,2432,2437; tests/test_revalidacion_ajustes.py:139",
+      "F58-06 placa OD + sintoma OI conserva ojos/coexistencia sin causalidad; corpus42 cubre remoto/persistente."
+    ],
+    [
+      "Ajuste5: episodio compatibleagudo -> inmediata urgencias/ictus segun evaluacion; integrar3/2/H01 sin ambulatorio contradictorio; neuroagudo ruta propia",
+      "AUD 3965",
+      "app/correlaciones/fondo_de_ojo.py:2520,2521,2525; app/inference.py H01",
+      "Plazo inmediato propio F58-06 correcto; F58-04 genera ruta por evento materno."
+    ],
+    [
+      "Ajuste6: solo ausencia de sintomas documentada permite ambulatorio cardiovascular/fuente/carotidea segun medico; sin tratamiento/estenosis/fuente probada",
+      "AUD 3966",
+      "app/correlaciones/fondo_de_ojo.py:2533,2537",
+      "F58-07/08 cumplen distincion; no tratamiento/estenosis/origen confirmado."
+    ],
+    [
+      "Aceptacion:42 escenarios anatomia/tipo/certeza/historia/negacion/sujeto/ojos/discordancia/prioridad; no sensibilidad/especificidad inferidas",
+      "AUD 3968",
+      "tests/test_revalidacion_ajustes.py:139-183,250-261; tests/test_auditoria_correlaciones.py:877",
+      "Aceptacion42 y postprocesado existentes; corrida agrupada aprobada; nuevas brechas F58-01..05 no cubiertas por corpus favorable."
+    ]
+  ],
+  "casos": [
+    {
+      "entrada": {
+        "fondo": "Placa de Hollenhorst OD probable."
+      },
+      "esperado": {
+        "activa": true,
+        "contiene": [
+          "probable",
+          "Verificar"
+        ]
+      },
+      "motivo": "Probable es incertidumbre explicita, no hallazgo firme."
+    },
+    {
+      "entrada": {
+        "fondo": "Mi hermana tiene placa de Hollenhorst OD."
+      },
+      "esperado": {
+        "activa": false,
+        "h01": false
+      },
+      "motivo": "El filtro del hallazgo solo reconoce madre/padre/familiar y no respeta sujeto hermana."
+    },
+    {
+      "entrada": {
+        "fondo": "No se observa en OD placa de Hollenhorst."
+      },
+      "esperado": {
+        "activa": false,
+        "h01": false
+      },
+      "motivo": "El unico ojo interpuesto no cambia sujeto/alcance de la negacion; misma familia T1 transversal."
+    },
+    {
+      "entrada": {
+        "fondo": "Placa de Hollenhorst OD.",
+        "motivo": "Mi madre tiene diabetes y perdida visual transitoria desde hoy."
+      },
+      "esperado": {
+        "activa": true,
+        "urgente": false,
+        "h01": false,
+        "no_contiene": [
+          "Coexisten perdida visual transitoria"
+        ]
+      },
+      "motivo": "La conjuncion no cambia sujeto: ambos datos son maternos."
+    },
+    {
+      "entrada": {
+        "fondo": "Embolos calcificados en arteriola retiniana OD."
+      },
+      "esperado": {
+        "activa": true,
+        "contiene": [
+          "calcificado",
+          "arteriola retiniana",
+          "en OD"
+        ],
+        "no_contiene": [
+          "Hollenhorst",
+          "colesterol"
+        ]
+      },
+      "motivo": "El detector plural activa pero la clasificacion del subtipo solo acepta embolo singular."
+    },
+    {
+      "entrada": {
+        "fondo": "Placa de Hollenhorst OD.",
+        "motivo": "Amaurosis fugaz OI desde hoy."
+      },
+      "esperado": {
+        "activa": true,
+        "urgente": true,
+        "h01": true,
+        "contiene": [
+          "Hollenhorst en OD",
+          "transitoria en OI",
+          "derivacion inmediata",
+          "urgencias",
+          "no demuestra una relacion causal"
+        ],
+        "no_contiene": [
+          "ambulatoria"
+        ]
+      }
+    },
+    {
+      "entrada": {
+        "fondo": "Placa de Hollenhorst OD.",
+        "motivo": "Sin sintomas visuales actuales."
+      },
+      "esperado": {
+        "activa": true,
+        "urgente": false,
+        "h01": false,
+        "contiene": [
+          "ambulatoria",
+          "explicitamente documentada"
+        ]
+      }
+    },
+    {
+      "entrada": {
+        "fondo": "Placa de Hollenhorst OD."
+      },
+      "esperado": {
+        "activa": true,
+        "urgente": false,
+        "h01": false,
+        "contiene": [
+          "precisar sintomas"
+        ],
+        "no_contiene": [
+          "evaluacion medica ambulatoria"
+        ]
+      }
+    }
+  ],
+  "cobertura": "Corrida agrupada real de 13 archivos de aceptacion/integracion: 1496 aprobadas, 0 fallos, 0 errores, 0 omitidas; JUnit suite-existente.xml. Comando: .venv/Scripts/python.exe -m pytest tests/test_auditoria_correlaciones.py tests/test_revalidacion_ajustes.py tests/test_revalidacion_papila_macula.py tests/test_revalidacion_sintomas_oclusiones.py tests/test_ajuste_c12.py tests/test_ajuste_c13.py tests/test_ajuste_c14.py tests/test_ajuste_c15.py tests/test_ajuste_c16.py tests/test_ajuste_c17.py tests/test_ajuste_c18.py tests/test_ajuste_c19.py tests/test_correlaciones.py -q -p no:cacheprovider --junitxml=auditoria/conformidad-2026-09-29/fondo/suite-existente.xml",
+  "conclusion": "F58-01 pierde certeza probable; F58-02 traslada placa de hermana al paciente; F58-03 activa ante negacion explicita con ojo interpuesto. F58-04 convierte evento visual materno en urgencia/H01 propia despues de y. F58-05 elimina subtipo calcificado plural. Los controles conservan discordancia ocular, prioridad inmediata sin causalidad y distincion entre ausencia explicita y desconocida de sintomas.",
+  "recomendaciones": "Conservar afirmacion/certeza/sujeto/subtipo/ojo por hecho, incluyendo probable y parentescos explicitos, sin depender de lista corta ni perder sujeto al dividir conectores. La negacion del propio ojo debe mantenerse y no interpretarse como cambio ocular. Normalizar plural de subtipo sin cambiar material/vaso. Preservar urgencias propias y la distincion asintomatico/desconocido, no inferir carotida/estenosis/oclusion ni tratamiento. Añadir controles de negacion ocular, probable/afirmado, hermana/paciente, conjuncion familiar y plural/singular; ejecutar58/3/2/H01/postprocesado y modelo por separado."
+}

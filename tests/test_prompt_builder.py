@@ -76,7 +76,8 @@ def test_akr_comparison_included():
     prompt = build_user_prompt(req)
     assert "AKR OD" in prompt
     assert "Rx final OD" in prompt
-    assert "ajuste del examen subjetivo" in prompt
+    assert "su diferencia no demuestra un ajuste" in prompt
+    assert "la diferencia indica el ajuste" not in prompt
 
 
 def test_akr_keratometry_included():
@@ -102,7 +103,7 @@ def test_akr_keratometry_included():
 
     prompt = build_user_prompt(req)
 
-    assert "Correlacion AKR/queratometria" in prompt
+    assert "Datos AKR/queratometria y refraccion final" in prompt
     assert "PD 62.00 mm" in prompt
     assert "VD 12.00 mm" in prompt
     assert "Indice queratometrico 1.3375" in prompt
@@ -174,5 +175,6 @@ def test_user_prompt_incluye_correlacion_compuesta_y_suprime_fallbacks():
     prompt = build_user_prompt(req)
 
     assert "Correlaciones clinicas aplicables" in prompt
-    assert "insuficiencia de convergencia" in prompt
+    assert "PPC de 12 cm y exoforia en OD" in prompt
+    assert "insuficiencia de convergencia" not in prompt
     assert "tendencia divergente en el cover test" not in prompt
