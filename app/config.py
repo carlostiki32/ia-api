@@ -24,6 +24,7 @@ class Settings(BaseSettings):
                                         # casos con 4+ correlaciones activas
                                         # + recomendacion; los reportes reales
                                         # promedian ~100 tok, asi que sobra.
+    ollama_dual_num_predict: int = 1024 # Presupuesto independiente del modo dual; medir en 3070 Ti.
     ollama_num_ctx: int = 8192          # El system prompt afinado pesa ~1595 tok y
                                         # el payload MAXIMO del diccionario (6 campos
                                         # de texto libre a 255 char + AKR completo)

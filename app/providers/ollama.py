@@ -29,6 +29,7 @@ async def call(
     client: httpx.AsyncClient,
     *,
     num_predict: int | None = None,
+    response_format: dict | None = None,
 ) -> tuple[str, dict]:
     """
     Llama a Ollama /api/chat y devuelve (raw_text, response_data).
@@ -47,6 +48,9 @@ async def call(
         "options": options,
     }
 
+    if response_format is not None:
+        request_body["format"] = response_format
+
     data: dict = {}
     raw_text = ""
 
@@ -60,9 +64,9 @@ async def call(
             data = response.json()
             raw_text = data.get("message", {}).get("content", "")
 
-            if not raw_text.strip():
+            if not isinstance(raw_text, str) or not raw_text.strip():
                 raise ValueError(
-                    f"Ollama returned empty response "
+                    f"Ollama returned empty or invalid content "
                     f"(done_reason={data.get('done_reason', 'unknown')})"
                 )
             break
@@ -115,7 +119,7 @@ async def call(
 
     prompt_eval_count = data.get("prompt_eval_count", 0)
     if prompt_eval_count:
-        ctx_margin = settings.ollama_num_ctx - settings.ollama_num_predict - prompt_eval_count
+        ctx_margin = settings.ollama_num_ctx - options["num_predict"] - prompt_eval_count
         logger.debug(
             "Ollama context: %d input tokens, %d margin (num_ctx=%d)",
             prompt_eval_count, ctx_margin, settings.ollama_num_ctx,

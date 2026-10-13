@@ -2,6 +2,10 @@
 
 API que recibe los datos estructurados de un examen optométrico (refracción, AKR/queratometría, hallazgos clínicos) y devuelve un párrafo de **impresión clínica en español**, generado combinando reglas clínicas deterministas con un LLM.
 
+Desde el 12 de octubre de 2026, `salida_version=clinica-paciente-v1` agrega una explicación sencilla para el paciente en la misma generación. El modo omitido (`clinica-v1`) conserva la respuesta anterior. Contrato, estados, respaldo CPU y pruebas: **[SALIDA_DUAL.md](SALIDA_DUAL.md)**.
+
+En la salida dual, el perfil educativo se calcula solo con la refracción final. El prompt, la validación y el respaldo CPU comparten un catálogo de explicaciones sencillas: una definición incorrecta o una frase ajena al perfil activa ese respaldo sin una segunda inferencia. Óptica solicita ambos textos únicamente con **Generar con IA**; **Guardar** conserva la revisión del optometrista y no llama al modelo. La auditoría local validó el contrato con un proveedor simulado; no mide rendimiento ni calidad del modelo real en la RTX 3070 Ti.
+
 Este documento es el punto de entrada. Da la vista completa del sistema de forma resumida y enlaza a los documentos de detalle para cada tema.
 
 ---
@@ -96,6 +100,8 @@ Detalle línea por línea de este flujo (headers, timeouts, reintentos, formato 
 | `app/clinical_data.py` | Un solo chequeo: `has_clinical_data(req)` — rechaza payloads sin refracción ni datos clínicos. |
 | `app/correlaciones/` | **El motor de casos optométricos.** Paquete con las 47 reglas clínicas y el recordatorio técnico, organizadas por dominio. Ver [§7](#7-casos-optométricos-correlaciones-clínicas). |
 | `app/prompt_builder.py` | Arma el system prompt y el user prompt que se le mandan al LLM, a partir del payload + las correlaciones activas. |
+| `app/patient_profile.py` | Calcula el perfil educativo de la refracción final y comparte el catálogo entre el prompt, sus guardas y el respaldo CPU. |
+| `app/dual_contract.py` | Analiza el sobre JSON dual, valida cada texto por separado y versiona el prompt dual en la clave de caché. |
 | `app/inference.py` | Orquesta la inferencia: construye los prompts, valida el contexto, llama a Ollama y aplica el postprocesado + guardarraíles del texto crudo. |
 | `app/providers/ollama.py` | Cliente HTTP hacia Ollama (`/api/chat`), parámetros de sampling, reintentos, monitoreo de contexto. |
 | `app/cache.py` | Cache en memoria (TTL + tamaño máximo) para no repetir inferencias idénticas. |
@@ -190,7 +196,7 @@ Un "caso optométrico" en este sistema es una **correlación clínica**: una reg
 | `campos_amsler.py` | Campos visuales, rejilla de Amsler |
 | `binocularidad.py` | Cover test, PPC, forias/tropias |
 | `superficie_ocular.py` | BUT (ojo seco) |
-| `contexto.py` | Edad, ocupación, motivo de consulta (screening, CVS, presbicia) |
+| `contexto.py` | Edad, ocupación y motivo de consulta; reglas automáticas de presbicia retiradas. |
 | `registry.py` | **Ensambla las reglas en orden fijo** y expone `evaluar_correlaciones` / `nombres_correlaciones_activas` |
 | `base.py`, `texto.py`, `refraccion_utils.py`, `queratometria.py` | Helpers compartidos (memoización, normalización de texto, cálculos clínicos) |
 
@@ -223,6 +229,7 @@ La plantilla completa es [.env.example](.env.example); cada parámetro de sampli
 |---|---|
 | `OLLAMA_URL` | Dónde vive tu Ollama (default `http://localhost:11434`, correcto si la API corre en el mismo Ubuntu). |
 | `OLLAMA_MODEL` | El modelo a usar — déjalo en `qwen3.5:9b`. |
+| `OLLAMA_DUAL_NUM_PREDICT` | `1024` — presupuesto separado de salida dual, sin cambiar `OLLAMA_NUM_PREDICT` del modo clínico. |
 | `OLLAMA_TEMPERATURE` | `0.2` — tarea de extracción/reporte fiel, no chat; con seed fijo da salida casi determinista. |
 | `OLLAMA_NUM_CTX` | `8192` — el payload máximo del diccionario no cabía en 4096 (daba `413`). Medido en la 3070 Ti: solo +0.2 GB de footprint vs 4096. |
 | `API_KEY` | El token que Postman debe mandar en `Authorization: Bearer`. **Cámbialo del placeholder** (el script de arranque lo exige). |
@@ -237,6 +244,7 @@ La plantilla completa es [.env.example](.env.example); cada parámetro de sampli
 | Documento | Para qué sirve |
 |---|---|
 | **README.md** (este archivo) | Punto de entrada: arquitectura, flujo Ubuntu/Ollama/Postman, dónde está cada cosa. |
+| [SALIDA_DUAL.md](SALIDA_DUAL.md) | Contrato tipado y pipeline clínico/paciente, reglas educativas, respaldo y caché versionada. |
 | [PIPELINE_LLM.md](PIPELINE_LLM.md) | Detalle técnico línea por línea del pipeline: schema completo, construcción del prompt, inferencia con Ollama, postprocesado + guardarraíles, cache, cómo extender el sistema. |
 | [CORRELACIONES_CLINICAS.md](CORRELACIONES_CLINICAS.md) | Catálogo clínico de las 47 correlaciones y el recordatorio técnico: qué las dispara y por qué, con evidencia y límites metodológicos. |
 | [DICCIONARIO_DATOS_RECETA.md](DICCIONARIO_DATOS_RECETA.md) | Diccionario de datos del SaaS: catálogo real (dropdowns, enums, rangos, texto libre) de cada campo del payload y especificación técnica del schema. |

@@ -23,6 +23,29 @@ def test_system_prompt_has_rules():
     assert "tercera persona" in prompt
 
 
+def test_dual_format_keeps_clinical_rules_without_literal_replacement(monkeypatch):
+    import app.prompt_builder as builder
+    legacy = build_system_prompt()
+    dual = builder.build_dual_system_prompt()
+    clinical_dual = dual.split("\nREGLAS EXCLUSIVAS DEL STRING explicacion_paciente:", 1)[0]
+    assert legacy.split("\n\n", 2)[2] == clinical_dual.split("\n\n", 2)[2]
+    # La instrucción clínica puede cambiar sin contaminar el modo dual.
+    monkeypatch.setitem(builder._OUTPUT_INSTRUCTIONS, "clinical", "Instruccion clinica actualizada.")
+    assert "Instruccion clinica actualizada." in builder.build_system_prompt()
+    assert "Instruccion clinica actualizada." not in builder.build_dual_system_prompt()
+    assert "objeto JSON valido" in builder.build_dual_system_prompt()
+
+
+def test_dual_user_prompt_reuses_clinical_generation_suffix(monkeypatch):
+    import app.prompt_builder as builder
+    monkeypatch.setattr(builder, "_CLINICAL_GENERATION_SUFFIX", "\n\nFinal clinico actualizado.")
+    clinical = builder.build_user_prompt(_make_request())
+    assert clinical.endswith("\n\nFinal clinico actualizado.")
+    dual = builder.build_dual_user_prompt(clinical, {"estado": "datos_incompletos"})
+    assert "Final clinico actualizado." not in dual
+    assert dual.endswith("Genera los dos strings dentro del objeto JSON.")
+
+
 def test_user_prompt_with_refraction():
     req = _make_request(
         refraccion=Refraccion(

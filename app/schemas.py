@@ -337,6 +337,7 @@ class ContextoPaciente(BaseModel):
 
 class ImpresionClinicaRequest(BaseModel):
     receta_id: str
+    salida_version: Literal["clinica-v1", "clinica-paciente-v1"] = "clinica-v1"
     paciente: ContextoPaciente = Field(default_factory=ContextoPaciente)
     refraccion: Refraccion = Field(default_factory=Refraccion)
     akr: AkrSnapshot = Field(default_factory=AkrSnapshot)

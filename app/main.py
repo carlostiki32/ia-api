@@ -23,6 +23,7 @@ from app.inference import (
 )
 from app.observability import request_id_var
 from app.schemas import ImpresionClinicaRequest
+from app.dual_contract import PIPELINE_VERSION, DualInferenceResult
 
 # Timeout total de la inferencia para asyncio.wait_for.
 _INFERENCE_TIMEOUT = settings.ollama_timeout
@@ -214,6 +215,28 @@ async def _inference_slot(safe_id: str):
         logger.info("Inference slot released [%s]", safe_id)
 
 
+def _inference_response(req, result, correlaciones, cache_key, *, cached):
+    if req.salida_version == "clinica-v1":
+        response = {"status": "ok", "impresion_clinica": result, "correlaciones_activadas": correlaciones}
+        if cached:
+            response["cached"] = True
+        return response
+    if not isinstance(result, DualInferenceResult):
+        raise TypeError("Resultado incompatible con el contrato dual")
+    return {
+        "status": "ok", "impresion_clinica": result.impresion_clinica,
+        "explicacion_paciente": result.explicacion_paciente,
+        "explicacion_paciente_estado": result.explicacion_paciente_estado,
+        "correlaciones_activadas": correlaciones, "salida_version": req.salida_version,
+        "cached": cached,
+        "generacion": {
+            "origen_clinico": "llm", "origen_explicacion": result.origen_explicacion,
+            "modelo": settings.ollama_model, "pipeline_version": PIPELINE_VERSION,
+            "base_hash_api": cache_key,
+        },
+    }
+
+
 @app.post("/inferencia/impresion-clinica")
 async def crear_impresion_clinica(
     req: ImpresionClinicaRequest,
@@ -244,15 +267,14 @@ async def crear_impresion_clinica(
     cached = inference_cache.get(req, key=cache_key)
     if cached is not None:
         logger.info("Cache hit [%s]", sid)
-        return {
-            "status": "ok",
-            "impresion_clinica": cached,
-            "cached": True,
-            "correlaciones_activadas": correlaciones,
-        }
+        return _inference_response(req, cached, correlaciones, cache_key, cached=True)
 
     try:
         async with _inference_slot(sid):
+            # Otro envío igual pudo generar mientras esta solicitud esperaba GPU.
+            cached = inference_cache.get(req, key=cache_key)
+            if cached is not None:
+                return _inference_response(req, cached, correlaciones, cache_key, cached=True)
             start_time = time.perf_counter()
             try:
                 result = await asyncio.wait_for(
@@ -262,14 +284,12 @@ async def crear_impresion_clinica(
                 elapsed = time.perf_counter() - start_time
                 logger.info(
                     "Inferencia completada [%s] en %.1fs (%d chars, %d correlaciones)",
-                    sid, elapsed, len(result), len(correlaciones),
+                    sid, elapsed, len(result.impresion_clinica if isinstance(result, DualInferenceResult) else result), len(correlaciones),
                 )
-                inference_cache.put(req, result, key=cache_key)
-                return {
-                    "status": "ok",
-                    "impresion_clinica": result,
-                    "correlaciones_activadas": correlaciones,
-                }
+                response = _inference_response(req, result, correlaciones, cache_key, cached=False)
+                if not isinstance(result, DualInferenceResult) or result.explicacion_paciente_estado != "rechazada":
+                    inference_cache.put(req, result, key=cache_key)
+                return response
 
             except asyncio.TimeoutError:
                 logger.error(
@@ -287,12 +307,16 @@ async def crear_impresion_clinica(
                 if respaldo is not None:
                     logger.warning(
                         "Generacion incompleta [%s]: se entrega el respaldo determinista de la urgencia activa", sid)
-                    return {
-                        "status": "ok",
-                        "impresion_clinica": respaldo,
-                        "origen": "determinista",
-                        "correlaciones_activadas": correlaciones,
+                    response = {
+                        "status": "ok", "impresion_clinica": respaldo,
+                        "origen": "determinista", "correlaciones_activadas": correlaciones,
                     }
+                    if req.salida_version == "clinica-paciente-v1":
+                        response.update({
+                            "salida_version": req.salida_version, "cached": False,
+                            "explicacion_paciente": None, "explicacion_paciente_estado": "rechazada",
+                        })
+                    return response
                 logger.error("Generacion incompleta [%s] -> 502: %s", sid, exc)
                 raise HTTPException(
                     status_code=502,

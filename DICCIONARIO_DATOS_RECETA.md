@@ -42,6 +42,17 @@ Leyenda de **Origen**:
 
 ---
 
+### 1.0 Opción de salida
+
+`salida_version` es `string` tipado con valores `clinica-v1` (default al omitir)
+y `clinica-paciente-v1`; nulo o cualquier otra versión produce 422. La opción no
+cambia los campos clínicos de entrada. En dual, ESF/CIL representan la receta
+final de lejos. La explicación requiere ESF/CIL explícitos de ambos ojos;
+cero es un dato válido, nulo es ausencia y AKR no lo reemplaza. No se agrega una
+bandera de confirmación/guardado ni una obligación de guardar antes de generar.
+La aprobación y las ediciones ocurren en Óptica sin invocar la API al Guardar.
+El contrato dual completo está en [SALIDA_DUAL.md](SALIDA_DUAL.md).
+
 ### 1.1 `paciente` (Contexto Clínico Anonimizado)
 
 Laravel extrae los datos de `paciente`, omite cualquier dato identificativo (PII) y despacha únicamente:
@@ -49,7 +60,7 @@ Laravel extrae los datos de `paciente`, omite cualquier dato identificativo (PII
 | Campo | Tipo JSON | Origen | Límite y Regla en SaaS | Notas y Comportamiento Clínico |
 |---|---|---|---|---|
 | `edad` | `integer \| null` | CALC | Entero `≥ 0` y `≤ 125` | Calculado en Laravel mediante `Carbon::parse(fecha_nacimiento)->age`. En Laravel `fecha_nacimiento` se valida con `after_or_equal:1900-01-01\|before_or_equal:today`. La fecha exacta NUNCA viaja. |
-| `ocupacion` | `string \| null` | TEXTO | `required\|string\|max:120` | **Tope exacto: 120 caracteres** (NO 255). Es insumo clave para evaluar distancias de trabajo, ergonomía visual y presbicia funcional. |
+| `ocupacion` | `string \| null` | TEXTO | `required\|string\|max:120` | **Tope exacto: 120 caracteres** (NO 255). Contexto clínico registrado; no confirma presbicia ni es fuente de la explicación refractiva para paciente. |
 | `motivo_consulta` | `string \| null` | TEXTO | `required\|string\|max:1000` | **Tope exacto: 1000 caracteres** (NO 255). Admite descripciones detalladas de astenopía, cefalea o pérdida visual. |
 
 *Datos del paciente que NUNCA viajan a la IA:* `nombre` (`string|max:255`), `telefono` (`string|max:50`), `fecha_nacimiento` original (`date`), dirección, correo o identificaciones fiscales.
@@ -64,7 +75,7 @@ Ambos ojos poseen idéntica estructura y reglas:
 |---|---|---|---|---|
 | `esfera` | `number \| null` | DROPDOWN | `nullable\|numeric\|decimal:0,2\|between:-30,30` | Dropdown de **+20.00 a -20.00 D en pasos de 0.25** (161 opciones exactas generadas por `OpticaOptions::esfera()`). Default en creación: `0.00`. Rango de BD admite hasta ±30.00 D para alta miopía y afaquia extrema. |
 | `cilindro` | `number \| null` | DROPDOWN | `nullable\|numeric\|decimal:0,2\|between:-30,30` | Dropdown de **0.00 a -8.00 D en pasos de 0.25** (33 opciones en `OpticaOptions::cilindro()`). Siempre convención negativa (`≤ 0.00`). Default en creación: `0.00`. |
-| `eje` | `integer \| null` | NUM LIBRE | `nullable\|integer\|between:0,180` | **Validado formalmente entre 0 y 180 grados**. En la IA se aplica `eje % 180` por si el optometrista tecleó un valor atípico antes de guardar. |
+| `eje` | `integer \| null` | NUM LIBRE | `nullable\|integer\|between:0,180` | **Validado formalmente entre 0 y 180 grados**. Pydantic conserva valores de 0 a 180; valores atípicos se normalizan módulo 180. Un eje nulo permanece nulo; no se necesita para nombrar los componentes educativos. |
 | `add` | `number \| null` | NUM LIBRE | `nullable\|numeric\|decimal:0,2\|between:0,30` | Entrada numérica con `step="0.25"`. El SaaS prohíbe negativos (`between:0,30`). Clínicamente oscila entre `+0.75` y `+3.50` D. Si llega `≤ 0.00`, la IA lo coerciona a `None` (sin adición). |
 | `av_sc` | `string \| null` | DROPDOWN | `nullable\|string\|max:20` | Catálogo cerrado Snellen en pies (`OpticaOptions::av()`): `""` (vacío/guion), `20/10`, `20/15`, `20/20`, `20/25`, `20/30`, `20/40`, `20/50`, `20/60`, `20/70`, `20/80`, `20/100`, `20/120`, `20/160`, `20/200`, `20/400`, `20/600`. |
 | `av_cc` | `string \| null` | DROPDOWN | `nullable\|string\|max:20` | Mismo catálogo exacto de 16 valores Snellen de `av_sc`. |
@@ -80,7 +91,7 @@ Lectura capturada automáticamente por el hardware óptico o cargada desde un ti
 | Campo | Tipo JSON | Origen | Límite y Regla en SaaS | Notas y Formato |
 |---|---|---|---|---|
 | `ticket_id` | `integer \| null` | DEVICE | `nullable\|integer\|exists:akr_tickets,id` | ID del ticket original en BD (solo trazabilidad). |
-| `taken_at` | `string \| null` | DEVICE | `nullable\|date\|after_or_equal:1970-01-02\|before_or_equal:2038-01-18` | Fecha/hora ISO/SQL (`Y-m-d H:i:s`) de captura. Pydantic lo ignora de forma inocua. |
+| `taken_at` | `string \| null` | DEVICE | `nullable\|date\|after_or_equal:1970-01-02\|before_or_equal:2038-01-18` | Fecha/hora ISO/SQL (`Y-m-d H:i:s`) de captura. Pydantic lo modela y normaliza; participa en la clave del payload y no acredita identidad temporal entre receta y AKR. |
 | `pd` | `number \| null` | DEVICE | `nullable\|numeric\|decimal:0,2\|between:0,100` | Distancia pupilar medida por el autorefractor (mm). |
 | `vd` | `number \| null` | DEVICE | `nullable\|numeric\|decimal:0,2\|between:0,30` | Distancia al vértice (habitual: 12.0 mm). |
 | `ker_index` | `number \| null` | DEVICE | `nullable\|numeric\|decimal:0,4\|between:1.3,1.4` | Índice queratométrico calibrado (habitual: `1.3375`). |
@@ -179,6 +190,14 @@ if (! $hasRefraccion && ! $hasClinica) {
 
 ## 4. Estructura de Respuesta de la IA y Consumo en el SaaS
 
+El ejemplo siguiente corresponde a `clinica-v1`. La respuesta dual añade
+`explicacion_paciente`, `explicacion_paciente_estado`, `salida_version`, `cached`
+booleano y `generacion` con origen/modelo/versiones/hash. El campo clínico válido
+se conserva si falla solo el educativo, con respaldo determinista `plantilla`
+sin otra inferencia. Detalles y excepción urgente sin origen LLM en
+[SALIDA_DUAL.md](SALIDA_DUAL.md). Los textos generados/corregidos y la metadata
+de revisión son **destinos**, nunca insumos para la siguiente inferencia.
+
 La API responde exitosamente con HTTP 200 y el siguiente esquema JSON exacto:
 
 ```json
@@ -186,8 +205,7 @@ La API responde exitosamente con HTTP 200 y el siguiente esquema JSON exacto:
   "status": "ok",
   "impresion_clinica": "El paciente de 45 años se presenta a consulta por fatiga visual...",
   "correlaciones_activadas": [
-    "presbicia_multifocal",
-    "ojo_seco_pantallas"
+    "but_pantallas"
   ]
 }
 ```

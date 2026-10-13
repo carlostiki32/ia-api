@@ -7,6 +7,7 @@ from collections import OrderedDict
 
 from app.config import settings
 from app.schemas import ImpresionClinicaRequest
+from app.dual_contract import DUAL_PROMPT_VERSION, PATIENT_PROFILE_VERSION, PIPELINE_VERSION, DualInferenceResult
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +16,7 @@ class InferenceCache:
     """In-memory cache for inference results, keyed by payload hash (excluding receta_id)."""
 
     def __init__(self, max_size: int, ttl_seconds: int):
-        self._store: OrderedDict[str, tuple[str, float]] = OrderedDict()
+        self._store: OrderedDict[str, tuple[str | DualInferenceResult, float]] = OrderedDict()
         self._lock = threading.Lock()
         self._max_size = max_size
         self._ttl = ttl_seconds
@@ -33,10 +34,23 @@ class InferenceCache:
         data["__has_recommendation"] = bool(
             payload.clinica.recomendacion_seguimiento
         )
+        if payload.salida_version == "clinica-paciente-v1":
+            data["__dual_profile"] = PATIENT_PROFILE_VERSION
+            data["__dual_prompt"] = DUAL_PROMPT_VERSION
+            data["__pipeline"] = PIPELINE_VERSION
+            data["__generation_options"] = {
+                "temperature": settings.ollama_temperature,
+                "num_predict": settings.ollama_dual_num_predict,
+                "num_ctx": settings.ollama_num_ctx,
+                "repeat_penalty": settings.ollama_repeat_penalty,
+                "top_p": settings.ollama_top_p, "top_k": settings.ollama_top_k,
+                "min_p": settings.ollama_min_p, "seed": settings.ollama_seed,
+                "max_sentences": settings.max_sentences,
+            }
         raw = json.dumps(data, sort_keys=True, ensure_ascii=False)
         return hashlib.sha256(raw.encode()).hexdigest()
 
-    def get(self, payload: ImpresionClinicaRequest, key: str | None = None) -> str | None:
+    def get(self, payload: ImpresionClinicaRequest, key: str | None = None) -> str | DualInferenceResult | None:
         if key is None:
             key = self.build_key(payload)
         with self._lock:
@@ -52,7 +66,7 @@ class InferenceCache:
             logger.info("Cache hit for key %s", key[:12])
             return value
 
-    def put(self, payload: ImpresionClinicaRequest, result: str, key: str | None = None) -> None:
+    def put(self, payload: ImpresionClinicaRequest, result: str | DualInferenceResult, key: str | None = None) -> None:
         if key is None:
             key = self.build_key(payload)
         with self._lock:

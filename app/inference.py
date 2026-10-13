@@ -1,3 +1,4 @@
+import json
 import logging
 import re
 from difflib import SequenceMatcher
@@ -8,6 +9,12 @@ from app.config import settings
 from app.prompt_builder import build_system_prompt, build_user_prompt, clean_impresion
 from app.providers import ollama as ollama_provider
 from app.schemas import ImpresionClinicaRequest
+from app.dual_contract import DUAL_OUTPUT_SCHEMA, DualInferenceResult, RecoverableDualOutput
+from app.patient_profile import (
+    build_patient_profile, build_patient_context, build_patient_template, validate_patient_text,
+)
+from app.prompt_builder import build_dual_system_prompt, build_dual_user_prompt
+from pydantic import ValidationError
 
 logger = logging.getLogger(__name__)
 
@@ -811,7 +818,7 @@ def _ensure_emergency_preserved(text: str, payload: ImpresionClinicaRequest) -> 
 async def run_inference(
     payload: ImpresionClinicaRequest,
     client: httpx.AsyncClient,
-) -> str:
+) -> str | DualInferenceResult:
     """
     Orquesta la inferencia contra Ollama (qwen3.5:9b): construye los prompts,
     valida el contexto de forma preemptiva, llama al modelo y aplica el
@@ -819,8 +826,12 @@ async def run_inference(
     """
     # System prompt inmutable: permite que Ollama mantenga y reutilice el KV Prefix Cache
     # de los ~1595 tokens a traves de peticiones consecutivas (reduciendo TTFT).
-    system_prompt = build_system_prompt()
-    user_prompt = build_user_prompt(payload)
+    dual = payload.salida_version == "clinica-paciente-v1"
+    clinical_prompt = build_user_prompt(payload)
+    profile = build_patient_profile(payload) if dual else None
+    system_prompt = build_dual_system_prompt() if dual else build_system_prompt()
+    user_prompt = build_dual_user_prompt(clinical_prompt, build_patient_context(profile)) if dual else clinical_prompt
+    output_budget = settings.ollama_dual_num_predict if dual else settings.ollama_num_predict
 
     # Logging detallado del prompt renderizado antes de enviar a inferencia
     logger.debug(
@@ -848,27 +859,58 @@ async def run_inference(
 
     # Validacion preemptiva de contexto: el prompt + la salida deben caber en num_ctx.
     est_input = _estimate_tokens(system_prompt + user_prompt)
-    est_total = est_input + settings.ollama_num_predict
+    est_total = est_input + output_budget
     ctx_budget = int(settings.ollama_num_ctx * 0.95)
     if est_total > ctx_budget:
         raise ValueError(
             f"{CONTEXT_OVERFLOW_PREFIX} prompt estimado ({est_input} tok) + "
-            f"salida ({settings.ollama_num_predict} tok) excede num_ctx "
+            f"salida ({output_budget} tok) excede num_ctx "
             f"({settings.ollama_num_ctx}). Revisar longitud de campos "
             "clinicos de texto libre."
         )
 
-    raw_text, data = await ollama_provider.call(system_prompt, user_prompt, client)
+    provider_options = {"num_predict": output_budget, "response_format": DUAL_OUTPUT_SCHEMA} if dual else {}
+    async def generate(**options):
+        try:
+            return await ollama_provider.call(system_prompt, user_prompt, client, **options)
+        except ValueError as exc:
+            if dual:
+                raise GeneracionIncompletaError("Ollama no devolvio contenido dual util.") from exc
+            raise
+
+    raw_text, data = await generate(**provider_options)
+    retried = False
     if _terminada_por_longitud(data):
         # Un texto cortado por el limite de tokens no es una impresion terminada: se reintenta
         # una vez con mas presupuesto de salida (sin salir de num_ctx) y, si persiste, se rechaza.
-        mayor = min(int(settings.ollama_num_predict * 1.5), ctx_budget - est_input)
-        if mayor > settings.ollama_num_predict:
+        mayor = min(int(output_budget * 1.5), ctx_budget - est_input)
+        if mayor > output_budget:
             logger.warning("Generacion truncada por longitud; reintento con num_predict=%d", mayor)
-            raw_text, data = await ollama_provider.call(system_prompt, user_prompt, client, num_predict=mayor)
+            retry_options = {**provider_options, "num_predict": mayor}
+            raw_text, data = await generate(**retry_options)
+            retried = True
         if _terminada_por_longitud(data):
             logger.error("Generacion truncada por longitud tras el reintento; se rechaza el resultado")
             raise GeneracionIncompletaError("La generacion termino por limite de longitud y esta incompleta.")
+
+    patient_candidate = None
+    if dual:
+        # Parsear contenido íntegro antes de las guardas de prosa. Un sobre ilegible
+        # no se recupera con regex; como máximo un reintento, compartido con length.
+        for attempt in range(2):
+            try:
+                parsed = RecoverableDualOutput.model_validate(json.loads(raw_text))
+                raw_text = parsed.impresion_clinica
+                patient_candidate = parsed.explicacion_paciente
+                break
+            except (json.JSONDecodeError, ValidationError, TypeError) as exc:
+                if retried or attempt:
+                    raise GeneracionIncompletaError("El modelo no produjo un objeto dual completo.") from exc
+                logger.warning("Sobre dual invalido; reintento acotado")
+                raw_text, data = await generate(**provider_options)
+                retried = True
+                if _terminada_por_longitud(data):
+                    raise GeneracionIncompletaError("El reintento dual termino por longitud.")
 
     try:
         text = _postprocess(raw_text)
@@ -877,10 +919,12 @@ async def run_inference(
             "Model output empty after postprocessing. Raw length: %d chars",
             len(raw_text),
         )
+        if dual:
+            raise GeneracionIncompletaError("La impresion clinica dual quedo vacia.")
         raise
 
     text = clean_impresion(text)  # ← aquí, después de postprocess y antes de follow-up
-    text = _purgar_no_sustentado(text, user_prompt)
+    text = _purgar_no_sustentado(text, clinical_prompt)
     text = _ensure_emergency_preserved(text, payload)
 
     text = _ensure_follow_up_last(text, payload.clinica.recomendacion_seguimiento, payload=payload)
@@ -888,7 +932,24 @@ async def run_inference(
         # La depuracion puede eliminar todo («No se dispone de datos clinicos.»): un exito HTTP con
         # impresion vacia no es un resultado util y no debe guardarse en cache.
         raise GeneracionIncompletaError("La impresion clinica quedo vacia tras la depuracion.")
-    return text
+    if not dual:
+        return text
+    if profile.estado != "aplicable":
+        return DualInferenceResult(
+            impresion_clinica=text, explicacion_paciente=None,
+            explicacion_paciente_estado=profile.estado, origen_explicacion="ninguno",
+        )
+    patient_text = validate_patient_text(patient_candidate, profile)
+    if patient_text is not None:
+        state, origin = "generada", "llm"
+    else:
+        patient_text = build_patient_template(profile)
+        state, origin = ("plantilla", "plantilla") if patient_text else ("rechazada", "ninguno")
+        logger.info("Validacion educativa: estado=%s (sin inferencia adicional)", state)
+    return DualInferenceResult(
+        impresion_clinica=text, explicacion_paciente=patient_text,
+        explicacion_paciente_estado=state, origen_explicacion=origin,
+    )
 
 
 def respaldo_determinista(payload: ImpresionClinicaRequest) -> str | None:

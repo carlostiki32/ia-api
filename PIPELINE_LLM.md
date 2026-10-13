@@ -1,5 +1,7 @@
 # Pipeline de Inferencia Clinica - Documentacion Tecnica
 
+**Ampliación del 12 de octubre de 2026:** esta descripción histórica corresponde al modo `clinica-v1`. La salida optativa `clinica-paciente-v1`, sus reglas/caché y recuperación separada están documentadas en [SALIDA_DUAL.md](SALIDA_DUAL.md), que prevalece para ese modo.
+
 Este documento describe el funcionamiento real del pipeline LLM de la API clinica optometrica con base en el codigo actual de:
 
 - `app/main.py`
@@ -224,7 +226,7 @@ Ademas de `od` y `oi`, el snapshot incluye metadata comun a la sesion de medicio
 | `vd` | `float \| None` | Distancia al vertice. `between:0,30`; fuera de rango → `None` |
 | `ker_index` | `float \| None` | Indice queratometrico usado por el equipo para convertir mm↔D. `between:1.3,1.4`; fuera de rango → `None` |
 
-El SaaS envia ademas `taken_at` (fecha/hora de la medicion), pero el schema **no lo modela**: Pydantic ignora los campos extra, asi que ese dato queda como trazabilidad del SaaS y nunca participa en correlaciones, prompt ni cache.
+El schema modela `taken_at` (fecha/hora de la medicion) y lo normaliza; junto con `ticket_id` participa en la clave del payload. No acredita por sí solo que AKR y receta pertenezcan al mismo instante ni permite inferir un ajuste clínico.
 
 ### AkrOjo
 
@@ -298,8 +300,8 @@ descarta o normaliza (con warning en log), nunca tumba la generacion con `422`.
   fuera de catalogo → `None`. Estos rangos son los limites de los dropdowns/dispositivo;
   un valor fuera es dato corrupto que no debe contar como hallazgo.
 - `add ≤ 0` → `None`: el input de add es libre y un `0` tecleado no es una adicion
-  prescrita (corrige el disparo de `presbicia_multifocal` / `presbicia_sin_adicion`).
-- **Transposicion solo del AKR** (no la Rx): ver recuadro en la seccion AkrOjo.
+  prescrita. Las correlaciones de presbicia por edad/ADD se retiraron el 22 de septiembre de 2026; ADD no acredita ese diagnóstico.
+- **Transposicion de AKR y Rx final**: ambos schemas convierten cilindro positivo a negativo y conservan esfera/eje nulos cuando faltan.
 - `av_sc` / `av_cc` se **canonizan**: `" 20 / 40 "` → `"20/40"`. Notaciones no-Snellen
   legacy (p. ej. "cuenta dedos") se conservan sin disparar AV.
 - `uso_pantallas` es enum cerrado (`lt2`/`btw2_6`/`gt6`); un valor fuera → `None`.
