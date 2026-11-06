@@ -40,7 +40,7 @@ class InferenceCache:
             data["__pipeline"] = PIPELINE_VERSION
             data["__generation_options"] = {
                 "temperature": settings.ollama_temperature,
-                "num_predict": settings.ollama_dual_num_predict,
+                "num_predict": settings.ollama_num_predict,
                 "num_ctx": settings.ollama_num_ctx,
                 "repeat_penalty": settings.ollama_repeat_penalty,
                 "top_p": settings.ollama_top_p, "top_k": settings.ollama_top_k,

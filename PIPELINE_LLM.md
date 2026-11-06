@@ -1,6 +1,6 @@
 # Pipeline de Inferencia Clinica - Documentacion Tecnica
 
-**Ampliación del 12 de octubre de 2026:** esta descripción histórica corresponde al modo `clinica-v1`. La salida optativa `clinica-paciente-v1`, sus reglas/caché y recuperación separada están documentadas en [SALIDA_DUAL.md](SALIDA_DUAL.md), que prevalece para ese modo.
+**Actualización F0 del 6 de noviembre de 2026:** `clinica-paciente-v1` usa la misma llamada y postprocesado clínico que `clinica-v1`: mismos prompts, presupuesto `OLLAMA_NUM_PREDICT` y sin `format` JSON Schema. El perfil educativo nunca entra en el prompt. `build_patient_template(profile)` construye la explicación en CPU, siempre en usted, con apertura única y mención de ojo plano solo si ESF y CIL son explícitamente cero. Plantilla válida: `plantilla`/`plantilla`; perfil no aplicable: `sin_componentes_refractivos` o `datos_incompletos`, texto nulo/origen `ninguno`; fallo de plantilla: `rechazada`, texto nulo/origen `ninguno`. El respaldo clínico urgente no cambia. Contrato y caché dual versionada en [SALIDA_DUAL.md](SALIDA_DUAL.md). `OLLAMA_DUAL_NUM_PREDICT` se acepta por compatibilidad pero ya no se usa.
 
 Este documento describe el funcionamiento real del pipeline LLM de la API clinica optometrica con base en el codigo actual de:
 
@@ -170,6 +170,11 @@ Si la inferencia completa supera el timeout total (`ollama_timeout`), responde `
 ### Warmup al arrancar
 
 Durante el `lifespan` de FastAPI se crea un `httpx.AsyncClient` (timeouts separados de connect/read/write/pool para que un socket colgado no consuma el presupuesto completo) y se hace un warmup contra Ollama con `num_predict=1` y el **mismo `num_ctx` de produccion**, para que Ollama asigne el KV cache definitivo al arrancar y no en el primer request real. Si el warmup falla solo se loggea un warning (no es critico).
+
+El default de `OLLAMA_NUM_CTX` permanece en 8192. Si su valor efectivo es menor,
+el `lifespan` registra un warning: «OLLAMA_NUM_CTX=%d < 8192: recetas con AKR y
+datos clínicos pueden devolver 413». Esto no modifica el `.env` ni sustituye la
+verificación del contexto en el equipo con GPU.
 
 ---
 

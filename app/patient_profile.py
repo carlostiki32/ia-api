@@ -12,6 +12,7 @@ class PatientEye:
     lado: str
     nombres: tuple[str, ...]
     apoyo_cerca: bool
+    plano: bool
 
 
 @dataclass(frozen=True)
@@ -27,7 +28,7 @@ class PatientProfile:
 _NAMES = ("miopía", "hipermetropía", "astigmatismo")
 _DEFINITIONS = {
     "miopía": (
-        "La miopía puede hacer que veas borroso lo que está lejos, como un letrero.",
+        "La miopía puede hacer que vea borroso lo que está lejos, como un letrero.",
         "La miopía hace que los objetos lejanos puedan verse borrosos.",
     ),
     "hipermetropía": (
@@ -38,17 +39,16 @@ _DEFINITIONS = {
         "El astigmatismo puede hacer que algunas letras o bordes se vean poco definidos.",
     ),
 }
-# La primera variante conserva el respaldo existente; las otras y sus cierres
-# son las frases sencillas ya usadas en la simulación válida del flujo dual.
-_NEAR_DEFINITION = "Ese apoyo está pensado para ayudarte al mirar algo cerca, como un libro o un mensaje en el teléfono."
+# Catálogo cerrado en usted; las variantes conservan su significado aprobado.
+_NEAR_DEFINITION = "Ese apoyo está pensado para ayudarle al mirar algo cerca, como un libro o un mensaje en el teléfono."
 _CLOSINGS = (
-    "Tus lentes llevan la graduación de cada ojo para ayudarte a ver más claro.",
-    "Si alguna palabra no te queda clara, podemos explicártela en la óptica.",
-    "Puedes preguntar qué significa cada parte de tu receta con palabras sencillas.",
-    "Con tus lentes, la imagen puede verse más clara y cómoda en las actividades diarias.",
+    "Sus lentes llevan la graduación de cada ojo para ayudarle a ver más claro.",
+    "Si alguna palabra no le queda clara, con gusto se la explicamos en la óptica.",
+    "Puede preguntarnos qué significa cada parte de su receta y se lo explicamos con palabras sencillas.",
+    "Con sus lentes, la imagen puede verse más clara y cómoda en sus actividades diarias.",
     "Cada ojo recibe la graduación que necesita.",
-    "Los lentes ayudan a enfocar mientras los usas.",
-    "Si tienes dudas sobre cómo utilizarlos, tu optometrista puede explicártelo durante la entrega.",
+    "Los lentes le ayudan a enfocar mientras los usa.",
+    "Si tiene dudas sobre cómo usarlos, su optometrista se lo puede explicar durante la entrega.",
 )
 
 
@@ -75,7 +75,7 @@ def build_patient_profile(req: ImpresionClinicaRequest) -> PatientProfile:
             else:
                 names = ("astigmatismo",)
         near = eye.add is not None and math.isfinite(eye.add) and eye.add > 0
-        eyes.append(PatientEye(side, names, near))
+        eyes.append(PatientEye(side, names, near, plano=s == 0 and c == 0))
     state = "aplicable" if any(e.nombres or e.apoyo_cerca for e in eyes) else "sin_componentes_refractivos"
     return PatientProfile(tuple(eyes), state)
 
@@ -89,14 +89,24 @@ def patient_opening(profile: PatientProfile) -> str:
         return ""
     od, oi = profile.ojos
     if od.nombres and od.nombres == oi.nombres:
-        return f"Tu graduación incluye corrección para {_join_names(od.nombres)} en los dos ojos."
+        return f"Su graduación incluye corrección para {_join_names(od.nombres)} en los dos ojos."
     parts = [
-        f"Tu graduación incluye corrección para {_join_names(e.nombres)} en el ojo {e.lado}."
+        f"para {_join_names(e.nombres)} en el ojo {e.lado}"
         for e in profile.ojos if e.nombres
     ]
     if parts:
-        return " ".join(parts)
+        return "Su graduación incluye corrección " + " y ".join(parts) + "."
     return _near_sentence(profile, initial=True)
+
+
+def _plano_sentences(profile: PatientProfile) -> tuple[str, ...]:
+    sides = [e.lado for e in profile.ojos if e.plano]
+    if len(sides) == 2:
+        return ("En los dos ojos, su receta de lejos marca 0.00: no lleva corrección para ver de lejos.",)
+    return tuple(
+        f"En el ojo {side}, su receta de lejos marca 0.00: ese lado no lleva corrección para ver de lejos."
+        for side in sides
+    )
 
 
 def _near_sentence(profile: PatientProfile, *, initial: bool = False) -> str:
@@ -105,23 +115,7 @@ def _near_sentence(profile: PatientProfile, *, initial: bool = False) -> str:
         return ""
     place = "en los dos ojos" if len(sides) == 2 else f"en el ojo {sides[0]}"
     connector = "" if initial else "también "
-    return f"Tu receta {connector}incluye un apoyo extra para enfocar de cerca {place}."
-
-
-def build_patient_context(profile: PatientProfile) -> dict:
-    """La fuente educativa solo contiene hechos cerrados, sin cifras del expediente."""
-    return {
-        "estado": profile.estado,
-        "ojos": [
-            {"lado": e.lado, "correcciones_permitidas": list(e.nombres), "apoyo_cerca": e.apoyo_cerca}
-            for e in profile.ojos
-        ],
-        "apertura_obligatoria": patient_opening(profile),
-        "definiciones_permitidas": {name: list(_DEFINITIONS[name]) for name in profile.nombres},
-        "frase_apoyo_cerca": _near_sentence(profile) if profile.nombres else "",
-        "definicion_apoyo_cerca": _NEAR_DEFINITION if profile.estado == "aplicable" and not profile.nombres else "",
-        "cierres_permitidos": list(_CLOSINGS) if profile.estado == "aplicable" else [],
-    }
+    return f"Su receta {connector}incluye un apoyo extra para enfocar de cerca {place}."
 
 
 def _normalized(text: str) -> str:
@@ -133,7 +127,8 @@ def word_count(text: str) -> int:
 
 
 def _sentences(text: str) -> tuple[str, ...]:
-    return tuple(_normalized(part) + "." for part in text[:-1].split("."))
+    # Solo separar al terminar una oración; el punto de 0.00 es parte del dato.
+    return tuple(_normalized(part) for part in re.split(r"(?<=\.)\s+", text))
 
 
 def validate_patient_text(candidate: object, profile: PatientProfile) -> str | None:
@@ -144,13 +139,15 @@ def validate_patient_text(candidate: object, profile: PatientProfile) -> str | N
         return None
     if not text.endswith("."):
         return None
-    # Cada frase procede del mismo catálogo que recibe el modelo y usa el
-    # respaldo CPU. No inferimos fidelidad semántica a partir de nombre + 'puede'.
+    # Cada frase procede del catálogo CPU, en el orden de los hechos del perfil.
     sentences = _sentences(text)
     opening = _sentences(patient_opening(profile))
     if sentences[:len(opening)] != opening:
         return None
     remaining = list(sentences[len(opening):])
+    for sentence in _plano_sentences(profile):
+        if not remaining or remaining.pop(0) != _normalized(sentence):
+            return None
     for name in profile.nombres:
         if not remaining or remaining.pop(0) not in {_normalized(s) for s in _DEFINITIONS[name]}:
             return None
@@ -168,6 +165,7 @@ def build_patient_template(profile: PatientProfile) -> str | None:
     if profile.estado != "aplicable":
         return None
     parts = [patient_opening(profile)]
+    parts.extend(_plano_sentences(profile))
     parts.extend(_DEFINITIONS[name][0] for name in profile.nombres)
     if profile.nombres:
         near = _near_sentence(profile)

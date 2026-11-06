@@ -2,9 +2,9 @@
 
 API que recibe los datos estructurados de un examen optométrico (refracción, AKR/queratometría, hallazgos clínicos) y devuelve un párrafo de **impresión clínica en español**, generado combinando reglas clínicas deterministas con un LLM.
 
-Desde el 12 de octubre de 2026, `salida_version=clinica-paciente-v1` agrega una explicación sencilla para el paciente en la misma generación. El modo omitido (`clinica-v1`) conserva la respuesta anterior. Contrato, estados, respaldo CPU y pruebas: **[SALIDA_DUAL.md](SALIDA_DUAL.md)**.
+Desde F0 (6 de noviembre de 2026), `salida_version=clinica-paciente-v1` agrega una explicación determinista en CPU, siempre en **usted**. Ambos modos hacen la misma llamada clínica: mismos prompts y presupuesto `OLLAMA_NUM_PREDICT`, sin `format` JSON Schema ni perfil educativo en el prompt. El modo omitido (`clinica-v1`) conserva su respuesta y clave de caché. Contrato, estados y pruebas: **[SALIDA_DUAL.md](SALIDA_DUAL.md)**.
 
-En la salida dual, el perfil educativo se calcula solo con la refracción final. El prompt, la validación y el respaldo CPU comparten un catálogo de explicaciones sencillas: una definición incorrecta o una frase ajena al perfil activa ese respaldo sin una segunda inferencia. Óptica solicita ambos textos únicamente con **Generar con IA**; **Guardar** conserva la revisión del optometrista y no llama al modelo. La auditoría local validó el contrato con un proveedor simulado; no mide rendimiento ni calidad del modelo real en la RTX 3070 Ti.
+En la salida dual, `build_patient_template(profile)` usa solo la refracción final y un catálogo cerrado de 60–110 palabras. Genera una apertura única, describe el ojo plano solo con ESF y CIL explícitamente cero (`0.00`), define las correcciones y ubica el apoyo cercano. Una plantilla válida devuelve estado/origen `plantilla`/`plantilla`; un perfil no aplicable devuelve `sin_componentes_refractivos` o `datos_incompletos`, texto nulo y origen `ninguno`; una plantilla inválida devuelve `rechazada`, texto nulo y origen `ninguno`. El respaldo clínico urgente conserva su contrato. Óptica solicita ambos textos únicamente con **Generar con IA**; **Guardar** conserva la revisión del optometrista y no llama al modelo. Las pruebas usan un proveedor simulado; no miden rendimiento ni calidad del modelo real en la RTX 3070 Ti.
 
 Este documento es el punto de entrada. Da la vista completa del sistema de forma resumida y enlaza a los documentos de detalle para cada tema.
 
@@ -101,7 +101,7 @@ Detalle línea por línea de este flujo (headers, timeouts, reintentos, formato 
 | `app/correlaciones/` | **El motor de casos optométricos.** Paquete con las 47 reglas clínicas y el recordatorio técnico, organizadas por dominio. Ver [§7](#7-casos-optométricos-correlaciones-clínicas). |
 | `app/prompt_builder.py` | Arma el system prompt y el user prompt que se le mandan al LLM, a partir del payload + las correlaciones activas. |
 | `app/patient_profile.py` | Calcula el perfil educativo de la refracción final y comparte el catálogo entre el prompt, sus guardas y el respaldo CPU. |
-| `app/dual_contract.py` | Analiza el sobre JSON dual, valida cada texto por separado y versiona el prompt dual en la clave de caché. |
+| `app/dual_contract.py` | Define el resultado dual interno, estados/orígenes y versiones del catálogo/perfil para invalidar la caché dual. |
 | `app/inference.py` | Orquesta la inferencia: construye los prompts, valida el contexto, llama a Ollama y aplica el postprocesado + guardarraíles del texto crudo. |
 | `app/providers/ollama.py` | Cliente HTTP hacia Ollama (`/api/chat`), parámetros de sampling, reintentos, monitoreo de contexto. |
 | `app/cache.py` | Cache en memoria (TTL + tamaño máximo) para no repetir inferencias idénticas. |
@@ -229,7 +229,7 @@ La plantilla completa es [.env.example](.env.example); cada parámetro de sampli
 |---|---|
 | `OLLAMA_URL` | Dónde vive tu Ollama (default `http://localhost:11434`, correcto si la API corre en el mismo Ubuntu). |
 | `OLLAMA_MODEL` | El modelo a usar — déjalo en `qwen3.5:9b`. |
-| `OLLAMA_DUAL_NUM_PREDICT` | `1024` — presupuesto separado de salida dual, sin cambiar `OLLAMA_NUM_PREDICT` del modo clínico. |
+| `OLLAMA_DUAL_NUM_PREDICT` | `1024` — aceptado por compatibilidad con `.env` existentes; ya no se usa. Ambos modos usan `OLLAMA_NUM_PREDICT`. |
 | `OLLAMA_TEMPERATURE` | `0.2` — tarea de extracción/reporte fiel, no chat; con seed fijo da salida casi determinista. |
 | `OLLAMA_NUM_CTX` | `8192` — el payload máximo del diccionario no cabía en 4096 (daba `413`). Medido en la 3070 Ti: solo +0.2 GB de footprint vs 4096. |
 | `API_KEY` | El token que Postman debe mandar en `Authorization: Bearer`. **Cámbialo del placeholder** (el script de arranque lo exige). |

@@ -1,11 +1,12 @@
 """Perfil cerrado de Rx final y catálogo educativo; sin LLM ni GPU."""
 from itertools import product
+import re
 
 import pytest
 from pydantic import ValidationError
 
 from app.patient_profile import (
-    build_patient_profile, build_patient_context, build_patient_template,
+    build_patient_profile, build_patient_template,
     patient_opening, validate_patient_text, word_count,
 )
 from app.schemas import ImpresionClinicaRequest
@@ -50,10 +51,11 @@ def test_missing_fields_are_not_zero_or_replaced_by_akr(od, oi):
     assert build_patient_template(profile) is None
 
 
-def test_zero_eye_is_omitted_without_claiming_health():
-    profile = build_patient_profile(request({"esfera": -2, "cilindro": 0}, {"esfera": 0, "cilindro": 0}))
+def test_zero_eye_is_described_without_claiming_health():
+    profile = build_patient_profile(request({"esfera": -3, "cilindro": 0}, {"esfera": 0, "cilindro": 0}))
     text = build_patient_template(profile)
-    assert "ojo derecho" in text and "izquierdo" not in text
+    assert "ojo derecho" in text
+    assert "En el ojo izquierdo, su receta de lejos marca 0.00: ese lado no lleva corrección para ver de lejos." in text
     assert "sano" not in text and "normal" not in text
 
 
@@ -74,7 +76,7 @@ def test_profile_uses_only_final_rx_not_age_clinical_akr_or_lens_design():
         akr={"od": {"esfera": 3, "cilindro": -1}},
         clinica={"fondo_de_ojo": "Catarata y patología", "recomendacion_seguimiento": "Cirugia"}, tipo_lente="progresivo"))
     assert plain == extra
-    assert "Glaucoma" not in str(build_patient_context(extra))
+    assert build_patient_template(plain) == build_patient_template(extra)
 
 
 # Todas las combinaciones de tipos/ojos/ADD tienen plantilla legible válida.
@@ -93,6 +95,15 @@ def test_template_catalog_all_combinations(left, right, near_left, near_right):
         assert text is not None, (left, right, near_left, near_right)
         assert 60 <= word_count(text) <= 110
         assert validate_patient_text(text, profile) == text
+        assert not re.search(
+            r"\b(tú|tu|tus|te|ti|contigo|puedes|quieres|veas|tienes|usas|veas|"
+            r"pregunta|deja|vuelve|mira|consulta|"
+            r"(?:ayudar|explicar|explicár|llevar|cuidar|adaptar|operar)te(?:la|lo|las|los)?)\b",
+            text, re.IGNORECASE,
+        )
+        assert not re.search(r"\b(sano|sana|normal|no necesita|no requiere|presbicia|perfecto|perfecta)\b", text, re.IGNORECASE)
+        if profile.nombres:
+            assert text.count("Su graduación incluye") == 1
 
 
 @pytest.mark.parametrize("defect", [
@@ -144,19 +155,15 @@ def test_sentence_catalog_keeps_previously_approved_variants():
     eye = {"esfera": -2, "cilindro": -.75}
     profile = build_patient_profile(request(eye, eye))
     candidate = (
-        "Tu graduación incluye corrección para miopía y astigmatismo en los dos ojos. "
+        "Su graduación incluye corrección para miopía y astigmatismo en los dos ojos. "
         "La miopía hace que los objetos lejanos puedan verse borrosos. "
         "El astigmatismo puede hacer que algunas letras o bordes se vean poco definidos. "
-        "Con tus lentes, la imagen puede verse más clara y cómoda en las actividades diarias. "
-        "Cada ojo recibe la graduación que necesita. Los lentes ayudan a enfocar mientras los usas. "
-        "Si tienes dudas sobre cómo utilizarlos, tu optometrista puede explicártelo durante la entrega."
+        "Con sus lentes, la imagen puede verse más clara y cómoda en sus actividades diarias. "
+        "Cada ojo recibe la graduación que necesita. Los lentes le ayudan a enfocar mientras los usa. "
+        "Si tiene dudas sobre cómo usarlos, su optometrista se lo puede explicar durante la entrega."
     )
-    assert word_count(candidate) == 78
+    assert 60 <= word_count(candidate) <= 110
     assert validate_patient_text(candidate, profile) == candidate
-    context = build_patient_context(profile)
-    assert "La miopía hace que los objetos lejanos puedan verse borrosos." in context["definiciones_permitidas"]["miopía"]
-    assert "hipermetropía" not in context["definiciones_permitidas"]
-    assert context["frase_apoyo_cerca"] == context["definicion_apoyo_cerca"] == ""
 
 
 @pytest.mark.parametrize("change", ["missing_definition", "duplicate_definition", "duplicate_closing", "wrong_near_eye"])
@@ -164,14 +171,13 @@ def test_catalog_requires_each_profile_fact_once_and_correct_near_eye(change):
     eye = {"esfera": -2, "cilindro": 0, "add": 1.5}
     profile = build_patient_profile(request(eye, {"esfera": -2, "cilindro": 0}))
     original = build_patient_template(profile)
-    context = build_patient_context(profile)
-    definition = context["definiciones_permitidas"]["miopía"][0]
+    definition = "La miopía puede hacer que vea borroso lo que está lejos, como un letrero."
     if change == "missing_definition":
-        candidate = original.replace(definition + " ", "") + " " + context["cierres_permitidos"][2]
+        candidate = original.replace(definition + " ", "") + " Puede preguntarnos qué significa cada parte de su receta y se lo explicamos con palabras sencillas."
     elif change == "duplicate_definition":
         candidate = original.replace(definition, definition + " " + definition)
     elif change == "duplicate_closing":
-        candidate = original + " " + context["cierres_permitidos"][0]
+        candidate = original + " Sus lentes llevan la graduación de cada ojo para ayudarle a ver más claro."
     else:
         candidate = original.replace("enfocar de cerca en el ojo derecho", "enfocar de cerca en el ojo izquierdo")
     assert 60 <= word_count(candidate) <= 110
@@ -183,3 +189,58 @@ def test_output_version_is_typed(value):
     with pytest.raises(ValidationError):
         request(salida_version=value)
     assert request().salida_version == "clinica-v1"
+
+
+def test_zero_sphere_with_cylinder_is_not_plano():
+    eye = {"esfera": 0, "cilindro": -1}
+    profile = build_patient_profile(request(eye, eye))
+    assert all(not eye.plano for eye in profile.ojos)
+    assert "marca 0.00" not in build_patient_template(profile)
+
+
+def test_plano_left_with_unilateral_near_support():
+    profile = build_patient_profile(request(
+        {"esfera": -2, "cilindro": 0}, {"esfera": 0, "cilindro": 0, "add": 1.5},
+    ))
+    text = build_patient_template(profile)
+    assert "En el ojo izquierdo, su receta de lejos marca 0.00" in text
+    assert "Su receta también incluye un apoyo extra para enfocar de cerca en el ojo izquierdo." in text
+    assert text.index("marca 0.00") < text.index("La miopía") < text.index("Su receta también")
+
+
+@pytest.mark.parametrize("side", ["od", "oi"])
+def test_add_only_describes_both_plano_eyes_and_correct_near_side(side):
+    eyes = {"od": {"esfera": 0, "cilindro": 0}, "oi": {"esfera": 0, "cilindro": 0}}
+    eyes[side]["add"] = 1.5
+    profile = build_patient_profile(request(**eyes))
+    text = build_patient_template(profile)
+    assert "En los dos ojos, su receta de lejos marca 0.00: no lleva corrección para ver de lejos." in text
+    assert f"en el ojo {'derecho' if side == 'od' else 'izquierdo'}." in text
+
+
+def test_different_eyes_have_one_opening_sentence():
+    profile = build_patient_profile(request({"esfera": 0, "cilindro": -1}, {"esfera": -2, "cilindro": 0}))
+    opening = "Su graduación incluye corrección para astigmatismo en el ojo derecho y para miopía en el ojo izquierdo."
+    text = build_patient_template(profile)
+    assert patient_opening(profile) == opening
+    assert text.startswith(opening)
+    assert len(re.findall(r"(?:^|\.\s+)Su graduación incluye", text)) == 1
+
+
+@pytest.mark.parametrize("change", ["omit", "duplicate", "move_after_definition", "alter_zero", "add_cylinder_plano"])
+def test_guard_requires_exact_plano_fact_in_order(change):
+    profile = build_patient_profile(request({"esfera": -2, "cilindro": 0}, {"esfera": 0, "cilindro": 0}))
+    original = build_patient_template(profile)
+    plano = "En el ojo izquierdo, su receta de lejos marca 0.00: ese lado no lleva corrección para ver de lejos."
+    definition = "La miopía puede hacer que vea borroso lo que está lejos, como un letrero."
+    if change == "omit":
+        candidate = original.replace(plano + " ", "")
+    elif change == "duplicate":
+        candidate = original.replace(plano, plano + " " + plano)
+    elif change == "move_after_definition":
+        candidate = original.replace(plano + " " + definition, definition + " " + plano)
+    elif change == "alter_zero":
+        candidate = original.replace("0.00", "0.01")
+    else:
+        candidate = original.replace("ojo izquierdo, su receta de lejos", "ojo derecho, su receta de lejos")
+    assert validate_patient_text(candidate, profile) is None

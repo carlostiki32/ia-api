@@ -29,7 +29,6 @@ async def call(
     client: httpx.AsyncClient,
     *,
     num_predict: int | None = None,
-    response_format: dict | None = None,
 ) -> tuple[str, dict]:
     """
     Llama a Ollama /api/chat y devuelve (raw_text, response_data).
@@ -47,9 +46,6 @@ async def call(
         "think":  False,
         "options": options,
     }
-
-    if response_format is not None:
-        request_body["format"] = response_format
 
     data: dict = {}
     raw_text = ""

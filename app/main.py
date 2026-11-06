@@ -79,6 +79,9 @@ def _payload_resumen(req: ImpresionClinicaRequest) -> str:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    if settings.ollama_num_ctx < 8192:
+        logger.warning("OLLAMA_NUM_CTX=%d < 8192: recetas con AKR y datos clínicos pueden devolver 413",
+                       settings.ollama_num_ctx)
     # httpx read timeout: ollama_timeout + margen suficiente para que asyncio.wait_for
     # sea siempre el mecanismo de timeout activo, nunca httpx. connect/write/pool
     # se limitan por separado para que un socket colgado no consuma el presupuesto completo.

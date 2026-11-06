@@ -1,11 +1,32 @@
 import asyncio
 import httpx
+import logging
+from unittest.mock import AsyncMock
+
+import pytest
 
 from fastapi.testclient import TestClient
 
 import app.main as main
 from app.clinical_data import has_clinical_data
 from app.schemas import ImpresionClinicaRequest
+
+
+@pytest.mark.parametrize("num_ctx,should_warn", [(4096, True), (8191, True), (8192, False)])
+def test_lifespan_warns_about_small_context_without_network(monkeypatch, caplog, num_ctx, should_warn):
+    monkeypatch.setattr(main.settings, "ollama_num_ctx", num_ctx)
+    post = AsyncMock()
+    monkeypatch.setattr(httpx.AsyncClient, "post", post)
+
+    async def run():
+        async with main.lifespan(main.app):
+            pass
+
+    with caplog.at_level(logging.WARNING, logger="app.main"):
+        asyncio.run(run())
+    warning = f"OLLAMA_NUM_CTX={num_ctx} < 8192: recetas con AKR y datos clínicos pueden devolver 413"
+    assert (warning in caplog.text) == should_warn
+    post.assert_awaited_once()
 
 
 def _valid_payload() -> dict:
