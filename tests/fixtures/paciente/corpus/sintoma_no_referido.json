@@ -1,0 +1,500 @@
+[
+  {
+    "id": "sintoma_no_referido-001",
+    "esperado": "rechazar",
+    "regla": "sintoma_no_referido",
+    "nota": "Afirma dolor de cabeza que no está en sintomas_referidos (solo hay vision_borrosa_lejos).",
+    "caso": {
+      "impresion_clinica_final": "Paciente con miopía en ambos ojos.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión borrosa de lejos.",
+      "sintomas_referidos": [
+        "vision_borrosa_lejos"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Usted nos comentó que presenta dolor de cabeza frecuente al mirar fijamente.",
+          "fuentes": [
+            "motivo"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "sintoma_no_referido-002",
+    "esperado": "rechazar",
+    "regla": "sintoma_no_referido",
+    "nota": "Afirma ardor que no está en sintomas_referidos (solo hay fatiga_visual).",
+    "caso": {
+      "impresion_clinica_final": "Paciente con astigmatismo en ojo derecho.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [],
+          "apoyo_cerca": false,
+          "plano": true
+        }
+      },
+      "motivo": "Cansancio visual tras lectura.",
+      "sintomas_referidos": [
+        "fatiga_visual"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "El ardor ocular que usted refiere puede asociarse al parpadeo infrecuente.",
+          "fuentes": [
+            "motivo"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "sintoma_no_referido-003",
+    "esperado": "rechazar",
+    "regla": "sintoma_no_referido",
+    "nota": "Afirma comezón que no está en sintomas_referidos (solo hay vision_borrosa_lejos).",
+    "caso": {
+      "impresion_clinica_final": "Paciente con miopía bilateral.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión borrosa lejana.",
+      "sintomas_referidos": [
+        "vision_borrosa_lejos"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Respecto a la comezón en sus ojos que nos comentó, puede relacionarse con el polvo.",
+          "fuentes": [
+            "motivo"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "sintoma_no_referido-004",
+    "esperado": "rechazar",
+    "regla": "sintoma_no_referido",
+    "nota": "Afirma lagrimeo ausente de sintomas_referidos (solo hay cefalea).",
+    "caso": {
+      "impresion_clinica_final": "Paciente con hipermetropía en ambos ojos.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "hipermetropía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "hipermetropía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Dolor de cabeza tras jornada.",
+      "sintomas_referidos": [
+        "cefalea"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Usted nos indicó que presenta lagrimeo durante sus jornadas de lectura.",
+          "fuentes": [
+            "motivo"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "sintoma_no_referido-005",
+    "esperado": "rechazar",
+    "regla": "sintoma_no_referido",
+    "nota": "Afirma visión borrosa de cerca cuando solo se refirió visión borrosa de lejos.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con miopía bilateral.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión borrosa lejana al conducir.",
+      "sintomas_referidos": [
+        "vision_borrosa_lejos"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Usted nos comentó que presenta visión borrosa al leer de cerca.",
+          "fuentes": [
+            "motivo"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "sintoma_no_referido-006",
+    "esperado": "rechazar",
+    "regla": "sintoma_no_referido",
+    "nota": "Afirma síntoma negado en el motivo y ausente de sintomas_referidos (cefalea).",
+    "caso": {
+      "impresion_clinica_final": "Paciente con miopía en ojo derecho.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [],
+          "apoyo_cerca": false,
+          "plano": true
+        }
+      },
+      "motivo": "Visión borrosa lejana; niega dolor de cabeza.",
+      "sintomas_referidos": [
+        "vision_borrosa_lejos"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Para el dolor de cabeza que nos comentó, el descanso visual puede ayudar.",
+          "fuentes": [
+            "motivo"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "sintoma_no_referido-007",
+    "esperado": "rechazar",
+    "regla": "sintoma_no_referido",
+    "nota": "Afirma ardor negado expresamente en motivo y ausente de sintomas_referidos.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con astigmatismo en ojo izquierdo.",
+      "rx": {
+        "od": {
+          "componentes": [],
+          "apoyo_cerca": false,
+          "plano": true
+        },
+        "oi": {
+          "componentes": [
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Acude por graduación rutinaria. Niega ardor ocular y lagrimeo.",
+      "sintomas_referidos": [],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Respecto al ardor que usted refiere en sus ojos, los lentes pueden brindar alivio.",
+          "fuentes": [
+            "motivo"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "sintoma_no_referido-008",
+    "esperado": "rechazar",
+    "regla": "sintoma_no_referido",
+    "nota": "Afirma cansancio visual cuando sintomas_referidos está vacío.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con hipermetropía en ambos ojos.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "hipermetropía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "hipermetropía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Revisión preventiva de vista.",
+      "sintomas_referidos": [],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Usted presenta cansancio visual al trabajar en interiores de manera continua.",
+          "fuentes": [
+            "motivo"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "sintoma_no_referido-009",
+    "esperado": "rechazar",
+    "regla": "sintoma_no_referido",
+    "nota": "Afirma visión borrosa lejana cuando solo se refirió visión borrosa de cerca.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con presbicia y ojo derecho plano.",
+      "rx": {
+        "od": {
+          "componentes": [],
+          "apoyo_cerca": true,
+          "plano": true
+        },
+        "oi": {
+          "componentes": [],
+          "apoyo_cerca": true,
+          "plano": true
+        }
+      },
+      "motivo": "Dificultad para enfocar letras pequeñas.",
+      "sintomas_referidos": [
+        "vision_borrosa_cerca"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Como usted nos comentó que ve borroso los objetos lejanos, se prescribieron lentes.",
+          "fuentes": [
+            "motivo"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "sintoma_no_referido-010",
+    "esperado": "rechazar",
+    "regla": "sintoma_no_referido",
+    "nota": "Afirma ardor cuando solo se refirió cefalea.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con astigmatismo bilateral.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Dolor de cabeza tras trabajar.",
+      "sintomas_referidos": [
+        "cefalea"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Usted presenta ardor constante en sus ojos al finalizar la jornada.",
+          "fuentes": [
+            "motivo"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "sintoma_no_referido-011",
+    "esperado": "rechazar",
+    "regla": "sintoma_no_referido",
+    "nota": "Atribuye fatiga visual al paciente cuando solo refirió visión borrosa de lejos.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con miopía bilateral.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión borrosa lejana.",
+      "sintomas_referidos": [
+        "vision_borrosa_lejos"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Usted nos indicó que padece fatiga visual al conducir durante la tarde.",
+          "fuentes": [
+            "motivo"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "sintoma_no_referido-012",
+    "esperado": "rechazar",
+    "regla": "sintoma_no_referido",
+    "nota": "Atribuye al paciente un síntoma de un familiar mencionado en el motivo.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con hipermetropía en ojo derecho.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "hipermetropía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [],
+          "apoyo_cerca": false,
+          "plano": true
+        }
+      },
+      "motivo": "Acude por graduación; comenta que su madre padece comezón ocular.",
+      "sintomas_referidos": [],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "La comezón que usted nos refirió en la consulta puede deberse al ambiente seco.",
+          "fuentes": [
+            "motivo"
+          ]
+        }
+      ]
+    }
+  }
+]

@@ -4,7 +4,7 @@ import math
 import re
 import unicodedata
 
-from app.schemas import ImpresionClinicaRequest
+from app.schemas import ImpresionClinicaRequest, Refraccion
 
 
 @dataclass(frozen=True)
@@ -53,8 +53,12 @@ _CLOSINGS = (
 
 
 def build_patient_profile(req: ImpresionClinicaRequest) -> PatientProfile:
+    return build_patient_profile_from_refraccion(req.refraccion)
+
+
+def build_patient_profile_from_refraccion(refraccion: Refraccion) -> PatientProfile:
     eyes = []
-    for side, eye in (("derecho", req.refraccion.od), ("izquierdo", req.refraccion.oi)):
+    for side, eye in (("derecho", refraccion.od), ("izquierdo", refraccion.oi)):
         s, c = eye.esfera, eye.cilindro
         # Cero explícito es válido; nulo/no finito no se imputa ni se sustituye con AKR.
         if s is None or c is None or not math.isfinite(s) or not math.isfinite(c):

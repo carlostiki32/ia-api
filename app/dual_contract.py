@@ -18,3 +18,6 @@ class DualInferenceResult(BaseModel):
     explicacion_paciente: str | None
     explicacion_paciente_estado: PatientState
     origen_explicacion: PatientOrigin
+    paciente_version: str | None = None
+    motivo_explicacion: str | None = None
+    acciones_sin_mapear: int = 0

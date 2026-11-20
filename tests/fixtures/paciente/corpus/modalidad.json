@@ -1,0 +1,527 @@
+[
+  {
+    "id": "modalidad-001",
+    "esperado": "rechazar",
+    "regla": "modalidad",
+    "nota": "Afirma efecto funcional no referido ('genera cansancio') sin el modal 'puede' o 'podría'.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con miopía bilateral.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión borrosa de lejos.",
+      "sintomas_referidos": [
+        "vision_borrosa_lejos"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "La miopía en sus ojos genera cansancio al leer documentos impresos.",
+          "fuentes": [
+            "rx.od",
+            "rx.oi"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "modalidad-002",
+    "esperado": "rechazar",
+    "regla": "modalidad",
+    "nota": "Afirma efecto no referido ('provoca fatiga') sin modal.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con astigmatismo en ojo izquierdo.",
+      "rx": {
+        "od": {
+          "componentes": [],
+          "apoyo_cerca": false,
+          "plano": true
+        },
+        "oi": {
+          "componentes": [
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión distorsionada.",
+      "sintomas_referidos": [
+        "vision_borrosa"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "El astigmatismo en su ojo izquierdo provoca fatiga al final de la jornada.",
+          "fuentes": [
+            "rx.oi"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "modalidad-003",
+    "esperado": "rechazar",
+    "regla": "modalidad",
+    "nota": "Afirma efecto no referido ('dificulta la visión nocturna') de forma categórica.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con miopía en ojo derecho.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [],
+          "apoyo_cerca": false,
+          "plano": true
+        }
+      },
+      "motivo": "Visión borrosa de lejos.",
+      "sintomas_referidos": [
+        "vision_borrosa_lejos"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "La graduación de su ojo derecho dificulta la visión nocturna al manejar.",
+          "fuentes": [
+            "rx.od"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "modalidad-004",
+    "esperado": "rechazar",
+    "regla": "modalidad",
+    "nota": "Afirma que el esfuerzo 'causa dolor de cabeza' sin modal atenuante.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con hipermetropía en ambos ojos.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "hipermetropía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "hipermetropía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Cansancio visual al leer.",
+      "sintomas_referidos": [
+        "fatiga_visual"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "El esfuerzo acomodativo continuo causa dolor de cabeza por las tardes.",
+          "fuentes": [
+            "rx.od",
+            "rx.oi"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "modalidad-005",
+    "esperado": "rechazar",
+    "regla": "modalidad",
+    "nota": "Afirma categóricamente que 'hace que perciba sombras' sin modal.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con astigmatismo en ambos ojos.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión borrosa.",
+      "sintomas_referidos": [
+        "vision_borrosa"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "El astigmatismo hace que perciba sombras alrededor de las letras pequeñas.",
+          "fuentes": [
+            "rx.od",
+            "rx.oi"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "modalidad-006",
+    "esperado": "rechazar",
+    "regla": "modalidad",
+    "nota": "Afirma 'produce visión doble' categóricamente sin modal.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con astigmatismo en ojo derecho.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [],
+          "apoyo_cerca": false,
+          "plano": true
+        }
+      },
+      "motivo": "Visión distorsionada.",
+      "sintomas_referidos": [
+        "vision_borrosa"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "La falta de compensación óptica produce visión doble en distancias cercanas.",
+          "fuentes": [
+            "rx.od"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "modalidad-007",
+    "esperado": "rechazar",
+    "regla": "modalidad",
+    "nota": "El modal 'puede' aparece en otra oración y la oración del efecto funcional carece de modal.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con astigmatismo en ojo derecho.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [],
+          "apoyo_cerca": false,
+          "plano": true
+        }
+      },
+      "motivo": "Visión borrosa.",
+      "sintomas_referidos": [
+        "vision_borrosa"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Usted puede limpiar sus anteojos con un paño de microfibra.",
+          "fuentes": [
+            "lente"
+          ]
+        },
+        {
+          "texto": "El astigmatismo en su ojo derecho distorsiona las líneas horizontales.",
+          "fuentes": [
+            "rx.od"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "modalidad-008",
+    "esperado": "rechazar",
+    "regla": "modalidad",
+    "nota": "El modal 'puede' está en la frase del armazón pero la frase del efecto carece de modal.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con miopía bilateral.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión borrosa de lejos.",
+      "sintomas_referidos": [
+        "vision_borrosa_lejos"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Puede usar su armazón durante sus actividades habituales.",
+          "fuentes": [
+            "lente"
+          ]
+        },
+        {
+          "texto": "La miopía disminuye la nitidez de los letreros lejanos.",
+          "fuentes": [
+            "rx.od",
+            "rx.oi"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "modalidad-009",
+    "esperado": "rechazar",
+    "regla": "modalidad",
+    "nota": "Afirma 'ocasiona tensión ocular' categóricamente sin modal.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con hipermetropía bilateral.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "hipermetropía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "hipermetropía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Dificultad de lectura.",
+      "sintomas_referidos": [
+        "vision_borrosa_cerca"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "La hipermetropía ocasiona tensión ocular durante el estudio prolongado.",
+          "fuentes": [
+            "rx.od",
+            "rx.oi"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "modalidad-010",
+    "esperado": "rechazar",
+    "regla": "modalidad",
+    "nota": "Afirma 'impide ver con claridad' categóricamente sin modal.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con astigmatismo en ojo izquierdo.",
+      "rx": {
+        "od": {
+          "componentes": [],
+          "apoyo_cerca": false,
+          "plano": true
+        },
+        "oi": {
+          "componentes": [
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión borrosa.",
+      "sintomas_referidos": [
+        "vision_borrosa"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "El astigmatismo impide ver con claridad los detalles finos en la distancia.",
+          "fuentes": [
+            "rx.oi"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "modalidad-011",
+    "esperado": "rechazar",
+    "regla": "modalidad",
+    "nota": "Afirma 'desencadena fatiga visual' categóricamente sin modal.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con miopía bilateral.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión borrosa de lejos.",
+      "sintomas_referidos": [
+        "vision_borrosa_lejos"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "La diferencia refractiva desencadena fatiga visual al conducir de noche.",
+          "fuentes": [
+            "rx.od",
+            "rx.oi"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "modalidad-012",
+    "esperado": "rechazar",
+    "regla": "modalidad",
+    "nota": "Afirma 'genera ardor al fijar la vista' sin modal atenuante.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con astigmatismo bilateral.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión borrosa.",
+      "sintomas_referidos": [
+        "vision_borrosa"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "El desenfoque no compensado genera ardor al fijar la vista en objetos.",
+          "fuentes": [
+            "rx.od",
+            "rx.oi"
+          ]
+        }
+      ]
+    }
+  }
+]

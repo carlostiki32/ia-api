@@ -1,0 +1,515 @@
+[
+  {
+    "id": "lente-001",
+    "esperado": "rechazar",
+    "regla": "lente",
+    "nota": "Afirma uso de lejos para lente monofocal (prohibido por CPU).",
+    "caso": {
+      "impresion_clinica_final": "Paciente con miopía bilateral.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión borrosa de lejos.",
+      "sintomas_referidos": [
+        "vision_borrosa_lejos"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Sus lentes monofocales están diseñados para ver de lejos en sus actividades.",
+          "fuentes": [
+            "lente"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "lente-002",
+    "esperado": "rechazar",
+    "regla": "lente",
+    "nota": "Afirma uso de cerca para lente monofocal (prohibido por CPU).",
+    "caso": {
+      "impresion_clinica_final": "Paciente con hipermetropía en ambos ojos.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "hipermetropía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "hipermetropía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Cansancio visual al leer.",
+      "sintomas_referidos": [
+        "fatiga_visual"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Sus lentes monofocales le servirán para ver de cerca en sus lecturas.",
+          "fuentes": [
+            "lente"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "lente-003",
+    "esperado": "rechazar",
+    "regla": "lente",
+    "nota": "Describe lente progresivo cuando el lente prescrito es monofocal.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con astigmatismo en ojo derecho.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [],
+          "apoyo_cerca": false,
+          "plano": true
+        }
+      },
+      "motivo": "Visión borrosa.",
+      "sintomas_referidos": [
+        "vision_borrosa"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Sus lentes progresivos permiten una visión continua en varias distancias.",
+          "fuentes": [
+            "lente"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "lente-004",
+    "esperado": "rechazar",
+    "regla": "lente",
+    "nota": "Describe lente bifocal cuando el lente prescrito es monofocal.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con miopía bilateral.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión borrosa de lejos.",
+      "sintomas_referidos": [
+        "vision_borrosa_lejos"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Sus lentes bifocales dividen la corrección entre dos campos de visión.",
+          "fuentes": [
+            "lente"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "lente-005",
+    "esperado": "rechazar",
+    "regla": "lente",
+    "nota": "Describe lente monofocal cuando el lente prescrito es progresivo.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con presbicia y astigmatismo.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "astigmatismo"
+          ],
+          "apoyo_cerca": true,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "astigmatismo"
+          ],
+          "apoyo_cerca": true,
+          "plano": false
+        }
+      },
+      "motivo": "Cansancio de cerca.",
+      "sintomas_referidos": [
+        "fatiga_visual"
+      ],
+      "pantallas": null,
+      "lente": "progresivo",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Sus lentes monofocales le ofrecerán comodidad en una sola distancia.",
+          "fuentes": [
+            "lente"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "lente-006",
+    "esperado": "rechazar",
+    "regla": "lente",
+    "nota": "Atribuye línea divisoria visible a lentes progresivos.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con presbicia y miopía bilateral.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": true,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": true,
+          "plano": false
+        }
+      },
+      "motivo": "Visión borrosa de cerca y lejos.",
+      "sintomas_referidos": [
+        "vision_borrosa_lejos",
+        "vision_borrosa_cerca"
+      ],
+      "pantallas": null,
+      "lente": "progresivo",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Sus lentes progresivos cuentan con una línea divisoria en la parte inferior.",
+          "fuentes": [
+            "lente"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "lente-007",
+    "esperado": "rechazar",
+    "regla": "lente",
+    "nota": "Describe lentes flat_top afirmando que tienen transición gradual sin cortes.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con presbicia y astigmatismo bilateral.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "astigmatismo"
+          ],
+          "apoyo_cerca": true,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "astigmatismo"
+          ],
+          "apoyo_cerca": true,
+          "plano": false
+        }
+      },
+      "motivo": "Cansancio al leer.",
+      "sintomas_referidos": [
+        "fatiga_visual"
+      ],
+      "pantallas": null,
+      "lente": "flat_top",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Sus lentes flat top ofrecen una transición gradual e invisible sin cortes.",
+          "fuentes": [
+            "lente"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "lente-008",
+    "esperado": "rechazar",
+    "regla": "lente",
+    "nota": "Afirma línea divisoria muy marcada para bifocal_blended (que se caracteriza por transición suavizada).",
+    "caso": {
+      "impresion_clinica_final": "Paciente con presbicia e hipermetropía.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "hipermetropía"
+          ],
+          "apoyo_cerca": true,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "hipermetropía"
+          ],
+          "apoyo_cerca": true,
+          "plano": false
+        }
+      },
+      "motivo": "Dificultad de lectura.",
+      "sintomas_referidos": [
+        "vision_borrosa_cerca"
+      ],
+      "pantallas": null,
+      "lente": "bifocal_blended",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Sus lentes bifocales combinados presentan una línea divisoria muy marcada.",
+          "fuentes": [
+            "lente"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "lente-009",
+    "esperado": "rechazar",
+    "regla": "lente",
+    "nota": "Describe diseño de lente cuando el campo lente en el caso es nulo.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con miopía bilateral sin prescripción de armazón.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión borrosa lejana.",
+      "sintomas_referidos": [
+        "vision_borrosa_lejos"
+      ],
+      "pantallas": null,
+      "lente": null,
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "El diseño de sus lentes progresivos optimizará la visión intermedia.",
+          "fuentes": [
+            "clinico"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "lente-010",
+    "esperado": "rechazar",
+    "regla": "lente",
+    "nota": "Afirma que lente monofocal se enfocará exclusivamente en distancias lejanas.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con astigmatismo en ojo derecho.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [],
+          "apoyo_cerca": false,
+          "plano": true
+        }
+      },
+      "motivo": "Visión borrosa.",
+      "sintomas_referidos": [
+        "vision_borrosa"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "La graduación de su lente monofocal se enfocará exclusivamente en tareas lejanas.",
+          "fuentes": [
+            "lente"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "lente-011",
+    "esperado": "rechazar",
+    "regla": "lente",
+    "nota": "Afirma que lente monofocal está indicado para lectura cercana.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con hipermetropía bilateral.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "hipermetropía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "hipermetropía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Cansancio visual al leer.",
+      "sintomas_referidos": [
+        "fatiga_visual"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Sus lentes monofocales están indicados para sus labores de lectura cercana.",
+          "fuentes": [
+            "lente"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "lente-012",
+    "esperado": "rechazar",
+    "regla": "lente",
+    "nota": "Describe lentes flat_top afirmando que no presentan ninguna división visible.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con presbicia y miopía bilateral.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": true,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": true,
+          "plano": false
+        }
+      },
+      "motivo": "Visión borrosa de cerca.",
+      "sintomas_referidos": [
+        "vision_borrosa_cerca"
+      ],
+      "pantallas": null,
+      "lente": "flat_top",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Sus lentes flat top no presentan ninguna división visible en la superficie.",
+          "fuentes": [
+            "lente"
+          ]
+        }
+      ]
+    }
+  }
+]

@@ -51,9 +51,11 @@ _BUT_PPC_MIN, _BUT_PPC_MAX = 1, 15
 # Uso de pantallas: select con exactamente estas claves.
 _USO_PANTALLAS = ("lt2", "btw2_6", "gt6")
 
-def _normalize_whitespace(value) -> str | None:
+def _normalize_whitespace(value, *, conservar_lineas: bool = False) -> str | None:
     if value is None:
         return None
+    if conservar_lineas:
+        return "\n".join(_WS_RE.sub(" ", linea).strip() for linea in str(value).splitlines()).strip() or None
     value = _WS_RE.sub(" ", str(value)).strip()
     return value or None
 
@@ -62,7 +64,7 @@ _MAX_TEXTO_CLINICO_LEN = 500
 
 
 def _normalize_texto_clinico(value, campo: str, max_len: int = _MAX_TEXTO_CLINICO_LEN) -> str | None:
-    value = _normalize_whitespace(value)
+    value = _normalize_whitespace(value, conservar_lineas=True)
     if value is None:
         return None
     if len(value) > max_len:
@@ -288,7 +290,7 @@ class DatosClinica(BaseModel):
     @classmethod
     def normalize_motilidad_ocular(cls, value):
         # El SaaS compone "Versiones: X\nDucciones: Y\n..." y lo aplana a una
-        # linea antes de enviar; se colapsa whitespace por si llega multilinea.
+        # linea antes de enviar; si llega multilinea, conserva el limite de hechos.
         return _normalize_texto_clinico(value, "motilidad_ocular")
 
     @field_validator("cover_test", mode="before")
@@ -325,7 +327,7 @@ class ContextoPaciente(BaseModel):
     @field_validator("motivo_consulta", mode="before")
     @classmethod
     def normalize_motivo_consulta(cls, value):
-        value = _normalize_whitespace(value)
+        value = _normalize_whitespace(value, conservar_lineas=True)
         if value is None:
             return None
         # Limite exacto en SaaS (RecetaValidationRules): max 1000 caracteres

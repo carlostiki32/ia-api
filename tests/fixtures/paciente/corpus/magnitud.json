@@ -1,0 +1,505 @@
+[
+  {
+    "id": "magnitud-001",
+    "esperado": "rechazar",
+    "regla": "magnitud",
+    "nota": "Calificación con 'leve' en género masculino.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con astigmatismo en ojo derecho.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [],
+          "apoyo_cerca": false,
+          "plano": true
+        }
+      },
+      "motivo": "Visión borrosa.",
+      "sintomas_referidos": [
+        "vision_borrosa"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Usted presenta un astigmatismo leve en el ojo derecho que puede generar sombras.",
+          "fuentes": [
+            "rx.od"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "magnitud-002",
+    "esperado": "rechazar",
+    "regla": "magnitud",
+    "nota": "Calificación con 'leve' en género femenino.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con miopía en ojo izquierdo.",
+      "rx": {
+        "od": {
+          "componentes": [],
+          "apoyo_cerca": false,
+          "plano": true
+        },
+        "oi": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión borrosa de lejos.",
+      "sintomas_referidos": [
+        "vision_borrosa_lejos"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Su ojo izquierdo tiene una miopía leve que puede restar claridad a la distancia.",
+          "fuentes": [
+            "rx.oi"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "magnitud-003",
+    "esperado": "rechazar",
+    "regla": "magnitud",
+    "nota": "Calificación con plural 'leves'.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con hipermetropía bilateral.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "hipermetropía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "hipermetropía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Cansancio visual al leer.",
+      "sintomas_referidos": [
+        "fatiga_visual"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Se aprecian variaciones leves en la nitidez de su ojo izquierdo al enfocar.",
+          "fuentes": [
+            "rx.oi"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "magnitud-004",
+    "esperado": "rechazar",
+    "regla": "magnitud",
+    "nota": "Calificación con término 'alta'.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con miopía bilateral.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión borrosa de lejos.",
+      "sintomas_referidos": [
+        "vision_borrosa_lejos"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "En ambos ojos se detectó una miopía alta que puede dificultar ver letreros.",
+          "fuentes": [
+            "rx.od",
+            "rx.oi"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "magnitud-005",
+    "esperado": "rechazar",
+    "regla": "magnitud",
+    "nota": "Calificación con plural 'altas'.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con astigmatismo en ambos ojos.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión distorsionada.",
+      "sintomas_referidos": [
+        "vision_borrosa"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Las graduaciones altas pueden requerir un periodo de adaptación al inicio.",
+          "fuentes": [
+            "lente"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "magnitud-006",
+    "esperado": "rechazar",
+    "regla": "magnitud",
+    "nota": "Calificación con término 'baja'.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con hipermetropía en ojo derecho.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "hipermetropía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [],
+          "apoyo_cerca": false,
+          "plano": true
+        }
+      },
+      "motivo": "Cansancio visual.",
+      "sintomas_referidos": [
+        "fatiga_visual"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Usted cuenta con una hipermetropía baja en su ojo derecho para enfocar.",
+          "fuentes": [
+            "rx.od"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "magnitud-007",
+    "esperado": "rechazar",
+    "regla": "magnitud",
+    "nota": "Calificación con término 'fuerte'.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con astigmatismo en ojo izquierdo.",
+      "rx": {
+        "od": {
+          "componentes": [],
+          "apoyo_cerca": false,
+          "plano": true
+        },
+        "oi": {
+          "componentes": [
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión borrosa.",
+      "sintomas_referidos": [
+        "vision_borrosa"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Presenta un astigmatismo fuerte que puede distorsionar las líneas de noche.",
+          "fuentes": [
+            "rx.oi"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "magnitud-008",
+    "esperado": "rechazar",
+    "regla": "magnitud",
+    "nota": "Término 'grave' utilizado en oración negativa.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con miopía bilateral.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión borrosa de lejos.",
+      "sintomas_referidos": [
+        "vision_borrosa_lejos"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Su desenfoque visual no constituye una alteración grave en sus ojos.",
+          "fuentes": [
+            "clinico"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "magnitud-009",
+    "esperado": "rechazar",
+    "regla": "magnitud",
+    "nota": "Calificación con término 'severa'.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con ardor ocular por exposición a pantallas.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Ardor ocular.",
+      "sintomas_referidos": [
+        "ardor"
+      ],
+      "pantallas": "gt6",
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "La sequedad en la superficie ocular podría tornarse severa por la exposición continua.",
+          "fuentes": [
+            "pantallas"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "magnitud-010",
+    "esperado": "rechazar",
+    "regla": "magnitud",
+    "nota": "Calificación con término 'severo'.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con astigmatismo en ojo derecho.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [],
+          "apoyo_cerca": false,
+          "plano": true
+        }
+      },
+      "motivo": "Visión borrosa.",
+      "sintomas_referidos": [
+        "vision_borrosa"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Presenta un desenfoque severo al observar objetos distantes.",
+          "fuentes": [
+            "rx.od"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "magnitud-011",
+    "esperado": "rechazar",
+    "regla": "magnitud",
+    "nota": "Calificación con término 'moderada'.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con miopía en ojo derecho.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [],
+          "apoyo_cerca": false,
+          "plano": true
+        }
+      },
+      "motivo": "Visión borrosa de lejos.",
+      "sintomas_referidos": [
+        "vision_borrosa_lejos"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Se encontró una miopía moderada en su ojo derecho durante el examen.",
+          "fuentes": [
+            "rx.od"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "magnitud-012",
+    "esperado": "rechazar",
+    "regla": "magnitud",
+    "nota": "Calificación con término 'moderado'.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con astigmatismo en ojo izquierdo.",
+      "rx": {
+        "od": {
+          "componentes": [],
+          "apoyo_cerca": false,
+          "plano": true
+        },
+        "oi": {
+          "componentes": [
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión borrosa.",
+      "sintomas_referidos": [
+        "vision_borrosa"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Su ojo izquierdo presenta un astigmatismo moderado que puede distorsionar letras.",
+          "fuentes": [
+            "rx.oi"
+          ]
+        }
+      ]
+    }
+  }
+]

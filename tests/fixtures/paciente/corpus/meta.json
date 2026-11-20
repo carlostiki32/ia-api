@@ -1,0 +1,518 @@
+[
+  {
+    "id": "meta-001",
+    "esperado": "rechazar",
+    "regla": "meta",
+    "nota": "Mención explícita del acrónimo 'IA'.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con miopía en ojo derecho.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [],
+          "apoyo_cerca": false,
+          "plano": true
+        }
+      },
+      "motivo": "Visión borrosa de lejos.",
+      "sintomas_referidos": [
+        "vision_borrosa_lejos"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "El análisis de la IA determinó que su ojo derecho presenta miopía.",
+          "fuentes": [
+            "rx.od"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "meta-002",
+    "esperado": "rechazar",
+    "regla": "meta",
+    "nota": "Mención del acrónimo con puntos 'I.A.'.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con astigmatismo en ojo izquierdo.",
+      "rx": {
+        "od": {
+          "componentes": [],
+          "apoyo_cerca": false,
+          "plano": true
+        },
+        "oi": {
+          "componentes": [
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión distorsionada.",
+      "sintomas_referidos": [
+        "vision_borrosa"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "De acuerdo con el modelo de I.A., su ojo izquierdo puede enfocar mejor con corrección.",
+          "fuentes": [
+            "rx.oi"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "meta-003",
+    "esperado": "rechazar",
+    "regla": "meta",
+    "nota": "Frase 'inteligencia artificial' en minúsculas.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con hipermetropía en ambos ojos.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "hipermetropía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "hipermetropía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Cansancio visual al leer.",
+      "sintomas_referidos": [
+        "fatiga_visual"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Este reporte asistido por inteligencia artificial resume los hallazgos en sus ojos.",
+          "fuentes": [
+            "clinico"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "meta-004",
+    "esperado": "rechazar",
+    "regla": "meta",
+    "nota": "Mención textual del término prohibido 'impresión clínica'.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con miopía bilateral.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión borrosa de lejos.",
+      "sintomas_referidos": [
+        "vision_borrosa_lejos"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "En la impresión clínica se confirmó miopía en el ojo derecho y en el ojo izquierdo.",
+          "fuentes": [
+            "clinico",
+            "rx.od",
+            "rx.oi"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "meta-005",
+    "esperado": "rechazar",
+    "regla": "meta",
+    "nota": "Mención textual del término prohibido 'correlación'.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con fatiga por uso prolongado de dispositivos.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Cansancio al trabajar.",
+      "sintomas_referidos": [
+        "fatiga_visual"
+      ],
+      "pantallas": "gt6",
+      "lente": "monofocal",
+      "correlaciones": [
+        {
+          "nombre": "pantallas_cansancio",
+          "texto": "Fatiga visual asociada a exposición a pantallas."
+        }
+      ],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Existe una correlación entre su tiempo en pantallas y el cansancio de sus ojos.",
+          "fuentes": [
+            "pantallas",
+            "cor.pantallas_cansancio"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "meta-006",
+    "esperado": "rechazar",
+    "regla": "meta",
+    "nota": "Formato Markdown negrita (**miopía**).",
+    "caso": {
+      "impresion_clinica_final": "Paciente con miopía en ojo derecho.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [],
+          "apoyo_cerca": false,
+          "plano": true
+        }
+      },
+      "motivo": "Visión borrosa de lejos.",
+      "sintomas_referidos": [
+        "vision_borrosa_lejos"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Su ojo derecho presenta **miopía** que puede dificultar el enfoque lejano.",
+          "fuentes": [
+            "rx.od"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "meta-007",
+    "esperado": "rechazar",
+    "regla": "meta",
+    "nota": "Formato Markdown cursiva (*monofocal*).",
+    "caso": {
+      "impresion_clinica_final": "Paciente con astigmatismo en ojo izquierdo.",
+      "rx": {
+        "od": {
+          "componentes": [],
+          "apoyo_cerca": false,
+          "plano": true
+        },
+        "oi": {
+          "componentes": [
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión borrosa.",
+      "sintomas_referidos": [
+        "vision_borrosa"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Su lente *monofocal* puede brindarle comodidad al enfocar los objetos.",
+          "fuentes": [
+            "lente"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "meta-008",
+    "esperado": "rechazar",
+    "regla": "meta",
+    "nota": "Formato Markdown de lista o viñeta (- item).",
+    "caso": {
+      "impresion_clinica_final": "Paciente con hipermetropía bilateral.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "hipermetropía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "hipermetropía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Cansancio visual al leer.",
+      "sintomas_referidos": [
+        "fatiga_visual"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "- Su ojo derecho presenta hipermetropía y su ojo izquierdo también.",
+          "fuentes": [
+            "rx.od",
+            "rx.oi"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "meta-009",
+    "esperado": "rechazar",
+    "regla": "meta",
+    "nota": "Enlace web URL (https://...).",
+    "caso": {
+      "impresion_clinica_final": "Paciente con miopía bilateral.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión borrosa de lejos.",
+      "sintomas_referidos": [
+        "vision_borrosa_lejos"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Puede consultar recomendaciones de uso en https://optica.ejemplo.com para su cuidado.",
+          "fuentes": [
+            "clinico"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "meta-010",
+    "esperado": "rechazar",
+    "regla": "meta",
+    "nota": "Enlace en formato Markdown [texto](url).",
+    "caso": {
+      "impresion_clinica_final": "Paciente con astigmatismo bilateral.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión distorsionada.",
+      "sintomas_referidos": [
+        "vision_borrosa"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Consulte su [receta óptica](https://optica.ejemplo.com/receta) para verificar los detalles.",
+          "fuentes": [
+            "clinico"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "meta-011",
+    "esperado": "rechazar",
+    "regla": "meta",
+    "nota": "Marcador de control de modelo LLM (<|im_start|>).",
+    "caso": {
+      "impresion_clinica_final": "Paciente con miopía en ambos ojos.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión borrosa de lejos.",
+      "sintomas_referidos": [
+        "vision_borrosa_lejos"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "<|im_start|> Su graduación compensa la miopía en el ojo derecho y en el ojo izquierdo.",
+          "fuentes": [
+            "rx.od",
+            "rx.oi"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "meta-012",
+    "esperado": "rechazar",
+    "regla": "meta",
+    "nota": "Marcador de instrucción de prompt ([INST]).",
+    "caso": {
+      "impresion_clinica_final": "Paciente con hipermetropía en ojo derecho.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "hipermetropía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [],
+          "apoyo_cerca": false,
+          "plano": true
+        }
+      },
+      "motivo": "Cansancio visual al leer.",
+      "sintomas_referidos": [
+        "fatiga_visual"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "[INST] Su ojo derecho presenta hipermetropía que puede ocasionar cansancio. [/INST]",
+          "fuentes": [
+            "rx.od"
+          ]
+        }
+      ]
+    }
+  }
+]

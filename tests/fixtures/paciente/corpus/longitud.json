@@ -1,0 +1,691 @@
+[
+  {
+    "id": "longitud-001",
+    "esperado": "rechazar",
+    "regla": "longitud",
+    "nota": "El texto del candidato contiene 126 palabras, superando el límite de 120 palabras.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con miopía bilateral.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión borrosa de lejos.",
+      "sintomas_referidos": [
+        "vision_borrosa_lejos"
+      ],
+      "pantallas": "gt6",
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "En la valoración optométrica de sus ojos se identificó la presencia de miopía tanto en el ojo derecho como en el ojo izquierdo, una condición refractiva en la cual los rayos luminosos procedentes de objetos lejanos se enfocan por delante de la retina, lo cual puede ocasionar que usted perciba los anuncios de la calle, los letreros viales y los detalles lejanos con una evidente pérdida de nitidez y definición visual durante sus actividades cotidianas fuera del hogar o del centro de trabajo.",
+          "fuentes": [
+            "rx.od",
+            "rx.oi"
+          ]
+        },
+        {
+          "texto": "Sus lentes monofocales tienen como propósito dirigir de forma adecuada los haces de luz hacia la superficie retiniana para que su sistema visual experimente mayor comodidad al mirar a la distancia, y considerando que usted pasa varias horas frente a pantallas de computadora o dispositivos digitales, este apoyo óptico contribuirá a que sus ojos realicen sus labores habituales con menor tensión a lo largo del día.",
+          "fuentes": [
+            "lente",
+            "pantallas"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "longitud-002",
+    "esperado": "rechazar",
+    "regla": "longitud",
+    "nota": "El texto contiene 125 palabras en tres frases, superando el límite de 120 palabras.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con astigmatismo en ambos ojos.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión distorsionada.",
+      "sintomas_referidos": [
+        "vision_borrosa"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Su evaluación refractiva evidencia astigmatismo en el ojo derecho y también en el ojo izquierdo, lo que significa que la superficie corneal presenta ligeras variaciones de curvatura en sus diferentes ejes meridianos principales.",
+          "fuentes": [
+            "rx.od",
+            "rx.oi"
+          ]
+        },
+        {
+          "texto": "Esta particularidad en la óptica ocular puede provocar que las figuras, los caracteres impresos y los bordes de los objetos se perciban distorsionados o acompañados de pequeñas sombras tanto al mirar de cerca como en distancias más lejanas.",
+          "fuentes": [
+            "rx.od",
+            "rx.oi"
+          ]
+        },
+        {
+          "texto": "Para compensar dicha irregularidad óptica se le prescribió un lente monofocal que reúne las correcciones necesarias para hacer coincidir las imágenes en un único foco preciso sobre la retina, favoreciendo una experiencia de enfoque continuo que puede reducir el cansancio derivado del esfuerzo visual prolongado en sus labores de cada jornada.",
+          "fuentes": [
+            "lente"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "longitud-003",
+    "esperado": "rechazar",
+    "regla": "longitud",
+    "nota": "El texto contiene 124 palabras en cuatro frases, superando el límite permitido.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con hipermetropía en ambos ojos y apoyo de cerca.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "hipermetropía"
+          ],
+          "apoyo_cerca": true,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "hipermetropía"
+          ],
+          "apoyo_cerca": true,
+          "plano": false
+        }
+      },
+      "motivo": "Cansancio visual al leer.",
+      "sintomas_referidos": [
+        "fatiga_visual"
+      ],
+      "pantallas": "btw2_6",
+      "lente": "progresivo",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Durante la consulta se identificó hipermetropía en ambos ojos junto con la necesidad de graduación de apoyo para sus actividades de lectura cercana.",
+          "fuentes": [
+            "rx.od",
+            "rx.oi"
+          ]
+        },
+        {
+          "texto": "La hipermetropía exige que sus músculos oculares trabajen activamente para enfocar nítidamente los textos de libros y documentos de oficina.",
+          "fuentes": [
+            "rx.od",
+            "rx.oi"
+          ]
+        },
+        {
+          "texto": "Sus lentes progresivos incorporan una variación de potencia que le permite enfocar de manera continua objetos lejanos, intermedios y próximos sin divisiones en el cristal.",
+          "fuentes": [
+            "lente"
+          ]
+        },
+        {
+          "texto": "Debido a que usted utiliza pantallas durante varias horas en su jornada habitual, esta transición óptica suave puede ayudar a que sus ojos alternen la mirada con menor sobrecarga acomodativa al final de sus actividades cotidianas. Esto favorece un enfoque descansado al desempeñar sus actividades habituales en interiores y exteriores con total comodidad.",
+          "fuentes": [
+            "pantallas"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "longitud-004",
+    "esperado": "rechazar",
+    "regla": "longitud",
+    "nota": "El texto contiene 123 palabras en dos frases extensas.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con miopía y astigmatismo en ojo derecho, miopía en ojo izquierdo.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "miopía",
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión borrosa de lejos.",
+      "sintomas_referidos": [
+        "vision_borrosa_lejos"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "En la revisión visual se determinó la presencia de miopía combinada con astigmatismo en su ojo derecho, así como miopía en su ojo izquierdo, componentes ópticos que explican por qué los objetos distantes, anuncios luminosos y personas situadas a varios pasos de distancia pueden lucir borrosos y con siluetas desdibujadas al mirar sin lentes correctores en sus actividades diarias.",
+          "fuentes": [
+            "rx.od",
+            "rx.oi"
+          ]
+        },
+        {
+          "texto": "El uso de anteojos con diseño monofocal permite reunir la compensación requerida para ambos ojos en cada campo de mirada, facilitando que la luz converja exactamente sobre la retina para que usted pueda desempeñar sus actividades habituales al aire libre y en interiores con mayor confort visual y sin necesidad de forzar los ojos para enfocar. Esto favorece un enfoque descansado al desempeñar sus actividades habituales en interiores y exteriores con total comodidad.",
+          "fuentes": [
+            "lente"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "longitud-005",
+    "esperado": "rechazar",
+    "regla": "longitud",
+    "nota": "El texto contiene 124 palabras en tres frases sobre astigmatismo y fatiga.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con astigmatismo en ambos ojos.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Dolor de cabeza tras lectura.",
+      "sintomas_referidos": [
+        "cefalea"
+      ],
+      "pantallas": "gt6",
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "En su estudio refractivo se observó astigmatismo en el ojo derecho y en el ojo izquierdo, una condición donde la córnea presenta ligeras asimetrías de curvatura que pueden generar que la luz no coincida en un único foco dentro del ojo.",
+          "fuentes": [
+            "rx.od",
+            "rx.oi"
+          ]
+        },
+        {
+          "texto": "Esta asimetría óptica puede provocar que la lectura continuada de textos impresos desencadene tensión en los músculos que rodean los ojos, manifestándose como dolor de cabeza hacia el final del día.",
+          "fuentes": [
+            "rx.od",
+            "rx.oi"
+          ]
+        },
+        {
+          "texto": "La utilización de sus lentes monofocales compensa estas diferencias de curvatura para proporcionar un enfoque más ordenado, lo cual, sumado a sus jornadas de más de seis horas frente a pantallas de computadora, resulta de gran utilidad para favorecer un trabajo visual más relajado durante todo el día laboral.",
+          "fuentes": [
+            "lente",
+            "pantallas"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "longitud-006",
+    "esperado": "rechazar",
+    "regla": "longitud",
+    "nota": "El texto contiene 125 palabras en dos frases de explicación clínica.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con hipermetropía en ambos ojos.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "hipermetropía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "hipermetropía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión borrosa de cerca.",
+      "sintomas_referidos": [
+        "vision_borrosa_cerca"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Los resultados de la consulta optométrica confirman hipermetropía en ambos ojos, una característica refractiva en la cual el sistema visual necesita realizar un esfuerzo muscular más intenso para mantener la nitidez de las letras y detalles situados a distancias cortas, lo cual puede ocasionar que las palabras de libros, teléfonos y documentos se perciban desenfocadas.",
+          "fuentes": [
+            "rx.od",
+            "rx.oi"
+          ]
+        },
+        {
+          "texto": "La prescripción de sus anteojos monofocales tiene la finalidad de compensar esta demanda física de acomodación, ayudando a que sus ojos reciban las imágenes con mayor definición y permitiéndole revisar materiales impresos o redactar en sus actividades cotidianas con una sensación de notable descanso a lo largo de cada una de sus jornadas. Esto favorece un enfoque descansado al desempeñar sus actividades habituales en interiores y exteriores con total comodidad.",
+          "fuentes": [
+            "lente"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "longitud-007",
+    "esperado": "rechazar",
+    "regla": "longitud",
+    "nota": "El texto contiene 125 palabras en cuatro frases estructuradas.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con ojo derecho plano y ojo izquierdo con miopía.",
+      "rx": {
+        "od": {
+          "componentes": [],
+          "apoyo_cerca": false,
+          "plano": true
+        },
+        "oi": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión borrosa lejana en un ojo.",
+      "sintomas_referidos": [
+        "vision_borrosa_lejos"
+      ],
+      "pantallas": "lt2",
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "En su examen optométrico se encontró que su ojo derecho no presenta graduación refractiva, mientras que en su ojo izquierdo se identificó miopía para ver de lejos.",
+          "fuentes": [
+            "rx.od",
+            "rx.oi"
+          ]
+        },
+        {
+          "texto": "Esta diferencia entre ambos ojos puede generar que su cerebro perciba imágenes con distinto nivel de claridad al mirar objetos situados a la distancia.",
+          "fuentes": [
+            "rx.oi"
+          ]
+        },
+        {
+          "texto": "El lente monofocal prescrito coloca un cristal neutro en el ojo derecho y la graduación precisa en el ojo izquierdo para equilibrar adecuadamente la visión binocular.",
+          "fuentes": [
+            "lente",
+            "rx.od",
+            "rx.oi"
+          ]
+        },
+        {
+          "texto": "De este modo, cuando usted realice desplazamientos o mire hacia el horizonte, sus ojos podrán coordinar el enfoque de manera armónica, permitiéndole disfrutar de una perspectiva visual más cómoda y descansada en sus actividades habituales. Esto favorece un enfoque descansado al desempeñar sus actividades habituales en interiores y exteriores con total comodidad.",
+          "fuentes": [
+            "clinico"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "longitud-008",
+    "esperado": "rechazar",
+    "regla": "longitud",
+    "nota": "El texto contiene 123 palabras en tres frases para presbicia con bifocal.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con presbicia y astigmatismo bilateral.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "astigmatismo"
+          ],
+          "apoyo_cerca": true,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "astigmatismo"
+          ],
+          "apoyo_cerca": true,
+          "plano": false
+        }
+      },
+      "motivo": "Visión borrosa de cerca y cansancio.",
+      "sintomas_referidos": [
+        "vision_borrosa_cerca",
+        "fatiga_visual"
+      ],
+      "pantallas": "btw2_6",
+      "lente": "flat_top",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Su refracción señala la presencia de astigmatismo en ambos ojos junto con la indicación de graduación de apoyo para facilitar sus tareas de lectura cercana.",
+          "fuentes": [
+            "rx.od",
+            "rx.oi"
+          ]
+        },
+        {
+          "texto": "El astigmatismo puede deformar ligeramente los trazos de las letras, en tanto que la reducción del enfoque cercano puede traducirse en visión borrosa y cansancio tras pocos minutos de lectura.",
+          "fuentes": [
+            "rx.od",
+            "rx.oi"
+          ]
+        },
+        {
+          "texto": "Sus lentes bifocales de segmento recto cuentan con una división óptica visible que sitúa la graduación de cerca en la parte inferior, haciendo posible que usted alterne entre mirar hacia el frente y consultar documentos impresos con una postura visual estable y una sensación de comodidad en sus labores de cada día. Esto favorece un enfoque descansado al desempeñar sus actividades habituales en interiores y exteriores con total comodidad.",
+          "fuentes": [
+            "lente"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "longitud-009",
+    "esperado": "rechazar",
+    "regla": "longitud",
+    "nota": "El texto contiene 127 palabras en tres frases sobre pantallas y miopía.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con miopía bilateral y síntomas de fatiga por pantallas.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Ardor ocular y visión borrosa de lejos.",
+      "sintomas_referidos": [
+        "ardor",
+        "vision_borrosa_lejos"
+      ],
+      "pantallas": "gt6",
+      "lente": "monofocal",
+      "correlaciones": [
+        {
+          "nombre": "pantallas_lagrima",
+          "texto": "Tiempo prolongado en pantallas disminuye la frecuencia de parpadeo y altera la película lagrimal."
+        }
+      ],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Su consulta optométrica confirma la presencia de miopía en el ojo derecho y en el ojo izquierdo, la cual puede comprometer la nitidez de objetos distantes y letreros lejanos durante sus desplazamientos en la ciudad.",
+          "fuentes": [
+            "rx.od",
+            "rx.oi"
+          ]
+        },
+        {
+          "texto": "Asimismo, el tiempo superior a seis horas frente a dispositivos digitales que usted mantiene puede relacionarse con el ardor ocular, ya que al concentrar la vista en pantallas se reduce la frecuencia habitual de parpadeo.",
+          "fuentes": [
+            "pantallas",
+            "cor.pantallas_lagrima"
+          ]
+        },
+        {
+          "texto": "Sus lentes monofocales compensarán el desenfoque lejanos, y recordar parpadear con regularidad al utilizar computadoras puede ayudar a proteger la superficie de sus ojos, permitiéndole desempeñar su trabajo con mayor tranquilidad y reduciendo las molestias que se acumulan durante su jornada diaria de actividades. Esto favorece un enfoque descansado al desempeñar sus actividades habituales en interiores y exteriores con total comodidad.",
+          "fuentes": [
+            "lente",
+            "cor.pantallas_lagrima"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "longitud-010",
+    "esperado": "rechazar",
+    "regla": "longitud",
+    "nota": "El texto contiene 123 palabras en dos frases sobre hipermetropía asimétrica.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con hipermetropía y astigmatismo en ojo derecho, hipermetropía en ojo izquierdo.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "hipermetropía",
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "hipermetropía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Cansancio visual tras jornadas laborales.",
+      "sintomas_referidos": [
+        "fatiga_visual"
+      ],
+      "pantallas": "btw2_6",
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "En su graduación se identificó hipermetropía combinada con astigmatismo en su ojo derecho, a la par de hipermetropía en su ojo izquierdo, componentes ópticos que demandan un continuo esfuerzo muscular para mantener los objetos en foco tanto de cerca como a distancias intermedias en sus actividades.",
+          "fuentes": [
+            "rx.od",
+            "rx.oi"
+          ]
+        },
+        {
+          "texto": "Este constante trabajo de acomodación puede desencadenar la fatiga visual que usted experimenta al final de su jornada, por lo que el uso de sus nuevos anteojos monofocales ayudará a alinear la llegada de los rayos luminosos sobre la retina, proporcionando un descanso notable en sus ojos al realizar actividades continuas en interiores y frente a documentos de trabajo cotidiano. Esto favorece un enfoque descansado al desempeñar sus actividades habituales en interiores y exteriores con total comodidad.",
+          "fuentes": [
+            "lente",
+            "clinico"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "longitud-011",
+    "esperado": "rechazar",
+    "regla": "longitud",
+    "nota": "El texto contiene 124 palabras en cuatro frases sobre miopía lejana.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con miopía bilateral sin presbicia.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión borrosa lejana.",
+      "sintomas_referidos": [
+        "vision_borrosa_lejos"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Su diagnóstico refractivo muestra miopía en el ojo derecho y miopía en el ojo izquierdo.",
+          "fuentes": [
+            "rx.od",
+            "rx.oi"
+          ]
+        },
+        {
+          "texto": "La miopía hace que los rayos luminosos converjan antes de alcanzar la retina cuando se observan elementos distantes en la calle o en espacios amplios.",
+          "fuentes": [
+            "rx.od",
+            "rx.oi"
+          ]
+        },
+        {
+          "texto": "Esta circunstancia puede ocasionar que ver letreros en la vía pública o identificar rostros a distancia resulte borroso e impreciso al mirar sin anteojos.",
+          "fuentes": [
+            "rx.od",
+            "rx.oi"
+          ]
+        },
+        {
+          "texto": "El uso de la graduación en sus lentes monofocales redirige la imagen exactamente a la parte posterior del ojo, ofreciéndole una visión lejana equilibrada y contribuyendo a que sus trayectos al aire libre o al conducir sean percibidos con total comodidad y claridad en cada momento del día. Esto favorece un enfoque descansado al desempeñar sus actividades habituales en interiores y exteriores con total comodidad.",
+          "fuentes": [
+            "lente"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "longitud-012",
+    "esperado": "rechazar",
+    "regla": "longitud",
+    "nota": "El texto contiene 126 palabras en tres frases sobre astigmatismo y cefalea.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con astigmatismo en ambos ojos y apoyo de cerca.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "astigmatismo"
+          ],
+          "apoyo_cerca": true,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "astigmatismo"
+          ],
+          "apoyo_cerca": true,
+          "plano": false
+        }
+      },
+      "motivo": "Cefalea y visión borrosa al leer.",
+      "sintomas_referidos": [
+        "cefalea",
+        "vision_borrosa_cerca"
+      ],
+      "pantallas": "btw2_6",
+      "lente": "progresivo",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "En la evaluación óptica se apreció astigmatismo en ambos ojos junto con la indicación de apoyo para enfocar objetos cercanos con mayor facilidad.",
+          "fuentes": [
+            "rx.od",
+            "rx.oi"
+          ]
+        },
+        {
+          "texto": "El astigmatismo puede distorsionar los trazos de lectura y el esfuerzo continuado por enfocar letras pequeñas puede asociarse con el dolor de cabeza que usted percibe.",
+          "fuentes": [
+            "rx.od",
+            "rx.oi"
+          ]
+        },
+        {
+          "texto": "Para atender estas necesidades se indicó un diseño de lentes progresivos que integra una transición suave de graduaciones, permitiéndole enfocar a cualquier distancia sin saltos de imagen y brindando un soporte óptico adecuado para sus actividades de lectura y trabajo frente a pantallas electrónicas en su vida cotidiana. Esto favorece un enfoque descansado al desempeñar sus actividades habituales en interiores y exteriores con total comodidad. Esto favorece un enfoque descansado al desempeñar sus actividades habituales en interiores y exteriores con total comodidad.",
+          "fuentes": [
+            "lente",
+            "pantallas"
+          ]
+        }
+      ]
+    }
+  }
+]

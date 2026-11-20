@@ -2,6 +2,38 @@
 
 > **Para Claude en otra PC.** Lee este archivo completo antes de hacer nada. Resume una sesión larga para que no repitas auditorías ya hechas. Contesta al usuario en español. Al paciente se le trata **siempre de usted**: lo ordenó el usuario.
 
+## 0-ter. Corte del 2026-11-13: las tres funciones listas para desplegar (léase primero)
+- **Estado:** impresión clínica, explicación al paciente y WhatsApp están **certificadas sin GPU**. Lo que falta solo se mide con Qwen real, y para eso está el kit `scripts/certificar_gpu.py` (guía en `scripts/certificacion/LEEME.md`). Los umbrales se firmaron antes de medir y el kit da APTO o NO APTO por perfil: A, todo activo; B, paciente con plantilla; C, WhatsApp con catálogo; D, solo clínico.
+- **Expediente:** `auditoria/2026-11-12-cierre-y-certificacion-gpu/`:
+  - `00`: umbrales firmados;
+  - `01`: compatibilidad entre versiones;
+  - `02`: vocabulario de síntomas;
+  - `03`: **acta de cierre y despliegue paso a paso**.
+- **Nuevo en este corte:**
+  - el interruptor `SEGUIMIENTO_LLM_HABILITADO`, con `motivo=ia_deshabilitada`, que Laravel acepta;
+  - `CACHE_MAX_SIZE=0` ya no da 500;
+  - formas verbales de síntomas, inicio reciente de hasta 7 días y síntomas que refiere un acompañante: 0 detecciones perdidas en 107 044 casos frente al código certificado.
+- **Pruebas:** ia-api 24 953 passed con el tokenizador oficial; Laravel 655 OK; JS 37/37.
+- **Siguiente paso del dueño:**
+  - commits;
+  - en la PC con GPU, correr el kit, marcar las hojas y cerrar;
+  - desplegar según el `03` §5.
+
+## 0-bis. Corte del 2026-11-12: explicación al paciente con Qwen (léase primero)
+- **Hecho y certificado sin GPU:** la explicación para el paciente ya la redacta Qwen **en el mismo proceso** que la impresión clínica. Primero el clínico certificado, sin cambios; luego la redacción con el clínico final y hechos deterministas, un validador, una verificación con Qwen y el ensamblado CPU con las acciones obligatorias primero. Si algo falla, queda la plantilla. Es decisión del dueño del 2026-11-07, que corrige la separación del 2026-11-06.
+- **Corregido de paso:** el 413 en modo dual (antes daba 502) y la negación coordinada de las correlaciones, sin perder ninguna detección (principio «ante ambigüedad gana la detección»).
+- **Expediente:** `auditoria/2026-11-08-explicacion-paciente/` (requerimiento, diseño v2.1, catálogo y prompts para revisión del dueño, correcciones documentales, contrato del corpus y `05-acta-certificacion.md`).
+- **Pruebas:** ia-api 23226 passed + 3 xfail (brecha de vocabulario conocida); Laravel 654 OK; de punta a punta con un Ollama simulado y el tokenizador oficial, y prueba en navegador, sin fallos.
+- **Pendiente:** commits; en la PC con GPU, calidad real, latencias y cancelación (ver §5 del acta); revisión del catálogo de acciones y del glosario; decisión sobre `PRESUPUESTO_RECETA_SIN_EXACTO`; brecha de vocabulario («perdió la visión», «viendo doble»…). Vuelta atrás sin desplegar: `PACIENTE_LLM_HABILITADO=false`.
+
+## 0. Corte del 2026-11-07 (léase primero)
+- **Hecho:** pendiente 2 (re-certificación C1–C6: CERTIFICADO; C5 falta confirmarlo en la PC con GPU) y F1–F3 de los mensajes de WhatsApp personalizados (contrato `seguimiento-whatsapp-v1`, endpoint en ia-api, diálogo editable en Laravel con aprobación humana, planificador de GPU con prioridad, `GET /v1/tareas` y `scripts/probar_enrutado.py`). Todo en `auditoria/2026-11-07-recertificacion-y-seguimiento/`.
+- **Decisiones del dueño del 2026-11-07:** no se exige registro de consentimiento (acuerdos con sus pacientes, IA local); flujo: clic → diálogo editable inmediato → personalización automática → Aceptar abre WhatsApp.
+- **Pruebas:** ia-api 22151 passed; Laravel 620 OK; JS 37/37; prueba cruzada real Laravel ↔ ia-api y prueba en navegador sin fallos (Qwen simulado).
+- **Registro de tareas escalable (2026-11-07, tarde):** agregar una función de IA ya no toca `main.py` (ver `COMO_AGREGAR_UNA_TAREA.md`); guardián de 8k tokens en cada envío a Qwen con conteo exacto del tokenizador del modelo (Qwen2 y Qwen3.5), verificado al arrancar. Acta: `auditoria/2026-11-07-recertificacion-y-seguimiento/03-registro-de-tareas.md`. Pruebas: ia-api 22190 passed; Laravel 636 OK.
+- **Decisión pendiente del dueño:** si la PC con GPU no verifica el conteo exacto, ¿la receta sigue con la cota conservadora (valor actual) o se bloquea (`PRESUPUESTO_RECETA_SIN_EXACTO=estricto`)? Tras desplegar, revisar en `/health` que `modo_conteo` diga `exacto`.
+- **Pendiente del dueño:** commits de ambos repos; desplegar ia-api y Laravel juntos; en la PC con GPU, `OLLAMA_NUM_CTX=8192` y `scripts/probar_enrutado.py --modo real --url http://HOST:PUERTO --api-key-env IA_API_KEY`; piloto F4 con umbrales fijados antes; `graphify update .` en Laravel (no está instalado en esta PC).
+
 ## 1. Quién y qué
 - El usuario es optometrista en México, dueño del sistema.
 - **Laravel** (repo `opt`, carpeta `Documents/opt` en la PC original): SaaS de recetas, expediente, citas y seguimiento por WhatsApp. Producción en un VPS con Redis y supervisor.

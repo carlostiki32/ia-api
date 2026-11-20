@@ -1,0 +1,507 @@
+[
+  {
+    "id": "normalidad-001",
+    "esperado": "rechazar",
+    "regla": "normalidad",
+    "nota": "Contiene el término prohibido 'normal' en minúsculas.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con miopía en ojo derecho.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [],
+          "apoyo_cerca": false,
+          "plano": true
+        }
+      },
+      "motivo": "Visión borrosa de lejos.",
+      "sintomas_referidos": [
+        "vision_borrosa_lejos"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Su visión de cerca se mantiene normal durante la revisión.",
+          "fuentes": [
+            "clinico"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "normalidad-002",
+    "esperado": "rechazar",
+    "regla": "normalidad",
+    "nota": "Término prohibido en mayúsculas alteradas 'NORMAL'.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con astigmatismo en ojo izquierdo.",
+      "rx": {
+        "od": {
+          "componentes": [],
+          "apoyo_cerca": false,
+          "plano": true
+        },
+        "oi": {
+          "componentes": [
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión borrosa.",
+      "sintomas_referidos": [
+        "vision_borrosa"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "La evaluación muestra que el fondo de ojo se encuentra NORMAL.",
+          "fuentes": [
+            "clinico"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "normalidad-003",
+    "esperado": "rechazar",
+    "regla": "normalidad",
+    "nota": "Término prohibido en forma plural 'normales'.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con hipermetropía bilateral.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "hipermetropía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "hipermetropía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Cansancio visual al leer.",
+      "sintomas_referidos": [
+        "fatiga_visual"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Sus reflejos pupilares se observan normales en la exploración ocular.",
+          "fuentes": [
+            "clinico"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "normalidad-004",
+    "esperado": "rechazar",
+    "regla": "normalidad",
+    "nota": "Término prohibido en femenino 'sana'.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con miopía bilateral.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión borrosa de lejos.",
+      "sintomas_referidos": [
+        "vision_borrosa_lejos"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "La superficie de su córnea luce sana en ambos ojos.",
+          "fuentes": [
+            "clinico"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "normalidad-005",
+    "esperado": "rechazar",
+    "regla": "normalidad",
+    "nota": "Término prohibido en plural 'sanos'.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con astigmatismo en ambos ojos.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión distorsionada.",
+      "sintomas_referidos": [
+        "vision_borrosa"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Sus ojos se aprecian sanos y sin alteraciones estructurales visibles.",
+          "fuentes": [
+            "clinico"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "normalidad-006",
+    "esperado": "rechazar",
+    "regla": "normalidad",
+    "nota": "Uso del calificativo prohibido 'perfecto'.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con miopía en ojo derecho.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [],
+          "apoyo_cerca": false,
+          "plano": true
+        }
+      },
+      "motivo": "Visión borrosa de lejos.",
+      "sintomas_referidos": [
+        "vision_borrosa_lejos"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Sus lentes monofocales le permitirán lograr un enfoque perfecto.",
+          "fuentes": [
+            "lente"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "normalidad-007",
+    "esperado": "rechazar",
+    "regla": "normalidad",
+    "nota": "Uso del calificativo prohibido en femenino 'perfecta'.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con hipermetropía en ambos ojos.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "hipermetropía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "hipermetropía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Dificultad de enfoque cercano.",
+      "sintomas_referidos": [
+        "vision_borrosa_cerca"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Presenta una alineación ocular perfecta durante las pruebas de motilidad.",
+          "fuentes": [
+            "clinico"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "normalidad-008",
+    "esperado": "rechazar",
+    "regla": "normalidad",
+    "nota": "Frase de tranquilidad prohibida 'todo bien'.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con astigmatismo en ojo derecho.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [],
+          "apoyo_cerca": false,
+          "plano": true
+        }
+      },
+      "motivo": "Visión borrosa.",
+      "sintomas_referidos": [
+        "vision_borrosa"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "En la revisión de sus párpados y conjuntiva se encontró todo bien.",
+          "fuentes": [
+            "clinico"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "normalidad-009",
+    "esperado": "rechazar",
+    "regla": "normalidad",
+    "nota": "Frase prohibida 'no necesita'.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con ojo derecho plano y miopía en ojo izquierdo.",
+      "rx": {
+        "od": {
+          "componentes": [],
+          "apoyo_cerca": false,
+          "plano": true
+        },
+        "oi": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión borrosa en un ojo.",
+      "sintomas_referidos": [
+        "vision_borrosa_lejos"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Su ojo derecho no necesita graduación para enfocar objetos distantes.",
+          "fuentes": [
+            "rx.od"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "normalidad-010",
+    "esperado": "rechazar",
+    "regla": "normalidad",
+    "nota": "Frase prohibida 'no requiere'.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con hipermetropía en ojo derecho y ojo izquierdo plano.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "hipermetropía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [],
+          "apoyo_cerca": false,
+          "plano": true
+        }
+      },
+      "motivo": "Cansancio visual al leer.",
+      "sintomas_referidos": [
+        "fatiga_visual"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Su ojo izquierdo no requiere lentes para sus actividades cotidianas.",
+          "fuentes": [
+            "rx.oi"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "normalidad-011",
+    "esperado": "rechazar",
+    "regla": "normalidad",
+    "nota": "Frase equivalente de normalidad 'todo en orden'.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con miopía bilateral.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión borrosa de lejos.",
+      "sintomas_referidos": [
+        "vision_borrosa_lejos"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "En la evaluación preliminar está todo en orden con la transparencia de sus medios.",
+          "fuentes": [
+            "clinico"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "normalidad-012",
+    "esperado": "rechazar",
+    "regla": "normalidad",
+    "nota": "Término 'normal' insertado en medio de frase técnica ('distancia de trabajo normal').",
+    "caso": {
+      "impresion_clinica_final": "Paciente con astigmatismo en ambos ojos.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión distorsionada.",
+      "sintomas_referidos": [
+        "vision_borrosa"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Se mantuvo una distancia de trabajo normal para evaluar el astigmatismo de sus ojos.",
+          "fuentes": [
+            "rx.od",
+            "rx.oi"
+          ]
+        }
+      ]
+    }
+  }
+]

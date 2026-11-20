@@ -1,0 +1,543 @@
+[
+  {
+    "id": "accion_propia-001",
+    "esperado": "rechazar",
+    "regla": "accion_propia",
+    "nota": "Candidato prescribe acudir con oftalmólogo (acción propia reservada a CPU).",
+    "caso": {
+      "impresion_clinica_final": "Paciente con miopía bilateral y sospecha de opacidad.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión borrosa de lejos.",
+      "sintomas_referidos": [
+        "vision_borrosa_lejos"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": [
+        "Le recomendamos acudir a una consulta con el oftalmólogo para valoración especializada."
+      ]
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Le recomendamos acudir con un oftalmólogo para una valoración detallada.",
+          "fuentes": [
+            "clinico"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "accion_propia-002",
+    "esperado": "rechazar",
+    "regla": "accion_propia",
+    "nota": "Candidato prescribe especialista en retina.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con miopía y hallazgo en polo posterior.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión borrosa de lejos.",
+      "sintomas_referidos": [
+        "vision_borrosa_lejos"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": [
+        "Le sugerimos acudir con un especialista en retina para una exploración detallada."
+      ]
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Es necesario que lo revise un especialista en retina por precaución.",
+          "fuentes": [
+            "clinico"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "accion_propia-003",
+    "esperado": "rechazar",
+    "regla": "accion_propia",
+    "nota": "Candidato prescribe consulta con neurooftalmólogo.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con astigmatismo y asimetría pupilar.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Dolor de cabeza.",
+      "sintomas_referidos": [
+        "cefalea"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": [
+        "Acuda con un neurooftalmólogo para una evaluación completa."
+      ]
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Conviene programar una cita con el neurooftalmólogo para estudiar su caso.",
+          "fuentes": [
+            "clinico"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "accion_propia-004",
+    "esperado": "rechazar",
+    "regla": "accion_propia",
+    "nota": "Candidato indica acudir a servicio de urgencias.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con defecto pupilar aferente.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión borrosa súbita.",
+      "sintomas_referidos": [
+        "vision_borrosa"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": [
+        "Acuda de inmediato a un servicio de urgencias médicas."
+      ]
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Debe presentarse de inmediato en el servicio de urgencias médicas.",
+          "fuentes": [
+            "clinico"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "accion_propia-005",
+    "esperado": "rechazar",
+    "regla": "accion_propia",
+    "nota": "Candidato introduce plazo de cuarenta y ocho horas.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con sospecha de presión intraocular elevada.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "hipermetropía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "hipermetropía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Dolor de cabeza.",
+      "sintomas_referidos": [
+        "cefalea"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": [
+        "Le recomendamos acudir a consulta en un plazo máximo de cuarenta y ocho horas."
+      ]
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Le sugerimos consultar a su médico en un plazo de cuarenta y ocho horas.",
+          "fuentes": [
+            "clinico"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "accion_propia-006",
+    "esperado": "rechazar",
+    "regla": "accion_propia",
+    "nota": "Candidato introduce plazo de veinticuatro horas.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con escotoma relativo.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión borrosa.",
+      "sintomas_referidos": [
+        "vision_borrosa"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": [
+        "Acuda a valoración en las próximas veinticuatro horas."
+      ]
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Acuda a revisión médica en las próximas veinticuatro horas sin demora.",
+          "fuentes": [
+            "clinico"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "accion_propia-007",
+    "esperado": "rechazar",
+    "regla": "accion_propia",
+    "nota": "Candidato redacta la derivación médica propia.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con astigmatismo y excavación papilar asimétrica.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión borrosa.",
+      "sintomas_referidos": [
+        "vision_borrosa"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": [
+        "Se sugiere valoración especializada por parte de un oftalmólogo."
+      ]
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Hemos gestionado su derivación con el médico especialista para su seguimiento.",
+          "fuentes": [
+            "clinico"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "accion_propia-008",
+    "esperado": "rechazar",
+    "regla": "accion_propia",
+    "nota": "Candidato califica la consulta como urgente por cuenta propia.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con anisocoria reactiva.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Cansancio visual.",
+      "sintomas_referidos": [
+        "fatiga_visual"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": [
+        "Acuda a revisión oftalmológica prioritaria."
+      ]
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Resulta urgente que se revise la presión de sus ojos por un facultativo.",
+          "fuentes": [
+            "clinico"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "accion_propia-009",
+    "esperado": "rechazar",
+    "regla": "accion_propia",
+    "nota": "Candidato instruye 'valoración médica' propia.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con hipermetropía y hallazgo papilar.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "hipermetropía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "hipermetropía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Cansancio al leer.",
+      "sintomas_referidos": [
+        "fatiga_visual"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": [
+        "Se aconseja acudir a valoración médica complementaria."
+      ]
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Se requiere una valoración médica complementaria para revisar su salud ocular.",
+          "fuentes": [
+            "clinico"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "accion_propia-010",
+    "esperado": "rechazar",
+    "regla": "accion_propia",
+    "nota": "Candidato prescribe oftalmólogo pediátrico.",
+    "caso": {
+      "impresion_clinica_final": "Paciente menor con hipermetropía elevada.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "hipermetropía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "hipermetropía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Cansancio al leer.",
+      "sintomas_referidos": [
+        "fatiga_visual"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": [
+        "Se aconseja valoración con oftalmólogo pediátrico."
+      ]
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Se aconseja que su hijo acuda con el oftalmólogo pediátrico para un seguimiento.",
+          "fuentes": [
+            "clinico"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "accion_propia-011",
+    "esperado": "rechazar",
+    "regla": "accion_propia",
+    "nota": "Candidato indica plazo 'hoy mismo'.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con sospecha de uveítis anterior.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Ardor y lagrimeo.",
+      "sintomas_referidos": [
+        "ardor",
+        "lagrimeo"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": [
+        "Acuda hoy mismo a valoración médica especializada."
+      ]
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Le sugerimos agendar una cita médica hoy mismo para evaluar sus ojos.",
+          "fuentes": [
+            "clinico"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "accion_propia-012",
+    "esperado": "rechazar",
+    "regla": "accion_propia",
+    "nota": "Candidato indica plazo 'en los próximos días' hacia especialista.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con astigmatismo y asimetría de excavación.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión borrosa.",
+      "sintomas_referidos": [
+        "vision_borrosa"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": [
+        "Se aconseja valoración en los próximos días."
+      ]
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Acuda a consulta con el especialista en los próximos días para mayor seguridad.",
+          "fuentes": [
+            "clinico"
+          ]
+        }
+      ]
+    }
+  }
+]

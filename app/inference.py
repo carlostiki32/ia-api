@@ -9,7 +9,7 @@ from app.prompt_builder import build_system_prompt, build_user_prompt, clean_imp
 from app.providers import ollama as ollama_provider
 from app.schemas import ImpresionClinicaRequest
 from app.dual_contract import DualInferenceResult
-from app.patient_profile import build_patient_profile, build_patient_template
+from app.tareas.presupuesto import PresupuestoExcedido
 
 logger = logging.getLogger(__name__)
 
@@ -813,6 +813,7 @@ def _ensure_emergency_preserved(text: str, payload: ImpresionClinicaRequest) -> 
 async def run_inference(
     payload: ImpresionClinicaRequest,
     client: httpx.AsyncClient,
+    *, punto_control=None, llegada=None, hay_interactiva_esperando=lambda: False,
 ) -> str | DualInferenceResult:
     """
     Orquesta la inferencia contra Ollama (qwen3.5:9b): construye los prompts,
@@ -823,33 +824,15 @@ async def run_inference(
     # de los ~1595 tokens a traves de peticiones consecutivas (reduciendo TTFT).
     dual = payload.salida_version == "clinica-paciente-v1"
     clinical_prompt = build_user_prompt(payload)
-    profile = build_patient_profile(payload) if dual else None
     system_prompt = build_system_prompt()
     user_prompt = clinical_prompt
     output_budget = settings.ollama_num_predict
 
-    # Logging detallado del prompt renderizado antes de enviar a inferencia
+    # Solo tamaños: los prompts pueden contener datos clínicos sensibles.
     logger.debug(
-        "\n"
-        "╔═══════════════════════════════════════════════════════════════════════╗\n"
-        "║          PROMPT RENDERIZADO ANTES DE INFERENCIA                      ║\n"
-        "╚═══════════════════════════════════════════════════════════════════════╝\n"
-        "\n📋 SYSTEM PROMPT (%d caracteres, ~%d tokens):\n"
-        "────────────────────────────────────────────────────────────────────────\n"
-        "%s\n"
-        "────────────────────────────────────────────────────────────────────────\n"
-        "\n📝 USER PROMPT (%d caracteres, ~%d tokens):\n"
-        "────────────────────────────────────────────────────────────────────────\n"
-        "%s\n"
-        "────────────────────────────────────────────────────────────────────────\n"
-        "\n⚙️  TOTALES: ~%d tokens estimados\n",
-        len(system_prompt),
-        _estimate_tokens(system_prompt),
-        system_prompt,
-        len(user_prompt),
-        _estimate_tokens(user_prompt),
-        user_prompt,
-        _estimate_tokens(system_prompt) + _estimate_tokens(user_prompt),
+        "Prompts: system=%d caracteres (~%d tokens), user=%d caracteres (~%d tokens)",
+        len(system_prompt), _estimate_tokens(system_prompt),
+        len(user_prompt), _estimate_tokens(user_prompt),
     )
 
     # Validacion preemptiva de contexto: el prompt + la salida deben caber en num_ctx.
@@ -867,6 +850,8 @@ async def run_inference(
     async def generate(**options):
         try:
             return await ollama_provider.call(system_prompt, user_prompt, client, **options)
+        except PresupuestoExcedido:
+            raise
         except ValueError as exc:
             if dual:
                 raise GeneracionIncompletaError("Ollama no devolvio contenido clinico util.") from exc
@@ -906,18 +891,16 @@ async def run_inference(
         raise GeneracionIncompletaError("La impresion clinica quedo vacia tras la depuracion.")
     if not dual:
         return text
-    if profile.estado != "aplicable":
-        return DualInferenceResult(
-            impresion_clinica=text, explicacion_paciente=None,
-            explicacion_paciente_estado=profile.estado, origen_explicacion="ninguno",
-        )
-    patient_text = build_patient_template(profile)
-    state, origin = ("plantilla", "plantilla") if patient_text else ("rechazada", "ninguno")
-    logger.info("Plantilla educativa CPU: estado=%s", state)
-    return DualInferenceResult(
-        impresion_clinica=text, explicacion_paciente=patient_text,
-        explicacion_paciente_estado=state, origen_explicacion=origin,
-    )
+    from app.paciente.integracion import PuntoControlPaciente, completar
+    import time
+    punto = punto_control or PuntoControlPaciente()
+    punto.publicar(payload, text)
+    try:
+        return await completar(punto, client, llegada=time.monotonic() if llegada is None else llegada,
+                               hay_interactiva_esperando=hay_interactiva_esperando)
+    except Exception:
+        return punto.respaldo("error")
+
 
 
 def respaldo_determinista(payload: ImpresionClinicaRequest) -> str | None:

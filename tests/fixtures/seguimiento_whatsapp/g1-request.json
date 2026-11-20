@@ -1,0 +1,26 @@
+{
+  "contrato_version": "seguimiento-whatsapp-v1",
+  "paciente_ref": "3f9a1c0b7d2e4a51",
+  "tramo_edad": "18_39",
+  "estado_seguimiento": "proximo",
+  "meses_desde_ultima_receta": 11,
+  "recetas_previas": 2,
+  "costo": "incluida",
+  "ya_notificado_en_ciclo": false,
+  "variante": 0,
+  "rx_lejos": {
+    "od": {
+      "esfera": -2.25,
+      "cilindro": -0.5,
+      "add": null
+    },
+    "oi": {
+      "esfera": -2.0,
+      "cilindro": 0.0,
+      "add": null
+    }
+  },
+  "tipo_lente": "monofocal",
+  "uso_pantallas": "gt6",
+  "usa_armazon": null
+}

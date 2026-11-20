@@ -1,0 +1,37 @@
+{
+  "status": "ok",
+  "contrato_version": "seguimiento-whatsapp-v1",
+  "estado": "plantilla",
+  "mensaje": "Hola, :paciente, le saludamos de :clinica. Sabemos que el tiempo se va rápido entre tantas ocupaciones; cuando usted quiera, retomamos su revisión visual.\n\nEn sus lentes progresivos revisamos que la zona de lejos, la intermedia y la de cerca sigan acomodándose a sus actividades. Si ha pasado un tiempo desde su última revisión, retomarla es sencillo y la hacemos a su ritmo, sin prisas.\n\nLa revisión tiene un costo; si lo desea, con gusto le compartimos el detalle antes de agendar. ¿Le gustaría que veamos juntos un horario?\n\nSi prefiere no recibir estos recordatorios, solo díganoslo.",
+  "partes": {
+    "apertura": "Hola, :paciente, le saludamos de :clinica. Sabemos que el tiempo se va rápido entre tantas ocupaciones; cuando usted quiera, retomamos su revisión visual.",
+    "hechos": [
+      "progresivo_zonas",
+      "vencida_retomar"
+    ],
+    "invitacion": "La revisión tiene un costo; si lo desea, con gusto le compartimos el detalle antes de agendar. ¿Le gustaría que veamos juntos un horario?",
+    "baja": "Si prefiere no recibir estos recordatorios, solo díganoslo."
+  },
+  "motivo": "ia_ocupada",
+  "hechos_elegibles": [
+    "hipermetropia_ajuste",
+    "hipermetropia_cerca",
+    "astigmatismo_detalle",
+    "cerca_adecuado",
+    "cerca_distancias",
+    "progresivo_zonas",
+    "vencida_retomar",
+    "con_costo_claro",
+    "comodidad_general",
+    "general_periodica",
+    "traer_lentes"
+  ],
+  "generacion": {
+    "origen": "catalogo",
+    "modelo": null,
+    "catalogo_version": "v1-revisado-2026-11-06",
+    "prompt_version": "seguimiento-whatsapp-prompt-v1",
+    "base_hash_api": "0000000000000000000000000000000000000000000000000000000000000000",
+    "cached": false
+  }
+}

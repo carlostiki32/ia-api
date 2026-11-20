@@ -2,11 +2,49 @@
 
 API que recibe los datos estructurados de un examen optométrico (refracción, AKR/queratometría, hallazgos clínicos) y devuelve un párrafo de **impresión clínica en español**, generado combinando reglas clínicas deterministas con un LLM.
 
-Desde F0 (6 de noviembre de 2026), `salida_version=clinica-paciente-v1` agrega una explicación determinista en CPU, siempre en **usted**. Ambos modos hacen la misma llamada clínica: mismos prompts y presupuesto `OLLAMA_NUM_PREDICT`, sin `format` JSON Schema ni perfil educativo en el prompt. El modo omitido (`clinica-v1`) conserva su respuesta y clave de caché. Contrato, estados y pruebas: **[SALIDA_DUAL.md](SALIDA_DUAL.md)**.
+Desde W1b (8 de noviembre de 2026), `salida_version=clinica-paciente-v1` conserva la llamada clínica y agrega redacción y verificación de la explicación al paciente. Las acciones obligatorias van primero. El clínico final queda protegido por un punto de control; un fallo posterior entrega HTTP 200 con ese clínico y respaldo CPU. El modo omitido (`clinica-v1`) conserva su respuesta y clave de caché. Contrato, plazos, interruptor `PACIENTE_LLM_HABILITADO`, estados y cachés separadas: **[SALIDA_DUAL.md](SALIDA_DUAL.md)**.
 
-En la salida dual, `build_patient_template(profile)` usa solo la refracción final y un catálogo cerrado de 60–110 palabras. Genera una apertura única, describe el ojo plano solo con ESF y CIL explícitamente cero (`0.00`), define las correcciones y ubica el apoyo cercano. Una plantilla válida devuelve estado/origen `plantilla`/`plantilla`; un perfil no aplicable devuelve `sin_componentes_refractivos` o `datos_incompletos`, texto nulo y origen `ninguno`; una plantilla inválida devuelve `rechazada`, texto nulo y origen `ninguno`. El respaldo clínico urgente conserva su contrato. Óptica solicita ambos textos únicamente con **Generar con IA**; **Guardar** conserva la revisión del optometrista y no llama al modelo. Las pruebas usan un proveedor simulado; no miden rendimiento ni calidad del modelo real en la RTX 3070 Ti.
+La explicación puede describir hallazgos documentados aunque no haya un perfil refractivo completo. Se dirige al paciente de usted y presenta efectos cotidianos como posibilidades. Óptica solicita ambos textos con **Generar con IA**; **Guardar** no llama al modelo. Las pruebas locales usan transporte simulado; quedan pendientes calidad, latencias y cancelación real con GPU.
 
 Este documento es el punto de entrada. Da la vista completa del sistema de forma resumida y enlaza a los documentos de detalle para cada tema.
+
+### Tareas v1 y prueba de enrutado
+
+Todos los endpoints siguientes requieren `Authorization: Bearer <API_KEY>`:
+
+| Endpoint | Comportamiento |
+|---|---|
+| `POST /v1/inferencia/receta-clinica` | Alias del handler de `/inferencia/impresion-clinica`: mismos contratos y caché. Prioridad interactiva. |
+| `POST /v1/inferencia/seguimiento-whatsapp` | Contrato `seguimiento-whatsapp-v1`: catálogo determinista, redacción y verificación JSON en fondo; cualquier fallo del modelo devuelve HTTP 200 con `estado=plantilla` y `motivo`. |
+| `GET /v1/tareas` | Tabla calculada con los settings activos: endpoints, prioridades, llamadas, versiones, opciones y respaldos. La explicación es una tarea hija: redacción (384) y verificación (32), en el turno clínico o en un turno propio si solo falta el paciente tras un acierto parcial de caché; respaldo en CPU. |
+
+`GET /health` conserva sus claves y añade `gpu` con ocupación, prioridad del ocupante
+y esperas separadas. El planificador es local al proceso: **un worker de uvicorn y
+`MAX_CONCURRENT=1`**. Una receta en espera pasa antes que el fondo; el seguimiento
+pide turno por cada llamada y responde `ia_ocupada` si hay una receta ocupando o esperando.
+Request, respuesta y fixtures compartidos: [diccionario §6](DICCIONARIO_DATOS_RECETA.md#6-contrato-seguimiento-whatsapp-v1).
+
+Prueba sin GPU, sin Ollama instalado y sin Internet (Python del entorno del repo):
+
+```powershell
+.venv\Scripts\python.exe -B scripts\probar_enrutado.py
+# Equivalente: --modo simulado
+```
+
+El script inicia un Ollama simulado en loopback y uvicorn en un subproceso con
+clave efímera y directorio temporal para los logs. Comprueba enrutado, cuerpos de
+Ollama y prioridad, imprime la tabla y termina con código 0 si todo coincide.
+G2/G3 reciben la redacción fija de G1 y demuestran el respaldo por validación.
+
+Desde la PC que tenga acceso al servidor con GPU, con la clave guardada en una
+variable de entorno (el script nunca la imprime):
+
+```powershell
+.venv\Scripts\python.exe -B scripts\probar_enrutado.py --modo real --url http://HOST:PUERTO --api-key-env IA_API_KEY
+```
+
+El modo real muestra HTTP, latencia y estado/motivo del seguimiento. Las latencias
+reales y la detención efectiva de Ollama tras cancelar se verifican en la GPU.
 
 ---
 
@@ -106,7 +144,7 @@ Detalle línea por línea de este flujo (headers, timeouts, reintentos, formato 
 | `app/providers/ollama.py` | Cliente HTTP hacia Ollama (`/api/chat`), parámetros de sampling, reintentos, monitoreo de contexto. |
 | `app/cache.py` | Cache en memoria (TTL + tamaño máximo) para no repetir inferencias idénticas. |
 | `tests/` | Suite de pytest (más de 6000 pruebas): correlaciones (incluye golden tests de texto exacto), prompt builder, schemas, inferencia, endpoint principal y el corpus de casos históricos. |
-| `auditoria/` | Solo datos y scripts de referencia que leen las pruebas: corpus `2026-09-21/casos.json` y las órdenes/matrices de `conformidad-2026-09-29/` y `certificacion-2026-09-29/`. No es código de la API. |
+| `auditoria/` | Material de revisión, corpus y scripts de referencia, incluidas las matrices consumidas por las pruebas y el catálogo generado para el dueño. |
 | `start_linux.sh` | Script de arranque para Ubuntu: valida `.env`, levanta Ollama si hace falta, descarga el modelo si falta, activa el venv, corre uvicorn. |
 | `.env` / `.env.example` | Configuración real / plantilla. Ver [§9](#9-configuración-env). |
 
@@ -190,9 +228,12 @@ Un "caso optométrico" en este sistema es una **correlación clínica**: una reg
 | `fondo_de_ojo.py` | Hallazgos de fondo de ojo (glaucoma, DMAE, vascular, periférico...) |
 | `refractivas.py` | Miopía magna, hipermetropía alta, anisometropía, AV limitada... |
 | `akr.py` | Correlación entre autorrefractómetro y refracción final |
-| `corneal.py` | Queratocono/ectasia y astigmatismo corneal vs refractivo (queratometría como disparador) |
-| `anexos_cristalino.py` | Anexos oculares, opacidad de cristalino |
-| `pupilas_motilidad.py` | Reflejos pupilares, motilidad ocular |
+| `corneal.py` | Valores queratométricos elevados o planos, discrepancias con Rx y asimetría entre ojos |
+| `anexos_cristalino.py` | Anexos oculares |
+| `segmento_anterior.py` | Opacidad del cristalino y riesgo de glaucoma secundario |
+| `motilidad.py` | Motilidad ocular |
+| `sintomas_agudos.py` | Diplopía aguda |
+| `pupilas_motilidad.py` | Reflejos pupilares y combinaciones de pupilas/motilidad |
 | `campos_amsler.py` | Campos visuales, rejilla de Amsler |
 | `binocularidad.py` | Cover test, PPC, forias/tropias |
 | `superficie_ocular.py` | BUT (ojo seco) |
@@ -223,7 +264,7 @@ Paso a paso con más contexto de arquitectura: [PIPELINE_LLM.md §14](PIPELINE_L
 
 ## 9. Configuración (`.env`)
 
-La plantilla completa es [.env.example](.env.example); cada parámetro de sampling/contexto de Ollama está comentado con su justificación (incluidas mediciones en la 3070 Ti) en [app/config.py](app/config.py). Las variables que más te importan para tu flujo:
+La plantilla de configuración es [.env.example](.env.example); cada parámetro de sampling/contexto de Ollama está comentado con su justificación (incluidas mediciones en la 3070 Ti) en [app/config.py](app/config.py). Las variables que más te importan para tu flujo:
 
 | Variable | Para qué |
 |---|---|
@@ -235,7 +276,9 @@ La plantilla completa es [.env.example](.env.example); cada parámetro de sampli
 | `API_KEY` | El token que Postman debe mandar en `Authorization: Bearer`. **Cámbialo del placeholder** (el script de arranque lo exige). |
 | `HOST` / `PORT` | Dónde escucha uvicorn (default `0.0.0.0:8888`, para que Postman le pueda pegar desde otra máquina en tu red). Los lee `start_linux.sh`. |
 | `MAX_CONCURRENT` | Déjalo en `1` — tu GPU procesa una inferencia a la vez. |
-| `LOG_LEVEL` | `INFO` normal; `DEBUG` imprime además el prompt completo renderizado antes de cada inferencia (útil para depurar). |
+| `PACIENTE_LLM_HABILITADO` | `true` por omisión; `false` omite redacción/verificación y la prosa paciente cacheada, con respaldo CPU. No cambia la llamada clínica. |
+| `SEGUIMIENTO_LLM_HABILITADO` | `true` por omisión; `false` responde el mensaje del catálogo antes de consultar la caché y sin llamar a Ollama. Usa el respaldo del catálogo con `motivo=ia_deshabilitada`. Se lee al arrancar: cambiarlo exige reiniciar ia-api. |
+| `LOG_LEVEL` | `INFO` normal; `DEBUG` registra tamaños de system/user y estimaciones de tokens, sin imprimir los prompts completos. |
 
 ---
 
@@ -250,3 +293,32 @@ La plantilla completa es [.env.example](.env.example); cada parámetro de sampli
 | [DICCIONARIO_DATOS_RECETA.md](DICCIONARIO_DATOS_RECETA.md) | Diccionario de datos del SaaS: catálogo real (dropdowns, enums, rangos, texto libre) de cada campo del payload y especificación técnica del schema. |
 | [GUIA_CONEXION.md](GUIA_CONEXION.md) | Conexión total en producción: SaaS en Hetzner (`www.redcoretech.xyz`) → Cloudflare Tunnel → ia-api en la PC de casa. Namecheap/Cloudflare/WAF/systemd paso a paso, verificación end-to-end y tabla de debugging. |
 | [.claude/skills/qwen-inference/](.claude/skills/qwen-inference/) | Referencia técnica de Qwen3.5 usada como fuente para los parámetros de inferencia. |
+
+## Registro y presupuesto de tareas
+
+`app/tareas/registro.py` mantiene las definiciones. `montar_rutas(app)` genera
+POST, `/v1/tareas` y `/v1/metricas` autenticados. Receta y explicacion son
+fichas manuales; el handler clinico permanece en main.py. Seguimiento usa
+ContextoEjecucion.llamar con prioridad fondo y un turno por llamada.
+
+El proveedor verifica cada envio, incluidas opciones fusionadas y reintentos:
+entrada + salida <= int(0.95 * min(OLLAMA_NUM_CTX, LIMITE_CONTEXTO_TOKENS, 8192)).
+num_ctx no se puede sobrescribir. Una tarea que no cabe figura degradada sin
+cambiar la disponibilidad global de health.
+
+Conteo exacto: BPE reconstruido desde show y prompt Qwen completo con roles,
+think=False y seis sondas concordantes antes de publicar el contador.
+Se fija version de Ollama, digest, plantilla y contexto. Durante verificacion
+rige el respaldo. Requiere tokenizers>=0.22 (objetivo 0.23.3).
+Respaldo estricto: bytes UTF-8 del prompt renderizado. Solo receta permite
+conservador: 16 + suma por mensaje de numeros Unicode, simbolos, saltos,
+ceil(letras/2) y 8. Cuenta digitos individualmente; no garantiza cota del BPE.
+PRESUPUESTO_RECETA_SIN_EXACTO=estricto cierra esa excepcion de disponibilidad.
+Cada uso conservador emite WARNING; se advierte si los tokens reales superan
+la cota. El modo aparece en health y tareas. Metricas en memoria sin contenido:
+contadores, sumas y maximos; reinician con el proceso.
+
+Despliegue: Laravel debe aceptar y mostrar presupuesto antes o junto con esta
+API; versiones anteriores pueden sustituirlo por respuesta_invalida local.
+Streaming, varias GPU y planificacion distribuida son extensiones futuras.
+Ver [COMO_AGREGAR_UNA_TAREA.md](COMO_AGREGAR_UNA_TAREA.md).

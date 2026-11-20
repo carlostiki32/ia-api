@@ -10,6 +10,11 @@ se resuelve dentro del dominio.
 from __future__ import annotations
 
 import re
+from itertools import chain
+
+from app.correlaciones.vocabulario import (
+    DIPLOPIA_PATRON, SOMBRA_CORTINA_PATRON, perdidas_subitas,
+)
 
 from app.correlaciones.base import _memoize_cond
 from app.correlaciones.texto import (
@@ -18,6 +23,7 @@ from app.correlaciones.texto import (
     _extract_normalized_findings,
     _find_neg_bounded,
     _fondo_contains,
+    _fragmentos_con_negacion,
     _is_match_negated,
     _join_hallazgos,
     _keyword_matches,
@@ -246,6 +252,7 @@ _PATTERNS_ALARMA = (
     (r"\bnube\b", "sombra o cortina en el campo visual"),
     (r"\blluvia\s+de\s+(?:manchas|moscas|puntos)\b", "lluvia de miodesopsias"),
     (r"\b(?:muchas|multiples)\s+(?:moscas|manchas|puntos)\b", "lluvia de miodesopsias"),
+    (SOMBRA_CORTINA_PATRON, "sombra o cortina en el campo visual"),
 )
 
 _EXCLUSIONES_HALOS = (
@@ -353,9 +360,11 @@ def _calificador_temporal_traccion(clausula: str) -> bool:
     return not resto.strip()
 
 
-def _coincidencia_traccion(clausula: str, keywords: tuple[str, ...]) -> bool:
+def _coincidencia_traccion(
+    clausula: str, keywords: tuple[str, ...], texto: str, offset: int,
+) -> bool:
     return any(
-        not _is_match_negated(clausula, m.start(), m.end())
+        not _is_match_negated(texto, offset + m.start(), offset + m.end())
         and _certeza_hallazgo(clausula, m) is None
         for keyword in keywords
         for m in re.finditer(r"\b" + re.escape(keyword) + r"\b", clausula)
@@ -373,7 +382,11 @@ def _eval_sintomas_traccion(req: ImpresionClinicaRequest) -> dict:
     clausulas = _clausulas_traccion(norm)
     hallazgos = []
     dato_alarma = None
+    cursor = 0
     for indice, clausula in enumerate(clausulas):
+        # La fragmentacion temporal no debe recortar el alcance de la negacion.
+        offset = norm.index(clausula, cursor)
+        cursor = offset + len(clausula)
         # Sujeto/hipotesis se resolvieron antes de dividir. Un plan para
         # descartar catarata no borra moscas volantes afirmadas en la misma frase.
         contexto = clausula
@@ -392,12 +405,19 @@ def _eval_sintomas_traccion(req: ImpresionClinicaRequest) -> dict:
         if not historico and not remoto:
             for patron, etiqueta in _PATTERNS_ALARMA:
                 for m in re.finditer(patron, clausula):
-                    if (not _is_match_negated(clausula, m.start(), m.end())
+                    if (not _is_match_negated(norm, offset + m.start(), offset + m.end())
                             and _certeza_hallazgo(clausula, m) is None):
                         dato_alarma = dato_alarma or etiqueta
 
-        fotopsia = _coincidencia_traccion(clausula, _KEYWORDS_FOTOPSIA)
-        miodesopsia = _coincidencia_traccion(clausula, _KEYWORDS_MIODESOPSIA)
+        if not historico and not remoto and any(
+            not _is_match_negated(norm, offset + m.start(), offset + m.end())
+            and _certeza_hallazgo(clausula, m) is None
+            for m in perdidas_subitas(clausula)
+        ):
+            dato_alarma = dato_alarma or "perdida subita de vision"
+
+        fotopsia = _coincidencia_traccion(clausula, _KEYWORDS_FOTOPSIA, norm, offset)
+        miodesopsia = _coincidencia_traccion(clausula, _KEYWORDS_MIODESOPSIA, norm, offset)
         if not (fotopsia or miodesopsia) or historico:
             continue
         if cronico and not reciente:
@@ -767,7 +787,7 @@ _RE_ATRIBUCION_BENIGNA_PAPILA = re.compile(
 _RE_SINTOMA_HIC = re.compile(
     r"\b("
     r"o[b]?scurecimientos?\s+visual(?:es)?|zumbido\s+pulsatil|acufeno\s+pulsatil|tinnitus\s+pulsatil|"
-    r"diplopia|vision\s+doble|nauseas?|vomitos?|perdida\s+(?:subita|brusca)\s+de\s+(?:la\s+)?vision"
+    + DIPLOPIA_PATRON + r"|nauseas?|vomitos?|perdida\s+(?:subita|brusca)\s+de\s+(?:la\s+)?vision"
     r")\b",
     re.IGNORECASE,
 )
@@ -799,7 +819,7 @@ def _eval_papila_patologica_info(req: ImpresionClinicaRequest) -> dict:
     if not fondo:
         return {"nivel": None, "texto": ""}
 
-    clauses = _RE_CLAUSE_SPLIT.split(fondo)
+    clauses = _fragmentos_con_negacion(fondo, _RE_CLAUSE_SPLIT)
 
     has_edema_explicito = False
     has_bordes = False
@@ -900,7 +920,7 @@ def _eval_papila_patologica_info(req: ImpresionClinicaRequest) -> dict:
     has_sintoma_hic = False
     if req.paciente and req.paciente.motivo_consulta:
         motivo = _texto_hechos_paciente(req.paciente.motivo_consulta)
-        for m in _RE_SINTOMA_HIC.finditer(motivo):
+        for m in chain(_RE_SINTOMA_HIC.finditer(motivo), perdidas_subitas(motivo)):
             if (not _is_match_negated(motivo, m.start(), m.end())
                     and _certeza_hallazgo(motivo, m) is None):
                 has_sintoma_hic = True
@@ -1044,7 +1064,7 @@ def _eval_glaucoma_asimetrico_info(req: ImpresionClinicaRequest) -> dict:
             (re.compile("|".join(re.escape(kw) for kw in _KEYWORDS_ISNT_VIOLADA)),
              "violacion de la regla ISNT"),
         )
-        for sub in _RE_CLAUSE_SPLIT.split(fondo):
+        for sub in _fragmentos_con_negacion(fondo, _RE_CLAUSE_SPLIT):
             if re.search(r"\b(?:palpebral|iridiana?|corneal|pupilar)\b", sub):
                 continue
             lados = ({"OD", "OI"} if _RE_EYE_AO.search(sub) else
@@ -1116,9 +1136,9 @@ def _papilar_ojos(clause: str) -> set[str]:
 
 
 def _papilar_clausulas(text: str):
-    for clause in _RE_CLAUSE_SPLIT.split(text):
+    for clause in _fragmentos_con_negacion(text, _RE_CLAUSE_SPLIT):
         if len(_papilar_ojos(clause)) == 2 and not _RE_EYE_AO.search(clause):
-            yield from re.split(r"\s+y\s+|\s+pero\s+", clause)
+            yield from _fragmentos_con_negacion(clause, r"\s+y\s+|\s+pero\s+")
         else:
             yield clause
 
@@ -1709,22 +1729,9 @@ class _ClausulasHipertensivas:
 
     @staticmethod
     def split(texto: str) -> list[str]:
-        clausulas: list[str] = []
-        for segmento in re.split(r"[\.\;\,\n\|]+", texto):
-            partes = re.split(r"(\by\b|\be\b|\bpero\b)", segmento, flags=re.IGNORECASE)
-            negador = None
-            for i in range(0, len(partes), 2):
-                parte, separador = partes[i], (partes[i - 1].lower() if i else None)
-                if separador == "pero":
-                    negador = None
-                inicial = _RE_NEGADOR_INICIAL.match(parte)
-                if inicial:
-                    negador = inicial.group(1)
-                elif (negador and separador in ("y", "e")
-                      and not re.match(r"\s*(?:con|presenta\w*|se\s+observa\w*)\b", parte, re.IGNORECASE)):
-                    parte = f"{negador} {parte.strip()}"
-                clausulas.append(parte)
-        return clausulas
+        return _fragmentos_con_negacion(
+            texto, r"[.;,\n|]+|\by\b|\be\b|\bpero\b",
+        )
 
 
 _RE_FONDO_HIPERTENSIVO_CLAUSE_SPLIT = _ClausulasHipertensivas()
@@ -2095,7 +2102,7 @@ def _has_confirmed_dm(req: ImpresionClinicaRequest) -> bool:
     norm = _normalize_text(texto)
     if not norm:
         return False
-    for clause in re.split(r"[.;,\n|]|\s+y\s+", norm):
+    for clause in _fragmentos_con_negacion(norm, r"[.;,\n|]|\s+y\s+"):
         if re.search(r"\b(madre|padre|familiar\w*|abuel\w*|herman\w*|hij[ao]|sospecha|posible|descartar)\b", clause):
             continue
         for m in _RE_DM_CONFIRMADA.finditer(clause):
@@ -2108,7 +2115,7 @@ def _vascular_clauses(text: str):
     """Separa hechos de ojos distintos; no hereda lateralidad entre oraciones."""
     for clause in re.split(r"[.;\n|]+", text):
         if _RE_EYE_OD.search(clause) and _RE_EYE_OI.search(clause):
-            yield from re.split(r",|\s+y\s+", clause)
+            yield from _fragmentos_con_negacion(clause, r",|\s+y\s+")
         else:
             yield clause
 
@@ -2156,9 +2163,12 @@ def _vascular_sintomas_oculares_actuales(text: str) -> list[tuple[str, str | Non
     for clause in _vascular_event_clauses(text):
         if any(not _is_match_negated(clause, m.start(), m.end()) for m in re.finditer(r"\b(cronic\w*|estable|hace\s+\w+\s+anos)\b", clause)):
             continue
-        for m in pattern.finditer(clause):
+        anteriores = list(pattern.finditer(clause))
+        nuevas = [m for m in perdidas_subitas(clause)
+                  if not any(a.start() < m.end() and m.start() < a.end() for a in anteriores)]
+        for m in anteriores + nuevas:
             if _vascular_current(clause, m.start(), m.end()) and _certeza_hallazgo(clause, m) is None:
-                result.append((m.group(), _vascular_eye(clause)))
+                result.append((m.group() if m in anteriores else "perdida visual subita", _vascular_eye(clause)))
     return result
 
 
@@ -2575,13 +2585,16 @@ def _embolo_sintomas(req: ImpresionClinicaRequest) -> dict:
                 if (not _is_match_negated(clause, m.start(), m.end())
                         and not _RE_EMBOLO_REMOTE.search(_get_clause_around_span(clause, m.start(), m.end()))):
                     asintomatico = True
-            for m in _RE_AMAUROSIS_SINTOMA.finditer(clause):
+            anteriores = list(_RE_AMAUROSIS_SINTOMA.finditer(clause))
+            nuevas = [m for m in perdidas_subitas(clause)
+                      if not any(a.start() < m.end() and m.start() < a.end() for a in anteriores)]
+            for m in anteriores + nuevas:
                 local = _get_clause_around_span(clause, m.start(), m.end())
                 if (_vascular_current(clause, m.start(), m.end())
                         and not _RE_EMBOLO_REMOTE.search(local)
                         and _certeza_hallazgo(clause, m) is None):
                     eye = _vascular_eye(clause)
-                    transient = not bool(re.search(r"\bsubita\b", m.group()))
+                    transient = m in anteriores and not bool(re.search(r"\bsubita\b", m.group()))
                     label = "perdida visual transitoria" if transient else "perdida visual subita"
                     description = label + (f" en {eye}" if eye else " sin lateralidad precisada") + f" referida en {source}"
                     if description not in symptoms:

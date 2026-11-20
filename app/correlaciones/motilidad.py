@@ -14,6 +14,7 @@ import re
 from dataclasses import dataclass, replace
 
 from app.correlaciones.base import _memoize_cond
+from app.correlaciones.vocabulario import DIPLOPIA, DIPLOPIA_PATRON, PERDIDA_VISION
 from app.correlaciones.pupilas_motilidad import (
     _HallazgoOcular,
     _MOVIMIENTO_RE,
@@ -143,7 +144,7 @@ _POR_SECCION: dict[str, dict[str, tuple[str, str]]] = {
 # Sintomas del motivo que participan en las rutas de prioridad.
 _SINTOMAS: dict[str, str] = {}
 for _e, _cs in (
-    ("diplopia referida", ("diplopia", "vision doble", "veo doble", "imagenes dobles")),
+    ("diplopia referida", DIPLOPIA),
     ("vertigo referido", ("vertigo",)),
     ("mareo referido", ("mareo",)),
     ("inestabilidad referida", ("inestabilidad", "desequilibrio", "ataxia")),
@@ -155,7 +156,7 @@ for _e, _cs in (
     ("dolor cervical referido", ("dolor cervical", "dolor de cuello")),
     ("dolor referido", ("dolor",)),
     ("cefalea referida", ("cefalea", "dolor de cabeza")),
-    ("disminucion visual referida", ("disminucion visual", "disminucion de la vision", "perdida visual",
+    ("disminucion visual referida", PERDIDA_VISION + ("disminucion visual", "disminucion de la vision", "perdida visual",
                                      "perdida de vision", "vision disminuida", "baja visual",
                                      "baja de vision", "vision borrosa")),
     ("disartria referida", ("disartria",)),
@@ -225,7 +226,8 @@ def _es_fisiologico(h: _HallazgoOcular, familia: str) -> bool:
 def _torticolis_ocular(h: _HallazgoOcular) -> bool:
     if _NO_OCULAR_RE.search(h.contexto):
         return False
-    return h.ojo is not None or bool(_VINCULO_OCULAR_RE.search(h.contexto))
+    return (h.ojo is not None or bool(_VINCULO_OCULAR_RE.search(h.contexto))
+            or _calificador_afirmado(h.contexto, re.compile(DIPLOPIA_PATRON)))
 
 
 def _texto_signo(h: _HallazgoOcular, familia: str, etiqueta: str) -> str:

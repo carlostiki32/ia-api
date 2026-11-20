@@ -1,0 +1,539 @@
+[
+  {
+    "id": "json-001",
+    "esperado": "rechazar",
+    "regla": "json",
+    "nota": "Falta la clave obligatoria 'frases' en la raíz del candidato.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con miopía en ambos ojos.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión borrosa de lejos.",
+      "sintomas_referidos": [
+        "vision_borrosa_lejos"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "texto": "Su graduación puede compensar la miopía en ambos ojos.",
+      "fuentes": [
+        "rx.od",
+        "rx.oi"
+      ]
+    }
+  },
+  {
+    "id": "json-002",
+    "esperado": "rechazar",
+    "regla": "json",
+    "nota": "Clave extra no permitida 'resumen' en el candidato.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con astigmatismo en ojo derecho.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [],
+          "apoyo_cerca": false,
+          "plano": true
+        }
+      },
+      "motivo": "Dificultad para enfocar contornos.",
+      "sintomas_referidos": [
+        "vision_borrosa"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "El astigmatismo en su ojo derecho puede ocasionar desenfoque.",
+          "fuentes": [
+            "rx.od"
+          ]
+        }
+      ],
+      "resumen": "astigmatismo unilateral"
+    }
+  },
+  {
+    "id": "json-003",
+    "esperado": "rechazar",
+    "regla": "json",
+    "nota": "Clave extra no permitida 'confianza' dentro de un objeto de frase.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con miopía bilateral.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión borrosa de lejos.",
+      "sintomas_referidos": [
+        "vision_borrosa_lejos"
+      ],
+      "pantallas": "btw2_6",
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "La miopía en ambos ojos puede dificultar la visión lejana.",
+          "fuentes": [
+            "rx.od",
+            "rx.oi"
+          ],
+          "confianza": 0.95
+        }
+      ]
+    }
+  },
+  {
+    "id": "json-004",
+    "esperado": "rechazar",
+    "regla": "json",
+    "nota": "Arreglo 'frases' vacío, que equivale a abstención no estructurada.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con hipermetropía en ambos ojos.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "hipermetropía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "hipermetropía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Cansancio visual al leer.",
+      "sintomas_referidos": [
+        "fatiga_visual"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": []
+    }
+  },
+  {
+    "id": "json-005",
+    "esperado": "rechazar",
+    "regla": "json",
+    "nota": "El arreglo 'frases' excede el límite máximo de cuatro frases.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con miopía y astigmatismo bilateral.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "miopía",
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "miopía",
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión borrosa y cansancio.",
+      "sintomas_referidos": [
+        "vision_borrosa",
+        "fatiga_visual"
+      ],
+      "pantallas": "gt6",
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Su ojo derecho presenta miopía y astigmatismo.",
+          "fuentes": [
+            "rx.od"
+          ]
+        },
+        {
+          "texto": "Su ojo izquierdo también combina miopía con astigmatismo.",
+          "fuentes": [
+            "rx.oi"
+          ]
+        },
+        {
+          "texto": "Esta combinación puede dificultar la nitidez en varias distancias.",
+          "fuentes": [
+            "rx.od",
+            "rx.oi"
+          ]
+        },
+        {
+          "texto": "Sus lentes monofocales están orientados a compensar dicho desenfoque.",
+          "fuentes": [
+            "lente"
+          ]
+        },
+        {
+          "texto": "El uso prolongado de pantallas puede acentuar la sensación de fatiga.",
+          "fuentes": [
+            "pantallas"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "json-006",
+    "esperado": "rechazar",
+    "regla": "json",
+    "nota": "Fuente 'inventada' no existe en el contexto del caso.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con miopía en ojo derecho.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [],
+          "apoyo_cerca": false,
+          "plano": true
+        }
+      },
+      "motivo": "Visión borrosa de lejos.",
+      "sintomas_referidos": [
+        "vision_borrosa_lejos"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "La miopía en su ojo derecho puede ocasionar visión lejana borrosa.",
+          "fuentes": [
+            "rx.od",
+            "inventada"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "json-007",
+    "esperado": "rechazar",
+    "regla": "json",
+    "nota": "Fuentes duplicadas dentro de la misma frase.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con astigmatismo en ojo derecho.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [],
+          "apoyo_cerca": false,
+          "plano": true
+        }
+      },
+      "motivo": "Visión borrosa de lejos.",
+      "sintomas_referidos": [
+        "vision_borrosa_lejos"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "El astigmatismo en su ojo derecho puede provocar sombras al mirar de lejos.",
+          "fuentes": [
+            "rx.od",
+            "rx.od"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "json-008",
+    "esperado": "rechazar",
+    "regla": "json",
+    "nota": "Texto de frase vacío.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con miopía bilateral.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión borrosa de lejos.",
+      "sintomas_referidos": [
+        "vision_borrosa_lejos"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "",
+          "fuentes": [
+            "rx.od"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "json-009",
+    "esperado": "rechazar",
+    "regla": "json",
+    "nota": "Texto de frase con puros espacios en blanco.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con hipermetropía bilateral.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "hipermetropía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "hipermetropía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Dificultad para enfocar de cerca.",
+      "sintomas_referidos": [
+        "vision_borrosa_cerca"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "   ",
+          "fuentes": [
+            "rx.od",
+            "rx.oi"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "json-010",
+    "esperado": "rechazar",
+    "regla": "json",
+    "nota": "Fuente 'pantallas' citada cuando pantallas es nulo en el caso.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con miopía en ambos ojos.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión borrosa lejana.",
+      "sintomas_referidos": [
+        "vision_borrosa_lejos"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "La miopía en ambos ojos puede dificultar ver letreros distantes.",
+          "fuentes": [
+            "rx.od",
+            "pantallas"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "json-011",
+    "esperado": "rechazar",
+    "regla": "json",
+    "nota": "Fuente 'lente' citada cuando lente es nulo en el caso.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con astigmatismo bilateral.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión distorsionada.",
+      "sintomas_referidos": [
+        "vision_borrosa"
+      ],
+      "pantallas": "lt2",
+      "lente": null,
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "El astigmatismo en ambos ojos puede provocar distorsión visual.",
+          "fuentes": [
+            "rx.od",
+            "lente"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "json-012",
+    "esperado": "rechazar",
+    "regla": "json",
+    "nota": "Fuente 'acciones' citada cuando acciones_obligatorias está vacío.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con miopía en ambos ojos.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión borrosa de lejos.",
+      "sintomas_referidos": [
+        "vision_borrosa_lejos"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "La miopía en sus ojos puede restar nitidez a la distancia.",
+          "fuentes": [
+            "rx.od",
+            "acciones"
+          ]
+        }
+      ]
+    }
+  }
+]

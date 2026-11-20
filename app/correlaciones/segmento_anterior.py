@@ -12,6 +12,7 @@ import re
 from dataclasses import dataclass, replace
 
 from app.correlaciones.base import _memoize_cond
+from app.correlaciones.vocabulario import DIPLOPIA, PERDIDA_VISION
 from app.correlaciones.pupilas_motilidad import (
     _HallazgoOcular,
     _calificador_afirmado,
@@ -49,10 +50,10 @@ for _etiqueta, _claves in (
     ("vomito", ("vomito", "vomitos")),
     ("fotofobia", ("fotofobia",)),
     ("ojo rojo", ("ojo rojo", "enrojecimiento")),
-    ("perdida o disminucion visual", ("perdida visual", "perdida de vision", "disminucion visual", "baja visual",
+    ("perdida o disminucion visual", PERDIDA_VISION + ("perdida visual", "perdida de vision", "disminucion visual", "baja visual",
                                         "baja de vision", "vision borrosa", "vision disminuida", "vision reducida")),
     ("fiebre", ("fiebre", "febril")),
-    ("diplopia", ("diplopia", "vision doble")),
+    ("diplopia", DIPLOPIA),
     ("uso de lentes de contacto", ("lentes de contacto", "lente de contacto", "lentillas")),
     ("traumatismo", ("traumatismo", "golpe", "contusion")),
 ):

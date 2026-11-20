@@ -1,0 +1,2218 @@
+[
+  {
+    "id": "aceptable-001",
+    "esperado": "aceptar",
+    "regla": null,
+    "nota": "Miopía bilateral con lente monofocal, efecto con 'puede' y fuentes válidas.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con miopía en ambos ojos.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión borrosa de lejos.",
+      "sintomas_referidos": [
+        "vision_borrosa_lejos"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "La miopía en su ojo derecho y en su ojo izquierdo puede dificultar el enfoque de objetos distantes.",
+          "fuentes": [
+            "rx.od",
+            "rx.oi"
+          ]
+        },
+        {
+          "texto": "Sus lentes monofocales están orientados a brindar nitidez uniforme al enfocar las imágenes.",
+          "fuentes": [
+            "lente"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "aceptable-002",
+    "esperado": "aceptar",
+    "regla": null,
+    "nota": "Astigmatismo bilateral con síntoma referido de visión borrosa y lente monofocal.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con astigmatismo en ambos ojos.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión borrosa y sombras en las letras.",
+      "sintomas_referidos": [
+        "vision_borrosa"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "El astigmatismo presente en ambos ojos puede provocar sombras o contornos poco definidos.",
+          "fuentes": [
+            "rx.od",
+            "rx.oi"
+          ]
+        },
+        {
+          "texto": "Su lente monofocal compensa esta variación en la curvatura visual.",
+          "fuentes": [
+            "lente"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "aceptable-003",
+    "esperado": "aceptar",
+    "regla": null,
+    "nota": "Hipermetropía con fatiga referida y explicación neutra de esfuerzo.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con hipermetropía en ambos ojos.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "hipermetropía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "hipermetropía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Cansancio visual al leer.",
+      "sintomas_referidos": [
+        "fatiga_visual"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "La hipermetropía en sus ojos puede demandar un trabajo de enfoque adicional al observar de cerca.",
+          "fuentes": [
+            "rx.od",
+            "rx.oi"
+          ]
+        },
+        {
+          "texto": "Sus anteojos monofocales ayudan a que la vista mantenga comodidad en sus actividades cotidianas.",
+          "fuentes": [
+            "lente"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "aceptable-004",
+    "esperado": "aceptar",
+    "regla": null,
+    "nota": "Asimetría con ojo izquierdo plano descrita con respeto al perfil.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con miopía y astigmatismo en ojo derecho; ojo izquierdo plano.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "miopía",
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [],
+          "apoyo_cerca": false,
+          "plano": true
+        }
+      },
+      "motivo": "Visión borrosa de lejos en un ojo.",
+      "sintomas_referidos": [
+        "vision_borrosa_lejos"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "En su ojo derecho se presenta miopía y astigmatismo, mientras su ojo izquierdo no tiene graduación.",
+          "fuentes": [
+            "rx.od",
+            "rx.oi"
+          ]
+        },
+        {
+          "texto": "Esta diferencia puede generar menor claridad a la distancia si no se utiliza compensación.",
+          "fuentes": [
+            "rx.od"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "aceptable-005",
+    "esperado": "aceptar",
+    "regla": null,
+    "nota": "Lente progresivo descrito con transición continua sin afirmar distancias prohibidas para monofocal.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con presbicia y astigmatismo bilateral.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "astigmatismo"
+          ],
+          "apoyo_cerca": true,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "astigmatismo"
+          ],
+          "apoyo_cerca": true,
+          "plano": false
+        }
+      },
+      "motivo": "Visión borrosa de cerca y cansancio.",
+      "sintomas_referidos": [
+        "vision_borrosa_cerca",
+        "fatiga_visual"
+      ],
+      "pantallas": "btw2_6",
+      "lente": "progresivo",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "El astigmatismo en ambos ojos junto con el apoyo cercano puede dificultar la lectura prolongada.",
+          "fuentes": [
+            "rx.od",
+            "rx.oi"
+          ]
+        },
+        {
+          "texto": "Sus lentes progresivos ofrecen una transición gradual para observar con nitidez continua.",
+          "fuentes": [
+            "lente"
+          ]
+        },
+        {
+          "texto": "El tiempo que dedica a pantallas digitales puede requerir esta comodidad de enfoque.",
+          "fuentes": [
+            "pantallas"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "aceptable-006",
+    "esperado": "aceptar",
+    "regla": null,
+    "nota": "Bifocal flat top descrito con división visible de lectura.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con presbicia y miopía bilateral.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": true,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": true,
+          "plano": false
+        }
+      },
+      "motivo": "Visión borrosa al leer.",
+      "sintomas_referidos": [
+        "vision_borrosa_cerca"
+      ],
+      "pantallas": null,
+      "lente": "flat_top",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "La miopía y el apoyo cercano en ambos ojos pueden comprometer la claridad de lectura.",
+          "fuentes": [
+            "rx.od",
+            "rx.oi"
+          ]
+        },
+        {
+          "texto": "Sus lentes bifocales de segmento recto disponen de una zona delimitada para enfocar textos.",
+          "fuentes": [
+            "lente"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "aceptable-007",
+    "esperado": "aceptar",
+    "regla": null,
+    "nota": "Bifocal blended descrito con línea suavizada.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con hipermetropía bilateral y necesidad de apoyo de cerca.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "hipermetropía"
+          ],
+          "apoyo_cerca": true,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "hipermetropía"
+          ],
+          "apoyo_cerca": true,
+          "plano": false
+        }
+      },
+      "motivo": "Cansancio al leer de cerca.",
+      "sintomas_referidos": [
+        "fatiga_visual",
+        "vision_borrosa_cerca"
+      ],
+      "pantallas": null,
+      "lente": "bifocal_blended",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "La hipermetropía combinada con el apoyo para cerca puede fatigar sus ojos en lecturas extensas.",
+          "fuentes": [
+            "rx.od",
+            "rx.oi"
+          ]
+        },
+        {
+          "texto": "El diseño bifocal combinado suaviza la transición entre las áreas de enfoque.",
+          "fuentes": [
+            "lente"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "aceptable-008",
+    "esperado": "aceptar",
+    "regla": null,
+    "nota": "Cefalea referida atribuida correctamente al paciente.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con astigmatismo en ojo derecho e hipermetropía en ojo izquierdo.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "hipermetropía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Dolor de cabeza tras jornada de trabajo.",
+      "sintomas_referidos": [
+        "cefalea"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Como usted nos comentó sobre el dolor de cabeza, el esfuerzo de enfoque puede relacionarse con su graduación.",
+          "fuentes": [
+            "motivo",
+            "rx.od",
+            "rx.oi"
+          ]
+        },
+        {
+          "texto": "Su lente monofocal equilibra la visión de ambos ojos para reducir esa tensión.",
+          "fuentes": [
+            "lente"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "aceptable-009",
+    "esperado": "aceptar",
+    "regla": null,
+    "nota": "Ardor referido atribuido correctamente, relación con pantallas expresada con 'puede'.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con miopía bilateral y exposición prolongada a pantallas.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Ardor ocular al trabajar.",
+      "sintomas_referidos": [
+        "ardor"
+      ],
+      "pantallas": "gt6",
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Usted nos comentó que percibe ardor ocular durante sus labores cotidianas.",
+          "fuentes": [
+            "motivo"
+          ]
+        },
+        {
+          "texto": "Permanecer más de seis horas frente a pantallas electrónicas puede influir en la sequedad ocular.",
+          "fuentes": [
+            "pantallas"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "aceptable-010",
+    "esperado": "aceptar",
+    "regla": null,
+    "nota": "Descarte permitido de glaucoma presente en clínico y sin afirmar enfermedad.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con miopía en ambos ojos; papilas con asimetría para descartar glaucoma.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión borrosa de lejos.",
+      "sintomas_referidos": [
+        "vision_borrosa_lejos"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": [
+        "Le recomendamos acudir a una consulta de valoración médica preventiva."
+      ]
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "La miopía en sus ojos puede comprometer la nitidez lejana al realizar desplazamientos.",
+          "fuentes": [
+            "rx.od",
+            "rx.oi"
+          ]
+        },
+        {
+          "texto": "Se indicaron estudios adicionales para descartar glaucoma según la revisión de su fondo de ojo.",
+          "fuentes": [
+            "clinico"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "aceptable-011",
+    "esperado": "aceptar",
+    "regla": null,
+    "nota": "Descarte de queratocono citado textualmente del clínico como descarte.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con astigmatismo irregular en ojo derecho; valorar para descartar queratocono.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión distorsionada.",
+      "sintomas_referidos": [
+        "vision_borrosa"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "El astigmatismo en su ojo derecho puede generar distorsión al observar figuras.",
+          "fuentes": [
+            "rx.od"
+          ]
+        },
+        {
+          "texto": "En su expediente se sugiere una revisión corneal para descartar queratocono.",
+          "fuentes": [
+            "clinico"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "aceptable-012",
+    "esperado": "aceptar",
+    "regla": null,
+    "nota": "Descarte de catarata presente en el clínico y expresado como descarte.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con miopía bilateral y opacificación leve para descartar catarata.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión borrosa de lejos.",
+      "sintomas_referidos": [
+        "vision_borrosa_lejos"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "La miopía presente en ambos ojos puede dificultar la visualización a distancia.",
+          "fuentes": [
+            "rx.od",
+            "rx.oi"
+          ]
+        },
+        {
+          "texto": "Se programó una exploración ocular complementaria para descartar catarata.",
+          "fuentes": [
+            "clinico"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "aceptable-013",
+    "esperado": "aceptar",
+    "regla": null,
+    "nota": "Perfil rx nulo con explicación neutra de hallazgos sin mencionar graduación.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con irritación conjuntival sin prescripción refractiva en la consulta.",
+      "rx": null,
+      "motivo": "Ardor y lagrimeo.",
+      "sintomas_referidos": [
+        "ardor",
+        "lagrimeo"
+      ],
+      "pantallas": null,
+      "lente": null,
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Usted nos refirió ardor y lagrimeo en sus ojos durante la revisión.",
+          "fuentes": [
+            "motivo"
+          ]
+        },
+        {
+          "texto": "La irritación observada en la superficie conjuntival puede ocasionar sensibilidad ocular temporal.",
+          "fuentes": [
+            "clinico"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "aceptable-014",
+    "esperado": "aceptar",
+    "regla": null,
+    "nota": "Perfil rx nulo que solo describe hallazgos y descarte sin términos de lentes.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con asimetría en reflejos pupilares para descartar neuropatía óptica.",
+      "rx": null,
+      "motivo": "Dolor de cabeza.",
+      "sintomas_referidos": [
+        "cefalea"
+      ],
+      "pantallas": null,
+      "lente": null,
+      "correlaciones": [],
+      "acciones_obligatorias": [
+        "Se aconseja acudir a valoración médica complementaria."
+      ]
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Usted nos comentó que percibe dolor de cabeza en sus jornadas.",
+          "fuentes": [
+            "motivo"
+          ]
+        },
+        {
+          "texto": "Se programaron estudios en su evaluación para descartar neuropatía óptica.",
+          "fuentes": [
+            "clinico"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "aceptable-015",
+    "esperado": "aceptar",
+    "regla": null,
+    "nota": "Consejo de parpadeo y descanso explícitamente respaldado en la correlación activa.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con fatiga visual y sequedad ocular por uso de pantallas.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Ardor y cansancio visual.",
+      "sintomas_referidos": [
+        "ardor",
+        "fatiga_visual"
+      ],
+      "pantallas": "gt6",
+      "lente": "monofocal",
+      "correlaciones": [
+        {
+          "nombre": "pantallas_parpadeo",
+          "texto": "Se recomienda parpadear conscientemente y realizar pausas de descanso al usar pantallas."
+        }
+      ],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "La miopía en sus ojos puede restar definición a objetos distantes.",
+          "fuentes": [
+            "rx.od",
+            "rx.oi"
+          ]
+        },
+        {
+          "texto": "Parpadear conscientemente y tomar pausas breves puede favorecer el descanso de su superficie ocular.",
+          "fuentes": [
+            "cor.pantallas_parpadeo"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "aceptable-016",
+    "esperado": "aceptar",
+    "regla": null,
+    "nota": "Consejo de higiene de párpados respaldado textualmente en la impresión clínica. [Arbitraje de Claude 2026-11-08: frase original violaba magnitud/normalidad; corregida.]",
+    "caso": {
+      "impresion_clinica_final": "Paciente con blefaritis marginal; se recomienda limpieza suave del borde palpebral.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Comezón en los párpados.",
+      "sintomas_referidos": [
+        "comezon"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "El astigmatismo en sus ojos puede hacer que las letras se vean poco definidas al leer.",
+          "fuentes": [
+            "rx.od",
+            "rx.oi"
+          ]
+        },
+        {
+          "texto": "Mantener una limpieza suave en el borde de sus párpados puede disminuir las molestias reportadas.",
+          "fuentes": [
+            "clinico"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "aceptable-017",
+    "esperado": "aceptar",
+    "regla": null,
+    "nota": "Combinación de hipermetropía y astigmatismo explicada con modalidad y usted.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con hipermetropía y astigmatismo bilateral.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "hipermetropía",
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "hipermetropía",
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Cansancio visual y visión borrosa.",
+      "sintomas_referidos": [
+        "fatiga_visual",
+        "vision_borrosa"
+      ],
+      "pantallas": "btw2_6",
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Su ojo derecho y su ojo izquierdo combinan hipermetropía con astigmatismo.",
+          "fuentes": [
+            "rx.od",
+            "rx.oi"
+          ]
+        },
+        {
+          "texto": "Esta graduación puede exigir un esfuerzo muscular continuo al enfocar letras o imágenes.",
+          "fuentes": [
+            "rx.od",
+            "rx.oi"
+          ]
+        },
+        {
+          "texto": "Sus lentes monofocales proporcionan una corrección homogénea para sus jornadas cotidianas.",
+          "fuentes": [
+            "lente"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "aceptable-018",
+    "esperado": "aceptar",
+    "regla": null,
+    "nota": "Pantallas lt2 citadas válidamente con prudencia.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con miopía bilateral.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión borrosa de lejos.",
+      "sintomas_referidos": [
+        "vision_borrosa_lejos"
+      ],
+      "pantallas": "lt2",
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "La miopía en sus ojos puede restar nitidez a los letreros lejanos.",
+          "fuentes": [
+            "rx.od",
+            "rx.oi"
+          ]
+        },
+        {
+          "texto": "Su uso de pantallas de menos de dos horas diarias representa una exposición visual acotada.",
+          "fuentes": [
+            "pantallas"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "aceptable-019",
+    "esperado": "aceptar",
+    "regla": null,
+    "nota": "Una sola frase concisa que cumple cabalmente todos los requisitos.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con astigmatismo en ojo derecho.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [],
+          "apoyo_cerca": false,
+          "plano": true
+        }
+      },
+      "motivo": "Visión borrosa.",
+      "sintomas_referidos": [
+        "vision_borrosa"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "El astigmatismo en su ojo derecho puede ocasionar que perciba los contornos con sombras al mirar fijamente.",
+          "fuentes": [
+            "rx.od"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "aceptable-020",
+    "esperado": "aceptar",
+    "regla": null,
+    "nota": "Cuatro frases bien hilvanadas con fuentes clínicas, rx y lente.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con miopía y astigmatismo bilateral.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "miopía",
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "miopía",
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión borrosa de lejos.",
+      "sintomas_referidos": [
+        "vision_borrosa_lejos"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Su ojo derecho presenta miopía y astigmatismo.",
+          "fuentes": [
+            "rx.od"
+          ]
+        },
+        {
+          "texto": "Su ojo izquierdo comparte esta misma combinación refractiva.",
+          "fuentes": [
+            "rx.oi"
+          ]
+        },
+        {
+          "texto": "Ambas condiciones pueden dificultar la claridad visual en diversas actividades.",
+          "fuentes": [
+            "rx.od",
+            "rx.oi"
+          ]
+        },
+        {
+          "texto": "Sus lentes monofocales están calculados para equilibrar la llegada de luz en cada mirada.",
+          "fuentes": [
+            "lente"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "aceptable-021",
+    "esperado": "aceptar",
+    "regla": null,
+    "nota": "Astigmatismo solo en ojo izquierdo con ojo derecho plano.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con ojo derecho plano y astigmatismo en ojo izquierdo.",
+      "rx": {
+        "od": {
+          "componentes": [],
+          "apoyo_cerca": false,
+          "plano": true
+        },
+        "oi": {
+          "componentes": [
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión borrosa.",
+      "sintomas_referidos": [
+        "vision_borrosa"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Su ojo derecho no presenta graduación y su ojo izquierdo muestra astigmatismo.",
+          "fuentes": [
+            "rx.od",
+            "rx.oi"
+          ]
+        },
+        {
+          "texto": "Este componente en el ojo izquierdo puede generar desenfoque en ciertas orientaciones visuales.",
+          "fuentes": [
+            "rx.oi"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "aceptable-022",
+    "esperado": "aceptar",
+    "regla": null,
+    "nota": "Hipermetropía solo en ojo derecho con ojo izquierdo plano.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con hipermetropía en ojo derecho y ojo izquierdo plano.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "hipermetropía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [],
+          "apoyo_cerca": false,
+          "plano": true
+        }
+      },
+      "motivo": "Cansancio visual.",
+      "sintomas_referidos": [
+        "fatiga_visual"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "La hipermetropía en su ojo derecho puede ocasionar que dicho ojo trabaje con mayor demanda acomodativa.",
+          "fuentes": [
+            "rx.od"
+          ]
+        },
+        {
+          "texto": "Su lente monofocal compensa esta diferencia para facilitarle comodidad en la mirada.",
+          "fuentes": [
+            "lente"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "aceptable-023",
+    "esperado": "aceptar",
+    "regla": null,
+    "nota": "Miopía solo en ojo izquierdo con ojo derecho plano.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con ojo derecho plano y miopía en ojo izquierdo.",
+      "rx": {
+        "od": {
+          "componentes": [],
+          "apoyo_cerca": false,
+          "plano": true
+        },
+        "oi": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión borrosa de lejos en un ojo.",
+      "sintomas_referidos": [
+        "vision_borrosa_lejos"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Su ojo derecho se encuentra sin graduación, mientras que su ojo izquierdo presenta miopía.",
+          "fuentes": [
+            "rx.od",
+            "rx.oi"
+          ]
+        },
+        {
+          "texto": "Esta situación puede generar que los objetos distantes se aprecien con diferente nitidez.",
+          "fuentes": [
+            "rx.oi"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "aceptable-024",
+    "esperado": "aceptar",
+    "regla": null,
+    "nota": "Ojos planos de lejos con apoyo de cerca, lente monofocal de lectura descrito sin decir lejos o cerca.",
+    "caso": {
+      "impresion_clinica_final": "Paciente emétrope con necesidad de apoyo de cerca por presbicia.",
+      "rx": {
+        "od": {
+          "componentes": [],
+          "apoyo_cerca": true,
+          "plano": true
+        },
+        "oi": {
+          "componentes": [],
+          "apoyo_cerca": true,
+          "plano": true
+        }
+      },
+      "motivo": "Dificultad para enfocar textos pequeños.",
+      "sintomas_referidos": [
+        "vision_borrosa_cerca"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Ambos ojos no presentan miopía ni astigmatismo, pero cuentan con apoyo para enfocar.",
+          "fuentes": [
+            "rx.od",
+            "rx.oi"
+          ]
+        },
+        {
+          "texto": "Esta condición puede dificultar la lectura fluida si no se cuenta con asistencia óptica.",
+          "fuentes": [
+            "rx.od",
+            "rx.oi"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "aceptable-025",
+    "esperado": "aceptar",
+    "regla": null,
+    "nota": "Descarte permitido de retinopatía diabética explícitamente contenido en el texto clínico.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con antecedentes metabólicos para descartar retinopatía diabética en fondo de ojo.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión borrosa.",
+      "sintomas_referidos": [
+        "vision_borrosa"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": [
+        "Se sugiere valoración del fondo de ojo."
+      ]
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "La miopía en sus ojos puede incidir en la nitidez de su campo visual.",
+          "fuentes": [
+            "rx.od",
+            "rx.oi"
+          ]
+        },
+        {
+          "texto": "En su estudio se incluye una revisión de retina para descartar retinopatía diabética.",
+          "fuentes": [
+            "clinico"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "aceptable-026",
+    "esperado": "aceptar",
+    "regla": null,
+    "nota": "Descarte de degeneración macular respaldado en el clínico.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con cambios en área central para descartar degeneración macular.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "hipermetropía"
+          ],
+          "apoyo_cerca": true,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "hipermetropía"
+          ],
+          "apoyo_cerca": true,
+          "plano": false
+        }
+      },
+      "motivo": "Visión borrosa de cerca.",
+      "sintomas_referidos": [
+        "vision_borrosa_cerca"
+      ],
+      "pantallas": null,
+      "lente": "progresivo",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "La hipermetropía con apoyo cercano en sus ojos puede demandar esfuerzo al enfocar detalles.",
+          "fuentes": [
+            "rx.od",
+            "rx.oi"
+          ]
+        },
+        {
+          "texto": "Se complementará su valoración para descartar degeneración macular en la zona central.",
+          "fuentes": [
+            "clinico"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "aceptable-027",
+    "esperado": "aceptar",
+    "regla": null,
+    "nota": "Lagrimeo referido y correlación sobre película lagrimal.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con astigmatismo bilateral y tiempo de ruptura lagrimal reducido.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Lagrimeo constante al fijar la vista.",
+      "sintomas_referidos": [
+        "lagrimeo"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [
+        {
+          "nombre": "lagrimal_inestable",
+          "texto": "Película lagrimal inestable puede provocar lagrimeo reflejo."
+        }
+      ],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Usted nos comentó que experimenta lagrimeo constante al realizar sus actividades.",
+          "fuentes": [
+            "motivo"
+          ]
+        },
+        {
+          "texto": "Una película lagrimal con menor estabilidad puede ocasionar lagrimeo reflejo durante el día.",
+          "fuentes": [
+            "cor.lagrimal_inestable"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "aceptable-028",
+    "esperado": "aceptar",
+    "regla": null,
+    "nota": "Comezón referida explicada con prudencia.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con hipermetropía en ambos ojos y reacción papilar conjuntival.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "hipermetropía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "hipermetropía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Comezón ocular recurrente.",
+      "sintomas_referidos": [
+        "comezon"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Como usted nos indicó en la consulta, presenta comezón en sus ojos en diversos momentos.",
+          "fuentes": [
+            "motivo"
+          ]
+        },
+        {
+          "texto": "La hipermetropía en su ojo derecho y en su ojo izquierdo puede generar esfuerzo de enfoque.",
+          "fuentes": [
+            "rx.od",
+            "rx.oi"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "aceptable-029",
+    "esperado": "aceptar",
+    "regla": null,
+    "nota": "Lente progresivo con uso de pantallas prolongado.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con presbicia y miopía en ambos ojos.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": true,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": true,
+          "plano": false
+        }
+      },
+      "motivo": "Cansancio visual y visión borrosa de cerca.",
+      "sintomas_referidos": [
+        "fatiga_visual",
+        "vision_borrosa_cerca"
+      ],
+      "pantallas": "gt6",
+      "lente": "progresivo",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "La miopía con apoyo de cerca puede exigir adaptaciones continuas de enfoque.",
+          "fuentes": [
+            "rx.od",
+            "rx.oi"
+          ]
+        },
+        {
+          "texto": "Sus lentes progresivos favorecen una visión fluida sin cortes visibles.",
+          "fuentes": [
+            "lente"
+          ]
+        },
+        {
+          "texto": "Su permanencia habitual frente a pantallas puede verse beneficiada con esta graduación.",
+          "fuentes": [
+            "pantallas"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "aceptable-030",
+    "esperado": "aceptar",
+    "regla": null,
+    "nota": "Caso sin síntomas referidos en catálogo cerrado, abordado con modalidad estricta.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con astigmatismo en ojo derecho.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [],
+          "apoyo_cerca": false,
+          "plano": true
+        }
+      },
+      "motivo": "Revisión general de vista por cambio de trabajo.",
+      "sintomas_referidos": [],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "En su ojo derecho se identificó astigmatismo, en tanto que su ojo izquierdo se mantiene sin graduación.",
+          "fuentes": [
+            "rx.od",
+            "rx.oi"
+          ]
+        },
+        {
+          "texto": "Esta asimetría óptica podría generar distorsión sutil en bordes de letras al fijar la vista.",
+          "fuentes": [
+            "rx.od"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "aceptable-031",
+    "esperado": "aceptar",
+    "regla": null,
+    "nota": "Miopía bilateral con motivo genérico y descripción de enfoque.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con miopía en ambos ojos.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Examen de la vista rutinario.",
+      "sintomas_referidos": [],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Su graduación presenta miopía en el ojo derecho y en el ojo izquierdo.",
+          "fuentes": [
+            "rx.od",
+            "rx.oi"
+          ]
+        },
+        {
+          "texto": "Esta condición refractiva puede restar definición a objetos distantes si no se utiliza corrección.",
+          "fuentes": [
+            "rx.od",
+            "rx.oi"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "aceptable-032",
+    "esperado": "aceptar",
+    "regla": null,
+    "nota": "Hipermetropía y fatiga con pantallas entre 2 y 6 horas.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con hipermetropía bilateral.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "hipermetropía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "hipermetropía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Cansancio visual al terminar tareas.",
+      "sintomas_referidos": [
+        "fatiga_visual"
+      ],
+      "pantallas": "btw2_6",
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Usted nos comentó sobre el cansancio visual que percibe al terminar sus tareas.",
+          "fuentes": [
+            "motivo"
+          ]
+        },
+        {
+          "texto": "La hipermetropía en sus ojos puede demandar un esfuerzo constante de enfoque.",
+          "fuentes": [
+            "rx.od",
+            "rx.oi"
+          ]
+        },
+        {
+          "texto": "Su permanencia frente a pantallas digitales puede asociarse a esta sobrecarga acomodativa.",
+          "fuentes": [
+            "pantallas"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "aceptable-033",
+    "esperado": "aceptar",
+    "regla": null,
+    "nota": "Astigmatismo bilateral con síntoma canónico vision_borrosa.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con astigmatismo bilateral.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión borrosa sin distancia específica.",
+      "sintomas_referidos": [
+        "vision_borrosa"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Como usted nos comentó en su visita, presenta visión borrosa al observar diferentes objetos.",
+          "fuentes": [
+            "motivo"
+          ]
+        },
+        {
+          "texto": "El astigmatismo en su ojo derecho y en su ojo izquierdo puede provocar esa falta de definición.",
+          "fuentes": [
+            "rx.od",
+            "rx.oi"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "aceptable-034",
+    "esperado": "aceptar",
+    "regla": null,
+    "nota": "OD miopía, OI miopía y astigmatismo, descritos en orden OD luego OI.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con miopía en ojo derecho y miopía con astigmatismo en ojo izquierdo.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "miopía",
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión borrosa de lejos.",
+      "sintomas_referidos": [
+        "vision_borrosa_lejos"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "En su ojo derecho se detectó miopía, mientras que su ojo izquierdo presenta miopía y astigmatismo.",
+          "fuentes": [
+            "rx.od",
+            "rx.oi"
+          ]
+        },
+        {
+          "texto": "Estos componentes refractivos pueden ocasionar desenfoque al mirar hacia la distancia.",
+          "fuentes": [
+            "rx.od",
+            "rx.oi"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "aceptable-035",
+    "esperado": "aceptar",
+    "regla": null,
+    "nota": "OD hipermetropía y astigmatismo, OI hipermetropía, orden riguroso.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con hipermetropía y astigmatismo en ojo derecho, e hipermetropía en ojo izquierdo.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "hipermetropía",
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "hipermetropía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Cansancio visual al leer.",
+      "sintomas_referidos": [
+        "fatiga_visual"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Su ojo derecho combina hipermetropía con astigmatismo y su ojo izquierdo presenta hipermetropía.",
+          "fuentes": [
+            "rx.od",
+            "rx.oi"
+          ]
+        },
+        {
+          "texto": "Esta configuración óptica puede demandar un trabajo de enfoque continuo durante la lectura.",
+          "fuentes": [
+            "rx.od",
+            "rx.oi"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "aceptable-036",
+    "esperado": "aceptar",
+    "regla": null,
+    "nota": "Miopía con pantallas gt6 y monofocal.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con miopía bilateral.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión borrosa de lejos.",
+      "sintomas_referidos": [
+        "vision_borrosa_lejos"
+      ],
+      "pantallas": "gt6",
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "La miopía en ambos ojos puede dificultar el reconocimiento de letreros distantes.",
+          "fuentes": [
+            "rx.od",
+            "rx.oi"
+          ]
+        },
+        {
+          "texto": "Su reporte de más de seis horas frente a pantallas electrónicas puede incrementar la exigencia sobre sus ojos.",
+          "fuentes": [
+            "pantallas"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "aceptable-037",
+    "esperado": "aceptar",
+    "regla": null,
+    "nota": "Ojos planos de lejos con apoyo de cerca y lente flat_top. [Arbitraje de Claude 2026-11-08: frase original violaba magnitud/normalidad; corregida.]",
+    "caso": {
+      "impresion_clinica_final": "Paciente emétrope con presbicia bilateral.",
+      "rx": {
+        "od": {
+          "componentes": [],
+          "apoyo_cerca": true,
+          "plano": true
+        },
+        "oi": {
+          "componentes": [],
+          "apoyo_cerca": true,
+          "plano": true
+        }
+      },
+      "motivo": "Visión borrosa de cerca al leer.",
+      "sintomas_referidos": [
+        "vision_borrosa_cerca"
+      ],
+      "pantallas": null,
+      "lente": "flat_top",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Su receta de lejos no lleva corrección en ninguno de los dos ojos; incluye un apoyo para enfocar de cerca, como al leer.",
+          "fuentes": [
+            "rx.od",
+            "rx.oi"
+          ]
+        },
+        {
+          "texto": "Sus lentes bifocales con segmento plano facilitan la alternancia entre la mirada al frente y la lectura de documentos.",
+          "fuentes": [
+            "lente"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "aceptable-038",
+    "esperado": "aceptar",
+    "regla": null,
+    "nota": "Presbicia con bifocal blended y transición invisible.",
+    "caso": {
+      "impresion_clinica_final": "Paciente emétrope con presbicia bilateral.",
+      "rx": {
+        "od": {
+          "componentes": [],
+          "apoyo_cerca": true,
+          "plano": true
+        },
+        "oi": {
+          "componentes": [],
+          "apoyo_cerca": true,
+          "plano": true
+        }
+      },
+      "motivo": "Visión borrosa de cerca.",
+      "sintomas_referidos": [
+        "vision_borrosa_cerca"
+      ],
+      "pantallas": null,
+      "lente": "bifocal_blended",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "El apoyo para visión cercana en sus ojos puede facilitar enfocar letras pequeñas.",
+          "fuentes": [
+            "rx.od",
+            "rx.oi"
+          ]
+        },
+        {
+          "texto": "El lente bifocal combinado proporciona una división suavizada entre sus campos ópticos.",
+          "fuentes": [
+            "lente"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "aceptable-039",
+    "esperado": "aceptar",
+    "regla": null,
+    "nota": "Perfil rx nulo abordado estrictamente desde síntomas y hallazgos.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con hiperemia conjuntival bilateral leve.",
+      "rx": null,
+      "motivo": "Ardor ocular al despertar.",
+      "sintomas_referidos": [
+        "ardor"
+      ],
+      "pantallas": null,
+      "lente": null,
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Usted nos comentó que presenta ardor ocular al inicio de sus actividades matutinas.",
+          "fuentes": [
+            "motivo"
+          ]
+        },
+        {
+          "texto": "La presencia de irritación en la conjuntiva puede asociarse con sequedad o sensibilidad ambiental.",
+          "fuentes": [
+            "clinico"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "aceptable-040",
+    "esperado": "aceptar",
+    "regla": null,
+    "nota": "Perfil rx nulo con dos síntomas referidos canónicos explicados.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con signos de conjuntivitis alérgica estacional.",
+      "rx": null,
+      "motivo": "Comezón y lagrimeo en ambos ojos.",
+      "sintomas_referidos": [
+        "comezon",
+        "lagrimeo"
+      ],
+      "pantallas": null,
+      "lente": null,
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Usted nos indicó que presenta comezón y lagrimeo en sus ojos.",
+          "fuentes": [
+            "motivo"
+          ]
+        },
+        {
+          "texto": "Los signos inflamatorios observados en la conjuntiva pueden originar dicha incomodidad ocular.",
+          "fuentes": [
+            "clinico"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "aceptable-041",
+    "esperado": "aceptar",
+    "regla": null,
+    "nota": "Perfil rx nulo con cefalea y descarte médico sin nombrar lentes.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con cefalea tensional y evaluación optométrica sin defecto refractivo evidente.",
+      "rx": null,
+      "motivo": "Dolor de cabeza tras lectura.",
+      "sintomas_referidos": [
+        "cefalea"
+      ],
+      "pantallas": null,
+      "lente": null,
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Como usted nos comentó sobre el dolor de cabeza, se exploró el funcionamiento de su sistema visual.",
+          "fuentes": [
+            "motivo",
+            "clinico"
+          ]
+        },
+        {
+          "texto": "La tensión en músculos perioculares puede relacionarse con el cansancio percibido durante el estudio.",
+          "fuentes": [
+            "clinico"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "aceptable-042",
+    "esperado": "aceptar",
+    "regla": null,
+    "nota": "Descarte permitido de desprendimiento de retina que figura en el clínico.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con miopía en ambos ojos; antecedentes familiares para descartar desprendimiento de retina en periferia.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión borrosa de lejos.",
+      "sintomas_referidos": [
+        "vision_borrosa_lejos"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": [
+        "Se aconseja acudir a revisión médica del fondo de ojo."
+      ]
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "La miopía en sus ojos puede comprometer la nitidez al mirar a la distancia.",
+          "fuentes": [
+            "rx.od",
+            "rx.oi"
+          ]
+        },
+        {
+          "texto": "Se incluyó una valoración de la periferia retiniana para descartar desprendimiento de retina.",
+          "fuentes": [
+            "clinico"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "aceptable-043",
+    "esperado": "aceptar",
+    "regla": null,
+    "nota": "Descarte permitido de glaucoma citado con exactitud.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con hipermetropía bilateral; se solicita campo visual para descartar glaucoma.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "hipermetropía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "hipermetropía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Cansancio visual al leer.",
+      "sintomas_referidos": [
+        "fatiga_visual"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "La hipermetropía en ambos ojos puede requerir esfuerzo acomodativo al enfocar de cerca.",
+          "fuentes": [
+            "rx.od",
+            "rx.oi"
+          ]
+        },
+        {
+          "texto": "Se sugirió realizar un campo visual para descartar glaucoma como medida preventiva.",
+          "fuentes": [
+            "clinico"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "aceptable-044",
+    "esperado": "aceptar",
+    "regla": null,
+    "nota": "Consejo de iluminación con respaldo exacto en la correlación.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con astigmatismo en ambos ojos.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión distorsionada.",
+      "sintomas_referidos": [
+        "vision_borrosa"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [
+        {
+          "nombre": "iluminacion_lectura",
+          "texto": "Se aconseja procurar una iluminación ambiental adecuada y evitar sombras sobre el material de lectura."
+        }
+      ],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "El astigmatismo en sus ojos puede distorsionar los bordes de los textos.",
+          "fuentes": [
+            "rx.od",
+            "rx.oi"
+          ]
+        },
+        {
+          "texto": "Contar con una iluminación ambiental adecuada sobre sus lecturas puede favorecer una percepción visual más confortable.",
+          "fuentes": [
+            "cor.iluminacion_lectura"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "aceptable-045",
+    "esperado": "aceptar",
+    "regla": null,
+    "nota": "Consejo ergonómico de distancia con respaldo en la correlación.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con hipermetropía bilateral.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "hipermetropía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "hipermetropía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Cansancio visual al leer.",
+      "sintomas_referidos": [
+        "fatiga_visual"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [
+        {
+          "nombre": "postura_lectura",
+          "texto": "Se aconseja mantener una distancia de lectura cómoda sin acercar excesivamente los textos."
+        }
+      ],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "La hipermetropía en su ojo derecho y en su ojo izquierdo puede generar sobrecarga al enfocar de cerca.",
+          "fuentes": [
+            "rx.od",
+            "rx.oi"
+          ]
+        },
+        {
+          "texto": "Mantener una distancia de lectura cómoda sin acercar en exceso los libros puede ayudar a mitigar la fatiga visual.",
+          "fuentes": [
+            "cor.postura_lectura"
+          ]
+        }
+      ]
+    }
+  }
+]

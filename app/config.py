@@ -1,4 +1,6 @@
+from pydantic import Field
 import logging
+from typing import Literal
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -53,8 +55,28 @@ class Settings(BaseSettings):
                                         # desactivar y obtener variabilidad.
     ollama_max_retries: int = 2         # Intentos ante ReadTimeout o error 5xx.
 
+    limite_contexto_tokens: int = 8192
+    presupuesto_reverificar_s: float = Field(default=300, gt=0)
+    presupuesto_receta_sin_exacto: Literal["estricto", "conservador"] = "conservador"
+
+    # Paciente: techos dentro del plazo global desde la llegada (incluye cola).
+    paciente_llm_habilitado: bool = True
+    paciente_timeout_redaccion_s: float = Field(default=15, gt=0)
+    paciente_timeout_verificacion_s: float = Field(default=5, gt=0)
+    paciente_minimo_redaccion_s: float = Field(default=1, gt=0)
+    paciente_minimo_verificacion_s: float = Field(default=0.5, gt=0)
+    plazo_global_receta_s: float = Field(default=85, gt=0)
+    paciente_omitir_si_espera: bool = True
+
     # Concurrencia / cola
-    max_concurrent: int = 1
+    seguimiento_llm_habilitado: bool = True
+    seguimiento_temperature: float = 0.4
+    seguimiento_num_predict: int = 320
+    verificacion_num_predict: int = 32
+    seguimiento_timeout: float = 45.0
+    fondo_queue_wait_timeout: float = 10.0
+
+    max_concurrent: int = 1  # Debe ser 1: un solo turno de GPU por proceso.
     queue_wait_timeout: float = 30.0
     max_queue_size: int = 5             # Requests maximas en espera antes de 503.
 
@@ -66,13 +88,18 @@ class Settings(BaseSettings):
 
     # Cache
     cache_ttl_seconds: int = 86400
-    cache_max_size: int = 500
+    cache_max_size: int = Field(default=500, ge=0)
 
     # AKR vs Rx
     akr_max_horas_comparacion: int = 24
 
     # Health check
     health_check_timeout: float = 5.0
+    health_cache_segundos: float = Field(default=2.0, ge=0)
+
+    # Seguridad y endurecimiento
+    docs_habilitados: bool = False
+    max_cuerpo_bytes: int = Field(default=1_048_576, ge=65_536)
 
     # Logging
     log_level: str = "INFO"

@@ -15,6 +15,15 @@ from app.providers import ollama
 from app.schemas import ImpresionClinicaRequest
 
 
+@pytest.fixture(autouse=True)
+def rollback_y_cache_limpia(monkeypatch):
+    from app.paciente.integracion import paciente_cache
+    monkeypatch.setattr(settings, "paciente_llm_habilitado", False)
+    paciente_cache.clear()
+    yield
+    paciente_cache.clear()
+
+
 def request(**kwargs):
     eye = {"esfera": -1, "cilindro": -.75}
     return ImpresionClinicaRequest(receta_id="dual", salida_version="clinica-paciente-v1",
@@ -79,7 +88,7 @@ def test_clinical_invalid_does_not_create_success_pair(monkeypatch, clinical):
 
 def test_patient_template_failure_keeps_clinical_and_marks_rejected(monkeypatch):
     calls = fake_provider(monkeypatch, [("Se registra refraccion final.", {})])
-    monkeypatch.setattr(inference, "build_patient_template", lambda profile: None)
+    monkeypatch.setattr("app.paciente.ensamblado.build_patient_template", lambda profile: None)
     result = asyncio.run(inference.run_inference(request(), object()))
     assert result.impresion_clinica and result.explicacion_paciente is None
     assert result.explicacion_paciente_estado == "rechazada" and result.origen_explicacion == "ninguno"
@@ -147,7 +156,8 @@ def test_educational_policy_change_invalidates_only_dual_cache(monkeypatch):
 
 async def api_pair(payload, monkeypatch, *, simultaneous=False):
     monkeypatch.setattr(main.settings, "api_key", "secret")
-    monkeypatch.setattr(main, "_inference_semaphore", asyncio.Semaphore(1))
+    from app.gpu_scheduler import GPUScheduler
+    monkeypatch.setattr(main, "gpu_scheduler", GPUScheduler())
     inference_cache.clear()
     main.app.dependency_overrides[main.get_http_client] = lambda: object()
     try:
@@ -165,8 +175,9 @@ def test_http_metadata_and_original_pair_are_cached(monkeypatch):
     responses = asyncio.run(api_pair(request().model_dump(mode="json"), monkeypatch))
     first, second = [r.json() for r in responses]
     assert all(r.status_code == 200 for r in responses)
-    assert first["cached"] is False and second["cached"] is True and len(calls) == 1
-    assert first["generacion"] == second["generacion"]
+    assert first["cached"] is False and second["cached"] is False and len(calls) == 1
+    assert first["generacion"]["cache"] == {"clinico": False, "paciente": False}
+    assert second["generacion"]["cache"] == {"clinico": True, "paciente": False}
     assert first["generacion"]["origen_clinico"] == "llm"
     assert first["explicacion_paciente_estado"] == "plantilla"
     assert first["generacion"]["origen_explicacion"] == "plantilla"
@@ -185,14 +196,14 @@ def test_identical_requests_waiting_for_gpu_deduplicate_under_slot(monkeypatch):
     responses = asyncio.run(api_pair(request().model_dump(mode="json"), monkeypatch, simultaneous=True))
     assert all(r.status_code == 200 for r in responses)
     assert len(calls) == 1
-    assert sorted(r.json()["cached"] for r in responses) == [False, True]
+    assert all(r.json()["cached"] is False for r in responses)
 
 
 def test_rejected_patient_failure_is_not_cached(monkeypatch):
     calls = fake_provider(monkeypatch, [("Se registra refraccion final.", {})])
-    monkeypatch.setattr(inference, "build_patient_template", lambda profile: None)
+    monkeypatch.setattr("app.paciente.ensamblado.build_patient_template", lambda profile: None)
     responses = asyncio.run(api_pair(request().model_dump(mode="json"), monkeypatch))
-    assert len(calls) == 2 and all(r.json()["cached"] is False for r in responses)
+    assert len(calls) == 1 and all(r.json()["cached"] is False for r in responses)
     assert all(r.json()["explicacion_paciente_estado"] == "rechazada" for r in responses)
 
 

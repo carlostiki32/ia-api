@@ -1,0 +1,518 @@
+[
+  {
+    "id": "enfermedad-001",
+    "esperado": "rechazar",
+    "regla": "enfermedad",
+    "nota": "Afirma diagnóstico directo de enfermedad ('padece glaucoma') fuera de descarte.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con sospecha de neuropatía óptica glaucomatosa.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión borrosa de lejos.",
+      "sintomas_referidos": [
+        "vision_borrosa_lejos"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Usted padece glaucoma en ambos ojos y requiere atención especializada.",
+          "fuentes": [
+            "clinico"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "enfermedad-002",
+    "esperado": "rechazar",
+    "regla": "enfermedad",
+    "nota": "Afirma enfermedad directa ('catarata incipiente') en cristalino.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con opacidad de medios en cristalino.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión borrosa de lejos.",
+      "sintomas_referidos": [
+        "vision_borrosa_lejos"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Presenta una catarata incipiente en su ojo izquierdo que disminuye la nitidez.",
+          "fuentes": [
+            "clinico"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "enfermedad-003",
+    "esperado": "rechazar",
+    "regla": "enfermedad",
+    "nota": "Afirma enfermedad directa ('queratocono') en la córnea.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con astigmatismo irregular.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión distorsionada.",
+      "sintomas_referidos": [
+        "vision_borrosa"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "En su ojo derecho se identificó queratocono corneal que distorsiona las imágenes.",
+          "fuentes": [
+            "clinico"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "enfermedad-004",
+    "esperado": "rechazar",
+    "regla": "enfermedad",
+    "nota": "Afirma 'degeneración macular' fuera de la fórmula de descarte.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con drusas en mácula bilateral.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "hipermetropía"
+          ],
+          "apoyo_cerca": true,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "hipermetropía"
+          ],
+          "apoyo_cerca": true,
+          "plano": false
+        }
+      },
+      "motivo": "Visión borrosa de cerca.",
+      "sintomas_referidos": [
+        "vision_borrosa_cerca"
+      ],
+      "pantallas": null,
+      "lente": "progresivo",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Usted presenta degeneración macular que afecta la claridad de su visión central.",
+          "fuentes": [
+            "clinico"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "enfermedad-005",
+    "esperado": "rechazar",
+    "regla": "enfermedad",
+    "nota": "Afirma 'retinopatía diabética' directamente al paciente.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con microaneurismas retinianos.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión borrosa.",
+      "sintomas_referidos": [
+        "vision_borrosa"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Sus hallazgos muestran retinopatía diabética incipiente en ambos ojos.",
+          "fuentes": [
+            "clinico"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "enfermedad-006",
+    "esperado": "rechazar",
+    "regla": "enfermedad",
+    "nota": "Fórmula 'para descartar glaucoma' cuando glaucoma no figura en el texto clínico.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con miopía bilateral y agudeza visual disminuida.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión borrosa de lejos.",
+      "sintomas_referidos": [
+        "vision_borrosa_lejos"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Se sugiere seguimiento especializado para descartar glaucoma.",
+          "fuentes": [
+            "clinico"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "enfermedad-007",
+    "esperado": "rechazar",
+    "regla": "enfermedad",
+    "nota": "Fórmula 'para descartar catarata' cuando catarata está ausente del clínico.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con astigmatismo bilateral moderado.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión borrosa.",
+      "sintomas_referidos": [
+        "vision_borrosa"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Conviene realizar estudios complementarios para descartar catarata.",
+          "fuentes": [
+            "clinico"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "enfermedad-008",
+    "esperado": "rechazar",
+    "regla": "enfermedad",
+    "nota": "Fórmula 'para descartar desprendimiento de retina' ausente del clínico.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con miopía en ambos ojos.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión borrosa de lejos.",
+      "sintomas_referidos": [
+        "vision_borrosa_lejos"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Se indicaron pruebas para descartar desprendimiento de retina.",
+          "fuentes": [
+            "clinico"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "enfermedad-009",
+    "esperado": "rechazar",
+    "regla": "enfermedad",
+    "nota": "Afirma 'sospecha de neuropatía óptica' fuera de fórmula de descarte.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con alteración del campo visual bilateral.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "hipermetropía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "hipermetropía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Dolor de cabeza.",
+      "sintomas_referidos": [
+        "cefalea"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Existe sospecha de neuropatía óptica en su ojo izquierdo tras la evaluación.",
+          "fuentes": [
+            "clinico"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "enfermedad-010",
+    "esperado": "rechazar",
+    "regla": "enfermedad",
+    "nota": "Especula con enfermedad ('podría tener hipertensión ocular').",
+    "caso": {
+      "impresion_clinica_final": "Paciente con excavación aumentada.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión borrosa de lejos.",
+      "sintomas_referidos": [
+        "vision_borrosa_lejos"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Por las características de su nervio óptico, podría tener hipertensión ocular.",
+          "fuentes": [
+            "clinico"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "enfermedad-011",
+    "esperado": "rechazar",
+    "regla": "enfermedad",
+    "nota": "Confirma diagnóstico cuando el clínico solo señalaba descarte de glaucoma.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con papilas asimétricas; se requiere valorar para descartar glaucoma.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión borrosa de lejos.",
+      "sintomas_referidos": [
+        "vision_borrosa_lejos"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Se confirma el diagnóstico de glaucoma en su ojo derecho según los estudios.",
+          "fuentes": [
+            "clinico"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "enfermedad-012",
+    "esperado": "rechazar",
+    "regla": "enfermedad",
+    "nota": "Menciona enfermedad sistémica 'diabetes' en la explicación fuera de descarte.",
+    "caso": {
+      "impresion_clinica_final": "Paciente diabético con fluctuación refractiva.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión borrosa.",
+      "sintomas_referidos": [
+        "vision_borrosa"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "La presencia de diabetes en sus antecedentes médicos influye en su graduación.",
+          "fuentes": [
+            "clinico"
+          ]
+        }
+      ]
+    }
+  }
+]

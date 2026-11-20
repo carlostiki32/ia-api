@@ -9,8 +9,10 @@ from typing import Annotated, Any
 
 import httpx
 from fastapi import Depends, FastAPI, HTTPException, Request, Response, status
+from fastapi.responses import JSONResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
+from app.gpu_scheduler import gpu_scheduler
 from app.cache import inference_cache
 from app.clinical_data import has_clinical_data
 from app.config import settings
@@ -30,9 +32,7 @@ _INFERENCE_TIMEOUT = settings.ollama_timeout
 
 logger = logging.getLogger(__name__)
 
-_inference_semaphore = asyncio.Semaphore(settings.max_concurrent)
 _bearer_scheme = HTTPBearer(auto_error=False)
-_queue_waiting = 0
 
 
 def _safe_id(receta_id: str) -> str:
@@ -51,8 +51,7 @@ def _origen_request(request: Request) -> str:
 
 def _payload_resumen(req: ImpresionClinicaRequest) -> str:
     """Resumen compacto del payload para el log: QUE campos vienen (no su
-    contenido — el texto libre completo solo se loggea en nivel DEBUG con el
-    prompt renderizado)."""
+    contenido)."""
 
     def _campos(model) -> list[str]:
         return [k for k, v in model.model_dump().items() if v is not None]
@@ -103,7 +102,7 @@ async def lifespan(app: FastAPI):
                 "think":   False,
                 "options": {
                     "num_predict": 1,
-                    "num_ctx": settings.ollama_num_ctx,
+                    "num_ctx": min(settings.ollama_num_ctx, settings.limite_contexto_tokens, 8192),
                 },
             },
             timeout=settings.ollama_timeout,
@@ -112,18 +111,97 @@ async def lifespan(app: FastAPI):
     except Exception as exc:
         logger.warning("Warmup fallido (no critico): %s", exc)
 
+    from app.tareas.presupuesto import contador
+    verificacion = asyncio.create_task(contador.mantener(app.state.http_client))
     try:
         yield
     finally:
+        verificacion.cancel()
+        await asyncio.gather(verificacion, return_exceptions=True)
+        await contador.cerrar()
         await app.state.http_client.aclose()
         logger.info("HTTP client closed")
+
+
+def rutas_documentacion(habilitadas: bool) -> dict[str, str | None]:
+    """/docs, /redoc y /openapi.json solo existen si DOCS_HABILITADOS=true (apagadas en produccion)."""
+    return {
+        "docs_url": "/docs" if habilitadas else None,
+        "redoc_url": "/redoc" if habilitadas else None,
+        "openapi_url": "/openapi.json" if habilitadas else None,
+    }
 
 
 app = FastAPI(
     title="ia-api - Inferencia Clinica Optometrica",
     version="2.1.0",
     lifespan=lifespan,
+    **rutas_documentacion(settings.docs_habilitados),
 )
+
+
+class LimiteCuerpoMiddleware:
+    """Middleware ASGI que valida el tamaño del cuerpo antes de parsear.
+
+    Si Content-Length excede max_cuerpo_bytes responde 413 sin leer el cuerpo.
+    Si no hay Content-Length o viene fragmentado, envuelve receive a nivel ASGI
+    y corta por conteo acumulado.
+    """
+
+    def __init__(self, app: Any) -> None:
+        self.app = app
+
+    async def __call__(self, scope: dict[str, Any], receive: Any, send: Any) -> None:
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        headers = dict(scope.get("headers", []))
+        content_length_raw = headers.get(b"content-length")
+        max_bytes = settings.max_cuerpo_bytes
+
+        if content_length_raw is not None:
+            try:
+                content_length = int(content_length_raw.decode("latin-1"))
+                if content_length > max_bytes:
+                    response = JSONResponse(
+                        status_code=413,
+                        content={"detail": f"El cuerpo de la petición excede el límite de {max_bytes} bytes."},
+                    )
+                    await response(scope, receive, send)
+                    return
+            except ValueError:
+                pass
+
+        bytes_recibidos = 0
+
+        async def custom_receive() -> dict[str, Any]:
+            nonlocal bytes_recibidos
+            message = await receive()
+            if message["type"] == "http.request":
+                cuerpo = message.get("body", b"")
+                bytes_recibidos += len(cuerpo)
+                if bytes_recibidos > max_bytes:
+                    raise HTTPException(
+                        status_code=413,
+                        detail=f"El cuerpo de la petición excede el límite de {max_bytes} bytes.",
+                    )
+            return message
+
+        try:
+            await self.app(scope, custom_receive, send)
+        except HTTPException as exc:
+            if exc.status_code == 413:
+                response = JSONResponse(
+                    status_code=413,
+                    content={"detail": exc.detail},
+                )
+                await response(scope, receive, send)
+            else:
+                raise
+
+
+app.add_middleware(LimiteCuerpoMiddleware)
 
 
 @app.middleware("http")
@@ -132,7 +210,13 @@ async def request_context_middleware(request: Request, call_next):
     genera uno), lo inyecta en todos los logs via contextvar, mide la duracion
     total y la loggea junto al status. El id vuelve al cliente en el header
     X-Request-ID para correlacionar con los logs del SaaS."""
+    request.state.llegada = time.monotonic()
     rid = request.headers.get("x-request-id") or uuid.uuid4().hex[:8]
+    from app.tareas.presupuesto import politica_actual, tarea_actual
+    politica_token = politica_actual.set(settings.presupuesto_receta_sin_exacto if request.url.path in
+        ('/inferencia/impresion-clinica', '/v1/inferencia/receta-clinica') else 'estricto')
+    tarea_token = tarea_actual.set('receta-clinica' if request.url.path in
+        ('/inferencia/impresion-clinica', '/v1/inferencia/receta-clinica') else None)
     token = request_id_var.set(rid)
     # /health se consulta constantemente (monitoreo): solo a nivel DEBUG.
     log = logger.debug if request.url.path == "/health" else logger.info
@@ -145,6 +229,9 @@ async def request_context_middleware(request: Request, call_next):
             request.method, request.url.path,
             response.status_code, time.perf_counter() - start,
         )
+        if tarea_actual.get():
+            from app.tareas.nucleo import metricas
+            metricas.solicitud(tarea_actual.get(), response.status_code, 'presupuesto' if response.status_code == 413 else None, time.perf_counter()-start)
         response.headers["X-Request-ID"] = rid
         return response
     except Exception:
@@ -157,6 +244,8 @@ async def request_context_middleware(request: Request, call_next):
         raise
     finally:
         request_id_var.reset(token)
+        politica_actual.reset(politica_token)
+        tarea_actual.reset(tarea_token)
 
 
 def get_http_client(request: Request) -> httpx.AsyncClient:
@@ -195,30 +284,15 @@ def verify_api_key(
 
 @asynccontextmanager
 async def _inference_slot(safe_id: str):
-    global _queue_waiting
-    if _queue_waiting >= settings.max_queue_size:
-        raise asyncio.TimeoutError
-    _queue_waiting += 1
-    logger.info("Inference request queued [%s] (queue: %d)", safe_id, _queue_waiting)
-    try:
-        if settings.queue_wait_timeout <= 0:
-            await _inference_semaphore.acquire()
-        else:
-            await asyncio.wait_for(
-                _inference_semaphore.acquire(),
-                timeout=settings.queue_wait_timeout,
-            )
-    finally:
-        _queue_waiting -= 1
-    logger.info("Inference slot acquired [%s]", safe_id)
-    try:
-        yield
-    finally:
-        _inference_semaphore.release()
-        logger.info("Inference slot released [%s]", safe_id)
+    async with gpu_scheduler.turno("interactiva"):
+        logger.info("Turno GPU adquirido [%s] prioridad=interactiva", safe_id)
+        try:
+            yield
+        finally:
+            logger.info("Turno GPU liberado [%s] prioridad=interactiva", safe_id)
 
 
-def _inference_response(req, result, correlaciones, cache_key, *, cached):
+def _inference_response(req, result, correlaciones, cache_key, *, cached, cache_hits=None):
     if req.salida_version == "clinica-v1":
         response = {"status": "ok", "impresion_clinica": result, "correlaciones_activadas": correlaciones}
         if cached:
@@ -236,13 +310,95 @@ def _inference_response(req, result, correlaciones, cache_key, *, cached):
             "origen_clinico": "llm", "origen_explicacion": result.origen_explicacion,
             "modelo": settings.ollama_model, "pipeline_version": PIPELINE_VERSION,
             "base_hash_api": cache_key,
+            "paciente_version": result.paciente_version,
+            "motivo_explicacion": result.motivo_explicacion,
+            "acciones_sin_mapear": result.acciones_sin_mapear,
+            "cache": cache_hits or {"clinico": cached, "paciente": cached},
         },
     }
 
 
+async def _crear_dual(req, client, correlaciones, sid, llegada):
+    from app.gpu_scheduler import GPUOcupada
+    from app.paciente.integracion import PuntoControlPaciente, completar
+    from app.tareas.nucleo import metricas
+    from app.tareas.presupuesto import PresupuestoExcedido
+
+    # La clave clínica histórica se comparte entre las dos presentaciones.
+    clinica_req = req.model_copy(update={"salida_version": "clinica-v1"})
+    clave_clinica = inference_cache.build_key(clinica_req)
+    punto = PuntoControlPaciente(publicar_clinico=lambda texto:
+        inference_cache.put(clinica_req, texto, key=clave_clinica))
+
+    def recuperar_clinico():
+        valor = inference_cache.get(clinica_req, key=clave_clinica)
+        if valor is not None:
+            punto.cache_clinico = True
+            punto.publicar(req, valor)
+        return valor
+
+    def esperando():
+        return gpu_scheduler.estadisticas["en_espera_interactiva"] > 0
+
+    async def trabajo():
+        if recuperar_clinico() is not None:
+            valor = punto.recuperado()
+            if valor is not None:
+                return valor
+            if not settings.paciente_llm_habilitado:
+                return punto.respaldo(None)
+        # Tanto el clínico nuevo como el paciente pendiente usan un único turno.
+        async with _inference_slot(sid):
+            if punto.clinico is None:
+                recuperar_clinico()  # Deduplicar tras la espera.
+            if punto.clinico is not None:
+                return await completar(punto, client, llegada=llegada,
+                                       hay_interactiva_esperando=esperando)
+            return await run_inference(req, client, punto_control=punto, llegada=llegada,
+                                       hay_interactiva_esperando=esperando)
+
+    try:
+        restante = min(settings.plazo_global_receta_s, _INFERENCE_TIMEOUT) - (time.monotonic() - llegada)
+        if restante <= 0:
+            # Aún puede existir clínico cacheado, aunque el plazo ya haya vencido.
+            recuperar_clinico()
+            raise TimeoutError
+        result = await asyncio.wait_for(trabajo(), timeout=restante)
+    except (GPUOcupada, TimeoutError) as exc:
+        if punto.clinico is None:
+            raise HTTPException(status_code=503 if isinstance(exc, GPUOcupada) else 504,
+                detail="Servidor ocupado. Hay demasiadas peticiones en espera. Intente de nuevo en unos segundos."
+                       if isinstance(exc, GPUOcupada) else "Ollama no respondio a tiempo. Intente de nuevo.")
+        result = punto.respaldo("ocupado" if isinstance(exc, GPUOcupada) else "timeout")
+    except Exception as exc:
+        if punto.clinico is not None:
+            result = punto.respaldo("error")
+        elif isinstance(exc, PresupuestoExcedido) or (isinstance(exc, ValueError) and str(exc).startswith(CONTEXT_OVERFLOW_PREFIX)):
+            raise HTTPException(status_code=413, detail=str(exc).removeprefix(CONTEXT_OVERFLOW_PREFIX).strip())
+        elif isinstance(exc, GeneracionIncompletaError):
+            respaldo = respaldo_determinista(req)
+            if respaldo is None:
+                raise HTTPException(status_code=502, detail="El modelo no produjo una impresion clinica completa. Intente de nuevo.")
+            return dict(status="ok", impresion_clinica=respaldo, origen="determinista",
+                correlaciones_activadas=correlaciones, salida_version=req.salida_version,
+                cached=False, explicacion_paciente=None, explicacion_paciente_estado="rechazada")
+        elif isinstance(exc, httpx.HTTPStatusError):
+            raise HTTPException(status_code=502, detail=f"Error de Ollama: {exc.response.status_code}")
+        else:
+            logger.exception("Inference failed [%s]", sid)
+            raise HTTPException(status_code=500, detail="Error interno del servidor.")
+    metricas.solicitud("explicacion-paciente", result.explicacion_paciente_estado,
+                       result.motivo_explicacion, time.monotonic() - llegada)
+    return _inference_response(req, result, correlaciones, inference_cache.build_key(req),
+        cached=punto.cache_clinico and punto.cache_paciente,
+        cache_hits={"clinico": punto.cache_clinico, "paciente": punto.cache_paciente})
+
+
+@app.post("/v1/inferencia/receta-clinica")
 @app.post("/inferencia/impresion-clinica")
 async def crear_impresion_clinica(
     req: ImpresionClinicaRequest,
+    request: Request,
     _authorized: Annotated[None, Depends(verify_api_key)],
     client: Annotated[httpx.AsyncClient, Depends(get_http_client)],
 ):
@@ -261,10 +417,11 @@ async def crear_impresion_clinica(
     # caso se devuelven junto al texto. Es barato y deterministico, asi que se
     # calcula tambien en cache hit para que la respuesta sea homogenea.
     correlaciones = nombres_correlaciones_activas(req)
-    logger.info(
-        "Correlaciones activadas [%s] (%d): %s",
-        sid, len(correlaciones), correlaciones or "ninguna",
-    )
+    logger.info("Correlaciones activadas [%s]: %d", sid, len(correlaciones))
+    logger.debug("Nombres de correlaciones activadas [%s]: %s", sid, correlaciones or "ninguna")
+
+    if req.salida_version == "clinica-paciente-v1":
+        return await _crear_dual(req, client, correlaciones, sid, request.state.llegada)
 
     cache_key = inference_cache.build_key(req)
     cached = inference_cache.get(req, key=cache_key)
@@ -352,13 +509,20 @@ async def crear_impresion_clinica(
     except asyncio.TimeoutError:
         logger.warning(
             "Cola saturada [%s] -> 503 (en espera: %d, maximo: %d)",
-            sid, _queue_waiting, settings.max_queue_size,
+            sid, gpu_scheduler.en_cola, settings.max_queue_size,
         )
         raise HTTPException(
             status_code=503,
             detail="Servidor ocupado. Hay demasiadas peticiones en espera. "
             "Intente de nuevo en unos segundos.",
         )
+
+
+_health_probe_cache: dict[str, Any] = {
+    "expira": 0.0,
+    "tags": None,
+    "ps": None,
+}
 
 
 @app.get("/health")
@@ -369,13 +533,37 @@ async def health(
     ollama_status = "error"
     model_available = False
     model_loaded = False
+    # Presupuesto total inferior a los 2 s del cliente Laravel, incluso con E/S lenta.
+    timeout = min(settings.health_check_timeout, 1.4)
+
+    async def probe(path):
+        try:
+            result = await asyncio.wait_for(
+                client.get(f"{settings.ollama_url}/api/{path}", timeout=timeout),
+                timeout=timeout,
+            )
+            result.raise_for_status()
+            return result.json()
+        except Exception:
+            return None
+
+    ahora = time.monotonic()
+    ttl = settings.health_cache_segundos
+    if ttl > 0 and ahora < _health_probe_cache.get("expira", 0.0):
+        tags = _health_probe_cache.get("tags")
+        ps = _health_probe_cache.get("ps")
+    else:
+        tags, ps = await asyncio.gather(probe("tags"), probe("ps"))
+        if ttl > 0:
+            _health_probe_cache["expira"] = ahora + ttl
+            _health_probe_cache["tags"] = tags
+            _health_probe_cache["ps"] = ps
+        else:
+            _health_probe_cache["expira"] = 0.0
+            _health_probe_cache["tags"] = None
+            _health_probe_cache["ps"] = None
     try:
-        tags_resp = await client.get(
-            f"{settings.ollama_url}/api/tags",
-            timeout=settings.health_check_timeout,
-        )
-        tags_resp.raise_for_status()
-        available = [m["name"] for m in tags_resp.json().get("models", [])]
+        available = [m["name"] for m in tags.get("models", [])]
         model_available = settings.ollama_model in available
         ollama_status = "ok"
     except Exception:
@@ -383,12 +571,7 @@ async def health(
 
     if ollama_status == "ok":
         try:
-            ps_resp = await client.get(
-                f"{settings.ollama_url}/api/ps",
-                timeout=settings.health_check_timeout,
-            )
-            ps_resp.raise_for_status()
-            loaded: list[dict[str, Any]] = ps_resp.json().get("models", [])
+            loaded: list[dict[str, Any]] = ps.get("models", [])
             model_loaded = any(
                 m.get("name") == settings.ollama_model for m in loaded
             )
@@ -410,9 +593,19 @@ async def health(
         "model_loaded": model_loaded,
         # Con max_concurrent=1 la profundidad de cola es la senal operacional mas
         # importante: indica cuantas peticiones esperan turno de GPU (0..max_queue_size).
+        "tareas_degradadas": REGISTRO.degradadas(),
+        "modo_conteo": {n: f["modo_conteo"] for n, f in REGISTRO.tabla().items()},
+        "pre_tokenizador": {n: f["pre_tokenizador"] for n, f in REGISTRO.tabla().items()},
+        "gpu": gpu_scheduler.estadisticas,
         "concurrencia": {
             "max_concurrent": settings.max_concurrent,
-            "en_cola": _queue_waiting,
+            "en_cola": gpu_scheduler.en_cola,
             "max_en_cola": settings.max_queue_size,
         },
     }
+
+
+from app.tareas.http import montar_rutas
+from app.tareas.registro import REGISTRO
+
+montar_rutas(app)

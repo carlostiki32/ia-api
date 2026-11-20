@@ -22,7 +22,9 @@ _QWEN_CONTROL_RE = re.compile(
 
 
 def _sanitize(text: str) -> str:
-    return _QWEN_CONTROL_RE.sub("", text)
+    # El prompt conserva el aplanado certificado; las correlaciones reciben
+    # el request original con sus lineas para evaluar el alcance de negacion.
+    return _QWEN_CONTROL_RE.sub("", " ".join(text.split()))
 
 
 _CLINICAL_GENERATION_SUFFIX = "\n\nGenera el parrafo."

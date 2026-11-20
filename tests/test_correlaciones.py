@@ -1000,7 +1000,7 @@ def test_auditoria_bloque_a_falsos_negativos():
     req = _make_request(clinica=DatosClinica(fondo_de_ojo="se solicita descarte de glaucoma por excavacion 0.8"))
     assert "fondo_glaucomatoso" in _active_names(req)
 
-    # A-05: Blefaritis tras 'ao sin pterigion' separada por coma (T1 has_comma_break)
+    # A-05: coma sin coordinador de cierre: conserva la deteccion certificada.
     req = _make_request(clinica=DatosClinica(anexos_oculares="ao sin pterigion, blefaritis moderada bilateral"))
     assert "anexos_patologicos" in _active_names(req)
 
@@ -1131,8 +1131,7 @@ def test_auditoria_bloque_b_falsos_positivos():
 
 
 def test_negacion_quiebre_conector_con_y_cambio_ojo():
-    """D1: El conector 'con' rompe la negacion previa ('sin retinopatia diabetica con desgarro...')
-    y el marcador de ojo con puntuacion ('en OD,') no oculta la patologia afirmativa."""
+    """D1: con anterior al hallazgo conserva la deteccion certificada."""
     req = _make_request(
         clinica=DatosClinica(
             fondo_de_ojo="sin retinopatia diabetica con desgarro en retina periferica en OD, OI normal"
@@ -1143,6 +1142,9 @@ def test_negacion_quiebre_conector_con_y_cambio_ojo():
     textos = corr.evaluar_correlaciones(req)
     assert any("desgarro" in t.lower() for t in textos)
 
+    positivo = _make_request(clinica=DatosClinica(
+        fondo_de_ojo="sin retinopatia diabetica, se observa desgarro en retina periferica en OD, OI normal"))
+    assert "fondo_periferico_riesgo" in _active_names(positivo)
 
 def test_glaucoma_asimetrico_detecta_rapd_y_defecto_aferente():
     """D2: Terminos tecnicos 'rapd' y 'defecto pupilar aferente' activan la sospecha de asimetria glaucomatosa."""

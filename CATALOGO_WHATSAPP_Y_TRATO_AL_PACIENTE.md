@@ -1,6 +1,6 @@
 # Catálogo de WhatsApp de seguimiento y guía de trato al paciente
 
-**Estado: BORRADOR v1-revisado, pendiente de firma del optometrista.** Nada de esto se usa con pacientes hasta que usted lo apruebe; puede cambiar cualquier palabra, quitar hechos o pedir otros.
+**Estado: v1-revisado, EN USO desde el 2026-11-07 por decisión del dueño.** Las decisiones del §6 se aplicaron con sus valores por omisión: se conservan los hechos «P»; ningún hecho depende de la edad; los hechos que exigen «usa armazón» quedan inactivos hasta que exista ese dato; en antimetropía no se nombra la condición; se conserva `traer_lentes`. Puede cambiar cualquier palabra o quitar hechos: el texto vive en `app/seguimiento/catalogo.py` y una prueba exige que coincida con este documento, así que ambos se cambian juntos.
 Fecha: 2026-11-06. Lo prepararon tres agentes especializados: Psicólogo (técnicas de trato), Atención al paciente en salud (catálogo y genéricos) y Evidencia Clínica (revisión de cada frase). Claude consolidó el documento. Aplica la sección C de [PROPUESTA_IA_MULTITAREA_WHATSAPP.md](PROPUESTA_IA_MULTITAREA_WHATSAPP.md).
 
 **Idea central: invitamos a una persona a cuidarse, no perseguimos una venta.** Si el paciente dice que no, la relación sigue intacta.

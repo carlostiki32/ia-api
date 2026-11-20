@@ -105,7 +105,7 @@ _ANTIGUO_RE = re.compile(
     r"(?:desde )?hace (?:\d+|diez|varios|muchos) anos)\b"
 )
 
-_WHITESPACE_RE = re.compile(r"\s+")
+_WHITESPACE_RE = re.compile(r"[^\S\n]+")
 
 # Keywords que DEBEN coincidir como palabra completa. Son abreviaturas clinicas
 # cortas que, con el matching por substring por defecto, aparecen dentro de
@@ -131,11 +131,16 @@ def _normalize_text(value: str | None) -> str:
         return ""
     normalized = unicodedata.normalize("NFKD", str(value))
     ascii_only = "".join(ch for ch in normalized if not unicodedata.combining(ch))
+    # La linea nueva delimita hechos; conservarla tambien tras normalizar CRLF.
+    ascii_only = ascii_only.replace("\r\n", "\n").replace("\r", "\n")
     return _WHITESPACE_RE.sub(" ", ascii_only).strip().lower()
 
 
 @functools.lru_cache(maxsize=1024)
 def _compiled_keyword(keyword: str) -> re.Pattern:
+    if keyword in ("dejo de ver", "deje de ver"):
+        from app.correlaciones.vocabulario import COMPLEMENTO_VISUAL
+        return re.compile(r"\s+".join(map(re.escape, keyword.split())) + COMPLEMENTO_VISUAL)
     if " " in keyword:
         parts = [
             f"{re.escape(w)}(?:s|es)?" if len(w) >= 4 else re.escape(w)
@@ -221,9 +226,32 @@ _AFFIRMATIVE_TRANSITIONS = (
     "se identifica", "se identifican", "se detecta", "se detectan",
     "se visualiza", "se visualizan", "presenta", "presentan",
     "muestra", "muestran", "evidencia", "evidencian",
-    "con hallazgo",
-    "pero ", "empero", "sin embargo", "mas bien",
-    "con ",
+    "con ", "con hallazgo",
+    "pero ", "empero", "sin embargo", "mas bien", "aunque ", "no obstante", "sino ",
+    "refiere", "reporta", "nota ", "percibe",
+)
+
+# Texto normalizado: acentos eliminados, limites de palabra obligatorios.
+_NUEVA_CLAUSULA_RE = re.compile(
+    r"\b(?:acude|consulta|viene|presenta|refiere|reporta|manifiesta|comenta|describe|"
+    r"nota|percibe|siente|ve|observa|aqueja|tiene|padece|sufre|inicia|inicio|comenzo|empezo|"
+    r"desde|hoy|ayer|anoche|actualmente|ahora|recientemente|de repente|"
+    r"subitamente|posteriormente|luego|despues)\b"
+)
+
+# Solo el inicio/tiempo explicito corta tambien si aparece DESPUES del hallazgo.
+# Subita, nuevos, reciente y brusca solos pueden pertenecer a una lista negada.
+_INICIO_TIEMPO_RE = re.compile(
+    r"\b(?:desde|hoy|ayer|anoche|esta\s+(?:manana|tarde|noche)|de\s+inicio|"
+    r"inicio|comenzo|empezo|actualmente|ahora|hace\s+(?:\d+|un[oa]?s?|dos|tres|cuatro|"
+    r"cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|dieciseis|"
+    r"diecisiete|dieciocho|diecinueve|veinte|veinti\w*|treinta|cuarenta|cincuenta|"
+    r"sesenta|setenta|ochenta|noventa|cien(?:to)?|mil|poc[oa]s?|vari[oa]s?|"
+    r"algun[oa]s?|much[oa]s?))\b"
+)
+_NUCLEO_ANTECEDENTES_RE = re.compile(
+    r"\b(?:antecedentes?|cirugias?|traumatismos?|alergias?|enfermedad(?:es)?|"
+    r"padecimientos?|medicamentos?|tratamientos?|uso\s+de|lentes\s+previos)\b"
 )
 
 _EYE_MARKERS_RE = re.compile(r"\b(od|oi|ojo derecho|ojo izquierdo)\b")
@@ -236,7 +264,7 @@ _POSITIVE_CONFIRMATIONS = (
 
 # T13: Transiciones afirmativas negadas por 'no ' que no deben romper una negacion previa
 _NEGATED_TRANSITION_RE = re.compile(
-    r"\bno\s+(?:se\s+)?(?:aprecia|evidencia|visualiza|identifica|constata|observa|detecta|muestra|presenta)n?\b"
+    r"\bno\s+(?:se\s+)?(?:aprecia|evidencia|visualiza|identifica|constata|observa|detecta|muestra|presenta|refiere|reporta|nota|percibe)n?\b"
 )
 
 # T10: Formulas de descarte que expresan sospecha activa salvo resolucion posterior
@@ -287,16 +315,23 @@ def _find_neg_bounded(prefix: str, neg: str) -> int:
         if pos == -1:
             break
         if pos == 0 or not prefix[pos - 1].isalnum():
-            best = pos
+            # Los conectores adversativos no abren una negacion.
+            adversativo = ((neg == "sin " and prefix[pos:].startswith("sin embargo"))
+                           or (neg == "no " and prefix[pos:].startswith("no obstante")))
+            # "No proliferativa", "no continuo" y "no invasivo" califican una entidad o
+            # funcion; no niegan otros hallazgos coordinados posteriores.
+            calificador = neg == "no " and re.match(r"no (?:proliferativ\w*|continu[oa]s?|invasiv[oa]s?)\b", prefix[pos:])
+            if not adversativo and not calificador:
+                best = pos
         start = pos + 1
     return best
 
 
-def _is_match_negated(text: str, start: int, end: int) -> bool:
+def _is_match_negated(text: str, start: int, end: int, *, fin_sufijo: int | None = None) -> bool:
     """Evalua si una ocurrencia span (start, end) en text esta negada
     segun las reglas T1, T9, T10, T11 y T13."""
     # T11: Formato "etiqueta: valor" (ej. "Edema de papila: negativo", "Desgarros: no")
-    after_kw = text[end:]
+    after_kw = text[end:fin_sufijo]
     if _SHORT_NEGATIVE_RE.match(after_kw):
         return True
     m_label = _LABEL_VALUE_RE.match(after_kw)
@@ -305,19 +340,23 @@ def _is_match_negated(text: str, start: int, end: int) -> bool:
         if _LABEL_NEGATORS_RE.match(val_text):
             return True
 
-    sentence_start = max(text.rfind(sep, 0, start) for sep in ".;:!?") + 1
+    # Los encabezados de ojo, como los demas dos puntos, cortan el alcance.
+    sentence_start = max(text.rfind(sep, 0, start) for sep in ".;:!?|\n") + 1
     sentence_prefix = text[sentence_start:start]
 
-    sentence_end_candidates = [text.find(sep, end) for sep in ".;:!?"]
+    sentence_end_candidates = [text.find(sep, end) for sep in ".;:!?|\n"]
     valid_ends = [pos for pos in sentence_end_candidates if pos != -1]
     sentence_end = min(valid_ends) if valid_ends else len(text)
-    sentence_suffix = text[end:sentence_end].strip()
+    # Los extractores por ocurrencia pueden limitar los calificadores del
+    # sufijo sin ocultar el coordinador que cierra una enumeracion posterior.
+    suffix_end = sentence_end if fin_sufijo is None else min(sentence_end, fin_sufijo)
+    sentence_suffix = text[end:suffix_end].strip()
     suffix_words = sentence_suffix.split()
 
     # T10: Formula de descarte ("descartar X", "a descartar X", "descarte de X")
     # Cuenta como sospecha activa SALVO que en el resto del campo haya marcador de resolucion negativa.
     if _DISCARD_FORMULAS_RE.search(sentence_prefix):
-        rest_of_field = text[end:]
+        rest_of_field = text[end:fin_sufijo]
         if _RESOLUTION_MARKERS_RE.search(rest_of_field):
             return True
 
@@ -347,7 +386,12 @@ def _is_match_negated(text: str, start: int, end: int) -> bool:
                 for other in _NEGACIONES_PRE if other != "ni ")
             # 1. Transicion afirmativa posterior al negador (T13: que no este negada por "no ")
             clean_intervening = _NEGATED_TRANSITION_RE.sub(" ", intervening)
-            has_affirmative_break = any(t in clean_intervening for t in _AFFIRMATIVE_TRANSITIONS)
+            if _NEGATED_TRANSITION_RE.match(sentence_prefix[last_neg_pos:]):
+                clean_intervening = _NEGATED_TRANSITION_RE.sub(" ", sentence_prefix[last_neg_pos:])
+            has_affirmative_break = any(
+                re.search(r"\b" + re.escape(t.rstrip()) + r"\b", clean_intervening)
+                for t in _AFFIRMATIVE_TRANSITIONS
+            )
             # 2. Transicion de ojo interocular (el negador estaba en el otro ojo)
             # Un ojo interpuesto puede localizar el hallazgo negado: «sin
             # evidencia en OD de desgarro». Solo dos ojos diferentes permiten
@@ -356,7 +400,10 @@ def _is_match_negated(text: str, start: int, end: int) -> bool:
                 return "od" if match.group() in ("od", "ojo derecho") else "oi"
             previos = list(_EYE_MARKERS_RE.finditer(sentence_prefix[:last_neg_pos]))
             intermedios = list(_EYE_MARKERS_RE.finditer(intervening))
-            posterior = re.match(r"\s*(od|oi|ojo derecho|ojo izquierdo)\b", text[end:])
+            posterior = re.match(
+                r"\s*(?:(?!(?:od|oi|ojo|y|e|con|sin|no|pero|refiere|presenta|reporta)\b)\w+\s+){0,5}"
+                r"(od|oi|ojo derecho|ojo izquierdo)\b", text[end:fin_sufijo],
+            )
             ojos = {ojo_canonico(m) for m in intermedios}
             if previos:
                 ojos.add(ojo_canonico(previos[-1]))
@@ -365,16 +412,38 @@ def _is_match_negated(text: str, start: int, end: int) -> bool:
             has_eye_break = (bool(intermedios) and len(ojos) > 1
                              and re.search(r"\b(?:ni|o)\b", intervening) is None
                              and not coordinated_negation)
-            # 3. Negacion prefija no cruza una coma, salvo en enumeracion negada con ni/o (T1)
+            # La coma corta salvo lista cerrada por coordinador. Un reporte
+            # previo, tiempo en cualquier punto posterior o antecedentes
+            # negados abren otro hecho. En duda, detectar.
+            inicio_negado = last_neg_pos + last_neg_len
+            if coordinated_negation:
+                # Sin antecedentes ni dolor, ...: ni conserva el nucleo
+                # negado por sin/no, aunque este preceda al ultimo negador.
+                inicio_negado = max(
+                    _find_neg_bounded(sentence_prefix[:last_neg_pos], neg)
+                    for neg in _NEGACIONES_PRE if neg != "ni "
+                )
             has_comma_break = False
-            if "," in intervening:
-                tramo = intervening.rsplit(",", 1)[1] + text[start:sentence_end]
-                has_comma_break = re.search(r"\b(ni|o)\b", tramo) is None
-                # «Sin evidencia en OD, ni en OI, de desgarro»: tras «ni», la coma seguida de «de»
-                # solo separa el localizador del hallazgo; no abre una afirmacion nueva.
-                if has_comma_break and coordinated_negation and re.match(r"\s*(?:de|del)\b", intervening.rsplit(",", 1)[1]):
+            for coma in re.finditer(",", intervening):
+                tras_coma = intervening[coma.end():]
+                resto_clausula = tras_coma + text[start:sentence_end]
+                # "y consulta/refiere/ayer..." coordina otra clausula; no
+                # cierra una lista de hallazgos bajo el negador anterior.
+                lista_cerrada = any(
+                    not _NUEVA_CLAUSULA_RE.match(re.sub(r"^\s*(?:se\s+)?", "", resto_clausula[c.end():]))
+                    for c in re.finditer(r"\b(?:ni|o|u|y|e)\b", resto_clausula)
+                )
+                nueva_clausula = bool(_NUEVA_CLAUSULA_RE.search(tras_coma))
+                hasta_coma = sentence_prefix[inicio_negado:last_neg_pos + last_neg_len + coma.start()]
+                corte_tiempo = bool(_INICIO_TIEMPO_RE.search(resto_clausula))
+                corte_antecedentes = bool(_NUCLEO_ANTECEDENTES_RE.search(hasta_coma))
+                has_comma_break = not lista_cerrada or nueva_clausula or corte_tiempo or corte_antecedentes
+                # "ni en OI, de desgarro": la coma solo separa el localizador.
+                if (coordinated_negation and not (corte_tiempo or corte_antecedentes)
+                        and re.match(r"\s*(?:de|del)\b", tras_coma)):
                     has_comma_break = False
-
+                if has_comma_break:
+                    break
             if not (has_affirmative_break or has_eye_break or has_comma_break):
                 return True
 
@@ -403,6 +472,36 @@ def _is_match_negated(text: str, start: int, end: int) -> bool:
         return True
 
     return False
+
+
+def _fragmentos_con_negacion(texto: str, patron: str | re.Pattern) -> list[str]:
+    """Divide para localizar hechos sin convertir una coordinada negada en positiva.
+
+    El prefijo solo se repone cuando el matcher con el texto completo niega el
+    inicio del fragmento y el fragmento aislado ha perdido ese alcance. No se
+    trasladan ojo, sujeto ni calificadores temporales de otro fragmento.
+    """
+    partes = re.split(patron, texto)
+    salida = []
+    cursor = 0
+    for parte in partes:
+        offset = texto.index(parte, cursor)
+        cursor = offset + len(parte)
+        primera = next((m for m in re.finditer(r"\w+", parte)
+                        if m[0] not in {"con", "y", "e", "de", "del", "en", "el", "la", "los", "las", "un", "una",
+                                        "od", "oi", "ao", "ojo", "derecho", "izquierdo"}), None)
+        # Si el fragmento empieza por una señal de clausula nueva, evaluar
+        # despues de la señal completa: en su propio inicio aun no esta en el
+        # prefijo y se reintroduciria "sin" antes de un reporte afirmativo.
+        senal = next((m for m in _NUEVA_CLAUSULA_RE.finditer(parte)
+                      if primera and m.start() <= primera.start() < m.end()), None)
+        if senal:
+            primera = re.compile(r"\w+").search(parte, senal.end())
+        if (primera and _is_match_negated(texto, offset + primera.start(), offset + primera.end())
+                and not _is_match_negated(parte, primera.start(), primera.end())):
+            parte = "sin " + parte
+        salida.append(parte)
+    return salida
 
 
 def _keyword_matches(text: str, keyword: str, *, allow_negation_window: bool) -> bool:

@@ -1,0 +1,26 @@
+{
+  "contrato_version": "seguimiento-whatsapp-v1",
+  "paciente_ref": "c0ffee00c0ffee00",
+  "tramo_edad": "60_mas",
+  "estado_seguimiento": "vencido",
+  "meses_desde_ultima_receta": 19,
+  "recetas_previas": 3,
+  "costo": "con_costo",
+  "ya_notificado_en_ciclo": true,
+  "variante": 0,
+  "rx_lejos": {
+    "od": {
+      "esfera": 1.25,
+      "cilindro": -0.75,
+      "add": 2.25
+    },
+    "oi": {
+      "esfera": 1.0,
+      "cilindro": 0.0,
+      "add": 2.25
+    }
+  },
+  "tipo_lente": "progresivo",
+  "uso_pantallas": null,
+  "usa_armazon": null
+}

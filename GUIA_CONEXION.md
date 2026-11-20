@@ -269,9 +269,9 @@ openssl rand -hex 32
 - En la PC de casa → `ia-api/.env` → `API_KEY=<ese token>`
 - En el VPS → `.env` del SaaS → `IA_API_KEY=<el mismo token>`
 
-### 5.3 ia-api solo en localhost
+### 5.3 ia-api solo en localhost (valor por omisión)
 
-Como cloudflared corre en la **misma** PC, la API no necesita escuchar en la red:
+Como cloudflared corre en la **misma** PC, la API no necesita escuchar en la red. De hecho, `HOST=127.0.0.1` es ahora también el **valor por omisión** en `start_linux.sh` (`HOST="${HOST:-127.0.0.1}"`) y en `.env.example`:
 
 ```bash
 # ia-api/.env
@@ -297,6 +297,23 @@ QUEUE_WAIT_TIMEOUT=60
 Así el peor caso (60 s de cola + ~10–30 s de inferencia) queda debajo de 100 s y
 el SaaS siempre recibe un error explicable.
 
+### 5.5 Documentación interactiva (/docs, /openapi.json) apagada por omisión
+
+Para no exponer la interfaz gráfica de Swagger UI, Redoc ni el esquema de la API a través del túnel o la red local, `/docs`, `/redoc` y `/openapi.json` quedan **completamente apagados por omisión** (`docs_habilitados = False` en `app/config.py`).
+
+Si requieres inspeccionar los endpoints interactivamente en desarrollo local, habilítalos temporalmente en `ia-api/.env`:
+
+```bash
+DOCS_HABILITADOS=true
+```
+
+En producción casera déjalo en `false` o no lo definas.
+
+### 5.6 Límites de cuerpo y protección de salud
+
+- **Límite de cuerpo (`MAX_CUERPO_BYTES`):** ia-api incluye el middleware ASGI `LimiteCuerpoMiddleware` con un límite por omisión de 1 MiB (`1048576` bytes). Cualquier petición que exceda este tamaño (vía `Content-Length` o en chunks acumulados) se corta con HTTP `413 Request Entity Too Large` antes de procesar el JSON en memoria.
+- **Caché en /health (`HEALTH_CACHE_SEGUNDOS`):** Para evitar que sondeos de salud continuos o picos de peticiones saturen el daemon de Ollama con llamadas repetitivas, el estado se cachea durante `2.0` segundos por omisión (`HEALTH_CACHE_SEGUNDOS=2.0`).
+
 ---
 
 ## 6. VPS Hetzner — configurar el SaaS
@@ -307,8 +324,8 @@ SSH al VPS y edita el `.env` del proyecto Laravel:
 IA_API_IMPRESION_CLINICA_ENDPOINT=https://ia.redcoretech.xyz/inferencia/impresion-clinica
 IA_API_KEY=<el mismo token de openssl rand>
 IA_API_ENABLED=true
-IA_API_TIMEOUT=120
-IA_API_LOG_ENABLED=true     # déjalo en true mientras estabilizas; luego false si quieres
+IA_API_TIMEOUT=90
+IA_API_LOG_ENABLED=false     # mantener en false salvo diagnostico puntual
 ```
 
 Aplica la config (Laravel cachea la configuración):
@@ -317,13 +334,22 @@ Aplica la config (Laravel cachea la configuración):
 php artisan config:clear && php artisan config:cache
 ```
 
-> `IA_API_LOG_ENABLED=true` hace que `IaApiService` escriba en
-> `storage/logs/laravel.log` cada intento: endpoint, payload, status, duración y
-> cuerpo de la respuesta. Es tu mejor amigo durante la puesta en marcha.
+> **Nota sobre privacidad en logs:** `IA_API_LOG_ENABLED` ahora **solo registra metadatos** (identificadores de receta, óptica, usuario y petición; endpoint, estado HTTP, duración en ms, tamaños en bytes y hashes; **sin datos clínicos, graduaciones ni el contenido de la respuesta**). Por higiene operativa y rendimiento, conviene mantenerlo apagado (`false`) salvo diagnóstico puntual.
 
 ---
 
 ## 7. PC de casa — configurar y dejar corriendo ia-api
+
+### 7.0 Instalación de dependencias del entorno virtual
+
+Al preparar o actualizar el entorno virtual en tu PC:
+
+```bash
+cd ~/Documentos/ia-api
+.venv/bin/pip install -r requirements.txt
+```
+
+Al instalar con `pip install -r requirements.txt` se instala automáticamente `anyio>=4.14.2` (requerido para resolver advertencias de compatibilidad y seguridad en el bucle asíncrono ASGI), junto con `fastapi>=0.111.0` y `pydantic>=2.7.0`.
 
 ### 7.1 `.env` final recomendado
 
@@ -343,13 +369,16 @@ OLLAMA_MAX_RETRIES=2
 MAX_CONCURRENT=1
 QUEUE_WAIT_TIMEOUT=60          # ver §5.4 (límite de 100s de Cloudflare)
 MAX_QUEUE_SIZE=5
-HOST=127.0.0.1                 # solo localhost; cloudflared vive en esta misma PC
+HOST=127.0.0.1                 # valor por omision; solo localhost (cloudflared vive en esta misma PC)
 PORT=8888
 API_KEY=<token de openssl rand -hex 32>
 MAX_SENTENCES=10
 CACHE_TTL_SECONDS=86400
 CACHE_MAX_SIZE=500
 HEALTH_CHECK_TIMEOUT=5.0
+HEALTH_CACHE_SEGUNDOS=2.0      # cache para no saturar Ollama ante sondeos repetidos
+DOCS_HABILITADOS=false         # /docs y /openapi.json apagados en produccion
+MAX_CUERPO_BYTES=1048576       # limite de 1 MiB por peticion en middleware ASGI
 LOG_LEVEL=INFO                 # DEBUG imprime además el prompt completo
 ```
 
@@ -495,7 +524,7 @@ El request se puede seguir **por request-id**: ia-api devuelve el header
 
 | Log | Máquina | Qué tiene |
 |---|---|---|
-| `storage/logs/laravel.log` | VPS | Cada llamada del SaaS a la ia-api: payload, status, duración, respuesta (con `IA_API_LOG_ENABLED=true`) |
+| `storage/logs/laravel.log` | VPS | Metadatos de cada llamada del SaaS a la ia-api: identificadores, endpoint, estado HTTP, duración, tamaños y hashes (sin datos clínicos ni el cuerpo de la respuesta; solo si `IA_API_LOG_ENABLED=true`) |
 | Cloudflare → Security → Events / Networking → Tunnels | nube | Bloqueos WAF y salud del túnel |
 | `journalctl -u cloudflared` | PC casa | Conexión del túnel, errores de origen |
 | `ia-api/logs/inference.log` + `logs/errors.log` | PC casa | Todo el pipeline con request-id: payload recibido, correlaciones, métricas de Ollama (tokens, tok/s), guardarraíles, y errores con traceback (errors.log = solo WARNING+, el primer archivo a revisar) |
@@ -532,7 +561,7 @@ El request se puede seguir **por request-id**: ia-api devuelve el header
 - [ ] Túnel: published application `ia.redcoretech.xyz → HTTP localhost:8888` (§4.3)
 - [ ] Cloudflare WAF: regla `solo-vps-a-ia-api` **Deploy** (§5.1)
 - [ ] Token de `openssl rand -hex 32` idéntico en `API_KEY` (casa) y `IA_API_KEY` (VPS)
-- [ ] `ia-api/.env`: `HOST=127.0.0.1`, `QUEUE_WAIT_TIMEOUT=60`
+- [ ] `ia-api/.env`: `HOST=127.0.0.1` (default), `DOCS_HABILITADOS=false`, `QUEUE_WAIT_TIMEOUT=60`
 - [ ] VPS: endpoint `https://ia.redcoretech.xyz/...`, `IA_API_ENABLED=true`, `config:cache`
 - [ ] `systemctl enable --now ia-api` (y ollama corriendo)
 - [ ] §9 completo: curl local ✔, curl desde VPS ✔, 403 desde otra red ✔, botón "Generar con IA" ✔

@@ -11,6 +11,7 @@ import re
 from dataclasses import dataclass, replace
 
 from app.correlaciones.base import _memoize_cond
+from app.correlaciones.vocabulario import BRUSQUEDAD_RE, COMPLEMENTO_VISUAL, DIPLOPIA, PERDIDA_VISION, perdidas_subitas
 from app.correlaciones.fondo_de_ojo import _cond_glaucoma_asimetrico
 from app.correlaciones.hechos_textuales import _certeza_local, _es_hipotetico, _sujeto_es_paciente
 from app.correlaciones.texto import (
@@ -179,15 +180,18 @@ _SINTOMAS_EPISODIO = {
     "perdida de vision": "perdida visual referida",
 }
 
+_SINTOMAS_EPISODIO.update({k: "diplopia referida" for k in DIPLOPIA})
+_SINTOMAS_EPISODIO.update({k: "perdida visual referida" for k in PERDIDA_VISION})
+
 
 _NEGACION_DE_EXPLICACION_RE = re.compile(
     r"\bno\s+(?:es\s+)?(?:fisiologic\w*|farmacologic\w*|congenit\w*)\b"
 )
 
 
-def _afirmado_local(texto: str, inicio: int, fin: int) -> bool:
-    # El marcador del propio ojo no rompe una negacion ("sin miosis OD").
-    sin_ojos = _EYE_MARKERS_EXPLICIT_RE.sub(lambda m: " " * len(m[0]), texto)
+def _afirmado_local(texto: str, inicio: int, fin: int, *, fin_sufijo: int | None = None) -> bool:
+    # El matcher compartido conserva el ojo y distingue un encabezado nuevo.
+    afirmacion = texto
 
     # "No fisiologico" niega la explicacion, no lo que sigue ("no fisiologico de
     # nueva aparicion"). Se ignora salvo que el propio fragmento evaluado este
@@ -195,19 +199,19 @@ def _afirmado_local(texto: str, inicio: int, fin: int) -> bool:
     def enmascarar(m: re.Match) -> str:
         return m[0] if m.start() < fin and m.end() > inicio else " " * len(m[0])
 
-    sin_ojos = _NEGACION_DE_EXPLICACION_RE.sub(enmascarar, sin_ojos)
-    return not _is_match_negated(sin_ojos, inicio, fin)
+    afirmacion = _NEGACION_DE_EXPLICACION_RE.sub(enmascarar, afirmacion)
+    return not _is_match_negated(afirmacion, inicio, fin, fin_sufijo=fin_sufijo)
 
 
-def _signo_afirmado(texto: str, inicio: int, fin: int) -> bool:
+def _signo_afirmado(texto: str, inicio: int, fin: int, *, fin_sufijo: int | None = None) -> bool:
     # "Anisocoria no fisiologica" niega la explicacion, no la anisocoria.
     # Conservar offsets para evaluar precisamente esta ocurrencia.
     assertion = re.sub(r"\bno\s+(?:es\s+)?(?:fisiologic\w*|farmacologic\w*|congenit\w*)\b",
                        lambda m: " " * len(m[0]), texto)
-    cola = _EYE_MARKERS_EXPLICIT_RE.sub("", texto[fin:]).strip(" :")
+    cola = _EYE_MARKERS_EXPLICIT_RE.sub("", texto[fin:fin_sufijo]).strip(" :")
     if re.match(r"(?:no\s+(?:se\s+)?(?:evaluo|evaluad\w*|exploro|explorad\w*)|sin evaluar)\b", cola):
         return False
-    return _afirmado_local(assertion, inicio, fin)
+    return _afirmado_local(assertion, inicio, fin, fin_sufijo=fin_sufijo)
 
 
 def _calificador_afirmado(texto: str, patron: re.Pattern) -> bool:
@@ -220,8 +224,9 @@ def _patron_ocurrencias(claves: tuple[str, ...]) -> re.Pattern:
     texto: cada palabra de 4+ letras admite s/es), un grupo nombrado por clave
     para recuperar la clave canonica de cada coincidencia."""
     def con_plurales(clave: str) -> str:
-        return r"\s+".join(f"{re.escape(w)}(?:s|es)?" if len(w) >= 4 else re.escape(w)
-                           for w in clave.split())
+        return (r"\s+".join(f"{re.escape(w)}(?:s|es)?" if len(w) >= 4 else re.escape(w)
+                            for w in clave.split())
+                + (COMPLEMENTO_VISUAL if clave in ("dejo de ver", "deje de ver") else ""))
     return re.compile(r"\b(?:" + "|".join(
         f"(?P<k{i}>{con_plurales(k)})" for i, k in enumerate(claves)
     ) + r")\b")
@@ -320,7 +325,7 @@ def _ocurrencias_oculares(
     patron = _patron_ocurrencias(claves)
     hallazgos: list[_HallazgoOcular] = []
     cortes = {0, len(norm)}
-    for limite in re.finditer(r"[.;|!?]|\b(?:od|oi|ao)\s*:", norm):
+    for limite in re.finditer(r"[.;|!?\n]|\b(?:od|oi|ao)\s*:", norm):
         if len(limite[0]) > 1 and re.match(r"\s*(?:ausentes?|presentes?|positiv\w*|negativ\w*)\b", norm[limite.end():]):
             # "Miosis OD: ausente" es un valor del signo, no otro encabezado.
             continue
@@ -331,7 +336,6 @@ def _ocurrencias_oculares(
     for a, b in zip(limites, limites[1:]):
         clausula = norm[a:b]
         matches = list(patron.finditer(clausula))
-        neg_izq: list[int] = []  # inicio del tramo sobre el que se evalua la negacion de cada ocurrencia
         for indice, match in enumerate(matches):
             izquierda, derecha = 0, len(clausula)
             if indice:
@@ -351,18 +355,9 @@ def _ocurrencias_oculares(
                 derecha = match.end() + conector.start() if conector else siguiente.start()
             contexto = clausula[izquierda:derecha]
             inicio, fin = match.start() - izquierda, match.end() - izquierda
-            # «Sin cefalea y diplopia», «sin DPAR o anisocoria»: una lista unida por y/e/o/ni sigue
-            # bajo el mismo negador. No se hereda ante coma, pero/con/sin/no ni entre ojos distintos.
-            neg_ini = izquierda
-            if indice:
-                tramo_lista = clausula[matches[indice - 1].end():match.start()]
-                if (re.search(r"\b(?:y|e|o|ni)\b", tramo_lista)
-                        and not re.search(r",|\b(?:pero|con|sin|no|aunque|mientras|ahora|sino)\b", tramo_lista)):
-                    ojos_previos = _ojos_estrictos(clausula[neg_izq[indice - 1]:match.start()])
-                    ojos_actuales = _ojos_estrictos(contexto)
-                    if not (ojos_previos and ojos_actuales and ojos_previos != ojos_actuales):
-                        neg_ini = neg_izq[indice - 1]
-            neg_izq.append(neg_ini)
+            # El contexto local conserva ojo y calificadores; la negacion se
+            # evalua desde el inicio de la clausula para no perder el negador
+            # al separar una enumeracion con comas, y/e o complementos con con.
             # `lado_es_ojo=False`: "derecha/izquierda" nombran un hemicampo, no un ojo.
             tiene_od = bool((_OD_MARKERS_RE if lado_es_ojo else _OD_ESTRICTO_RE).search(contexto))
             tiene_oi = bool((_OI_MARKERS_RE if lado_es_ojo else _OI_ESTRICTO_RE).search(contexto))
@@ -401,6 +396,16 @@ def _ocurrencias_oculares(
                 ojo = "AO"
             temporal = _contexto_temporal(contexto, inicio, fin)
             cambio = _calificador_afirmado(temporal, _CAMBIO_RE)
+            if hallazgo.split("|")[-1] in (
+                "diplopia", "diplopia referida", "perdida visual", "perdida visual referida",
+                "disminucion visual referida", "perdida o disminucion visual",
+            ):
+                cambio = cambio or _calificador_afirmado(temporal, BRUSQUEDAD_RE)
+                # «De golpe» también coincide con el token previo de trauma;
+                # conserva esa detección y la brusquedad de la pérdida visual.
+                if "diplopia" not in hallazgo:
+                    cambio = cambio or any(p.start() <= match.start() < p.end()
+                                           for p in perdidas_subitas(clausula))
             antiguo = _calificador_afirmado(temporal, _ANTIGUO_RE)
             if re.search(r"\b(?:conocid\w*|cirugia)\b", temporal) and re.search(r"\b(?:sin cambios|estable)\b", temporal):
                 antiguo = True
@@ -426,7 +431,7 @@ def _ocurrencias_oculares(
                              or norm[b:b + 1] == "?")
             hallazgos.append(_HallazgoOcular(
                 hallazgo, a + match.start(), a + match.end(), ojo,
-                (_signo_afirmado(clausula[neg_ini:derecha], match.start() - neg_ini, match.end() - neg_ini)
+                (_signo_afirmado(norm, a + match.start(), a + match.end(), fin_sufijo=a + derecha)
                  and _sujeto_es_paciente(norm, a + match.start(), a + match.end())
                  and not _es_hipotetico(norm, a + match.start(), a + match.end())), explicacion,
                 "cambio reciente" if cambio else "antigua" if antiguo else "indeterminada",

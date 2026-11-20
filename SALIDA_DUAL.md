@@ -1,173 +1,140 @@
 # Salida clínica y explicación para paciente
 
-Implementación local actualizada: 6 de noviembre de 2026 (F0, C2–C4 y C6). No se desplegó ni se ejecutó el
-modelo real: el servidor de destino está apagado y las simulaciones sustituyen
-únicamente el proveedor Ollama. El endpoint, prompts, validaciones y caché
-se ejecutan en el código real.
+Actualización W1b, 8 de noviembre de 2026. Validación local con HTTP simulado;
+calidad, latencias y cancelación efectiva de Ollama en GPU siguen pendientes.
 
 ## Request y compatibilidad
 
-Se conserva `POST /inferencia/impresion-clinica`, Bearer y los campos del
-[diccionario normativo](DICCIONARIO_DATOS_RECETA.md). `salida_version` es un
-campo tipado, no un extra ignorado:
+`POST /inferencia/impresion-clinica` y `/v1/inferencia/receta-clinica`, Bearer.
+El [diccionario](DICCIONARIO_DATOS_RECETA.md) es el contrato de entrada.
+`salida_version` omitido o `clinica-v1` conserva la llamada, depuración y respuesta
+históricas. `clinica-paciente-v1` agrega la explicación; otro valor o nulo: 422.
+Generar con IA solicita ambos textos; Guardar y aprobar pertenecen a Óptica.
 
-| Valor | Comportamiento |
-|---|---|
-| Omitido o `clinica-v1` | Párrafo clínico y respuesta histórica; `cached:true` solo en hit. |
-| `clinica-paciente-v1` | Dos textos con estados, `cached` booleano y procedencia. |
-| Nulo o cualquier otro valor | HTTP 422 de validación. |
+## Cadena y punto de control
 
-No se agrega confirmación ni indicador de guardado al payload. El SaaS solicita
-la API solo mediante Generar con IA. Guardar, revisar e imprimir no son operaciones
-de este endpoint y nunca deben disparar una nueva inferencia.
+Clínico final no vacío → punto de control y caché clínica → redacción → validador
+determinista → verificación → acciones CPU primero y prosa después, con `\n\n`.
+La llamada clínica conserva prompts, opciones, reintentos y depuración; el perfil
+educativo no entra en su prompt. La explicación usa el clínico final completo,
+hechos permitidos, síntomas personales ciertos y correlaciones activas.
 
-```json
-{
-  "receta_id": "ejemplo-sintetico",
-  "salida_version": "clinica-paciente-v1",
-  "refraccion": {
-    "od": {"esfera": -2, "cilindro": -0.75},
-    "oi": {"esfera": -1.75, "cilindro": -0.75}
-  }
-}
-```
+La redacción explica graduación y hallazgos en la vida diaria con frases cortas,
+lenguaje cotidiano y traducciones del glosario. Efectos no referidos: «puede» o
+«podría». No confirma diagnósticos ni añade exploraciones o normalidad.
+El hecho `lente` solo autoriza su descripción CPU: monofocal no determina una
+distancia de uso. Se admiten efectos de la graduación y ayuda de los lentes
+cuando los hechos los sustentan; atribuir lejos, cerca o lectura al diseño
+monofocal en la misma frase infringe la regla `lente`.
+Salida JSON: una a cuatro frases y hasta 120 palabras; 384 tokens de salida,
+temperatura 0.2 y semilla 42. Verificación JSON: solo `{"valido":true}` aprueba;
+32 tokens, temperatura 0 y semilla 42. Una tentativa por etapa, `think=false`.
+El proveedor determina `num_ctx=min(OLLAMA_NUM_CTX,LIMITE_CONTEXTO_TOKENS,8192)`.
 
-## Respuesta normal
+Sin contador exacto, ambas llamadas usan siempre política de presupuesto estricta. La llamada
+clínica conserva `PRESUPUESTO_RECETA_SIN_EXACTO`: `estricto` usa bytes UTF-8 como
+cota demostrable (una receta típica puede dar 413); `conservador` usa heurística,
+con advertencia y sin garantía exacta. Un caso mínimo puede caber incluso en
+estricto. Con contador exacto verificado se usa BPE en ambos modos.
+
+Techos de entrada: 7000/7400; entrada más salida: 7384/7432, por debajo de 7782
+con contexto efectivo 8192. Conteo oficial del system: redacción 1012 tokens
+(incluye objetivo y glosario), verificación 174. El glosario aislado cuenta 419.
+El [material generado para revisión](auditoria/2026-11-08-explicacion-paciente/02-catalogo-y-prompts-para-revision.md)
+contiene los textos literales y las versiones; se regenera con
+`python scripts/catalogo_paciente.py --salida RUTA.md --tokenizer RUTA_TOKENIZER_JSON`.
+Cada llamada cuenta la entrada completa con roles y envoltura; el esquema no se concatena al prompt. No existe
+un máximo finito de longitud del clínico final: un contexto excesivo usa respaldo.
+
+## Respuesta
 
 ```json
 {
   "status": "ok",
-  "impresion_clinica": "Párrafo clínico validado...",
-  "explicacion_paciente": "Su graduación incluye corrección para...",
-  "explicacion_paciente_estado": "plantilla",
+  "impresion_clinica": "Texto clínico final...",
+  "explicacion_paciente": "Acciones obligatorias y explicación...",
+  "explicacion_paciente_estado": "generada",
   "correlaciones_activadas": [],
   "salida_version": "clinica-paciente-v1",
   "cached": false,
   "generacion": {
     "origen_clinico": "llm",
-    "origen_explicacion": "plantilla",
+    "origen_explicacion": "llm",
     "modelo": "qwen3.5:9b",
     "pipeline_version": "clinica-paciente-v1",
-    "base_hash_api": "sha256-de-64-caracteres-de-la-clave-normalizada"
+    "paciente_version": "paciente-v1",
+    "motivo_explicacion": null,
+    "acciones_sin_mapear": 0,
+    "cache": {"clinico": false, "paciente": false},
+    "base_hash_api": "sha256-de-la-base-normalizada"
   }
 }
 ```
 
-`base_hash_api` incluye la base normalizada, versión, modelo y configuración de
-generación pertinente. Sirve para trazabilidad/caché del motor; no equivale a
-la huella del payload crudo que guarda Laravel.
+`base_hash_api` identifica la base de la petición dual; no es la huella del
+payload crudo de Laravel ni la clave interna del paciente.
 
-| Estado educativo | Texto | Origen educativo |
-|---|---|---|
-| `plantilla` | Catálogo determinista válido, generado siempre en CPU. | `plantilla` |
-| `sin_componentes_refractivos` | Nulo: ESF/CIL completos, ambos ojos cero y sin ADD positiva. | `ninguno` |
-| `datos_incompletos` | Nulo: falta ESF/CIL de algún ojo. | `ninguno` |
-| `rechazada` | Nulo: la plantilla no pasó su validación (fallo interno inesperado). | `ninguno` |
-
-El contrato HTTP conserva sus campos y valores posibles, incluidos `generada` y
-`llm` como valores históricos; el flujo vigente no los emite para la explicación.
-El clínico válido se conserva aunque falle la plantilla educativa. Los estados
-sin contenido no se sustituyen por texto de normalidad ni por medidas AKR.
-`rechazada` no se cachea. El respaldo clínico urgente conserva su contrato separado.
-
-## Perfil educativo y redacción
-
-`app/patient_profile.py` solo recibe la refracción final de lejos normalizada.
-No usa edad, AKR, motivo, hallazgos, diseño de lente ni el texto clínico.
-ESF/CIL explícitos de **ambos ojos** son necesarios; cero difiere de ausencia.
-No agrega una exigencia de eje para nombrar una corrección.
-
-Se calculan `S` y `S+C`, conservando transposición y nulos de Pydantic:
-
-| Potencias registradas | Nombres permitidos |
+| Estado/origen | Contenido |
 |---|---|
-| CIL cero, ESF negativa/positiva | Miopía/hipermetropía. |
-| CIL no cero, ambas potencias negativas/positivas | Miopía/hipermetropía y astigmatismo. |
-| CIL no cero, una potencia cero o signos opuestos | Astigmatismo sin subtipo. |
-| ESF y CIL explícitamente cero | Ojo plano: describir la receta de lejos con 0.00; no afirmar salud. |
-| ADD positiva | Apoyo para enfocar cerca; nunca presbicia automática. |
+| `generada` / `llm` | Prosa validada y verificada, con acciones primero. |
+| `plantilla` / `plantilla` | Acciones y plantilla CPU, o acciones solas. |
+| `datos_incompletos` / `ninguno` | Nulo: sin explicación validada, perfil incompleto y sin acciones. |
+| `sin_componentes_refractivos` / `ninguno` | Nulo: sin explicación validada, perfil sin componentes y sin acciones. |
+| `rechazada` / `ninguno` | Nulo ante fallo interno o imposibilidad de ensamblar dentro del límite. |
 
-El perfil cerrado con ojos/nombres se usa exclusivamente en CPU mediante
-`build_patient_template(profile)`. Nunca se envía al modelo. El paciente se trata
-siempre de **usted**. Se agrupan tipos iguales y se identifica derecho/izquierdo
-cuando difieren, con una única oración de apertura: «Su graduación incluye
-corrección para astigmatismo en el ojo derecho y para miopía en el ojo izquierdo».
+Sin ESF/CIL completos se pueden explicar hallazgos documentados y devolver
+`generada/llm`. Si falla, las acciones aún se entregan; sin ellas se conserva
+el estado del perfil. AKR nunca completa el perfil educativo.
 
-El orden validado es: apertura → frase de ojo plano → definiciones (miopía,
-hipermetropía, astigmatismo) → apoyo cercano → cierres sin repeticiones. Si solo
-hay ADD, la apertura ya identifica el apoyo y su lateralidad; tras la frase de
-plano se explica ese apoyo. Cada plantilla aplicable tiene 60–110 palabras y cada
-frase pertenece al catálogo. La edición humana conserva el límite de
-almacenamiento de 2000 caracteres.
+`motivo_explicacion`: nulo al generar con éxito o con el interruptor apagado
+(salvo fallo de ensamblado, que conserva `error`);
+ante respaldo por fallo: `validacion`, `verificacion`, `abstencion`, `timeout`,
+`presupuesto`, `ocupado` o `error`. La explicación ensamblada admite hasta 2000
+puntos de código. Si no cabe, se descarta toda la prosa, nunca se corta una acción.
+Si las acciones solas exceden 2000: nulo, `rechazada`, motivo `error`, conservando
+el clínico. Esta decisión fue aceptada en la auditoría W1a.
+La excepción heredada de la plantilla «marca 0.00… no lleva corrección para ver
+de lejos» sigue limitada al respaldo; las guardas de Qwen no se aplican a esa plantilla.
 
-Ojo plano exige ESF **y** CIL explícitamente 0.00; ESF cero con CIL distinto de
-cero sí lleva corrección. Tras la apertura se añade, según corresponda:
+## Plazos, carga e interruptor
 
-- «En el ojo izquierdo, su receta de lejos marca 0.00: ese lado no lleva corrección para ver de lejos.» (o derecho).
-- «En los dos ojos, su receta de lejos marca 0.00: no lleva corrección para ver de lejos.» (perfil solo con ADD).
+En dual el plazo empieza en el middleware al llegar, antes de validación y cola:
+`PLAZO_GLOBAL_RECETA_S=85`, acotado también por el timeout exterior existente.
+Después del punto de control cualquier error o vencimiento responde 200 con
+clínico y respaldo. Antes se conservan errores clínicos 413/502/504; cola rechazada:
+503. El respaldo clínico urgente conserva `origen=determinista`, sin metadata LLM.
+`clinica-v1` mantiene su timeout histórico y su contrato.
 
-El apoyo cercano sigue indicando en qué ojo(s) hay ADD positiva. Ningún perfil
-permite «sano», «sana», «normal», «no necesita», «no requiere», «presbicia»,
-«perfecto» ni «perfecta»; tampoco tuteo, síntomas individuales o causas anatómicas.
+`PACIENTE_TIMEOUT_REDACCION_S=15`, `PACIENTE_TIMEOUT_VERIFICACION_S=5`: la cadena
+paciente tiene la suma como techo, dentro del global. Ventanas mínimas:
+`PACIENTE_MINIMO_REDACCION_S=1`, `PACIENTE_MINIMO_VERIFICACION_S=0.5`, reserva
+CPU 0.1 s. Son valores iniciales, sin benchmark GPU. Todos los plazos configurables
+exigen valores positivos. Cada etapa usa el mínimo entre techo y plazo restante.
+`PACIENTE_OMITIR_SI_ESPERA=true` cede antes de cada etapa si espera otra interactiva.
+`PACIENTE_LLM_HABILITADO=false` evita ambas llamadas y entrega acciones + plantilla,
+con motivo nulo salvo fallo de ensamblado; también evita servir prosa LLM del
+paciente ya cacheada.
+Cambiar configuración requiere recargar el proceso para aplicar los settings.
 
-## Una generación, guardas separadas y fallos
+## Caché, registro y métricas
 
-En un miss normal, `run_inference` hace **una** llamada clínica Ollama `/api/chat`,
-idéntica a `clinica-v1`: mismo system prompt, mismo user prompt, sin `format`
-JSON Schema, con `stream:false`, `think:false` y presupuesto `OLLAMA_NUM_PREDICT`.
-`message.content` contiene prosa clínica y pasa por el mismo postprocesado,
-guardas, urgencias y seguimiento. La explicación se construye solo con
-`build_patient_template(profile)`, fuera del prompt y de la respuesta del LLM.
-No se guarda `message.thinking` ni se transforma razonamiento en salida.
+La caché clínica usa la clave histórica `clinica-v1` en ambas presentaciones.
+Se publica al alcanzar el punto de control; un fallo posterior no exige repetirla.
+La caché paciente LRU/TTL solo guarda `generada`, con SHA-256 de JSON canónico
+(`sort_keys`, Unicode sin escapes y separadores compactos): clínico final,
+contexto, modelo, opciones efectivas y versiones de perfil, servicio, contexto,
+prompt, esquema, glosario, validador, verificador, acciones y respaldo.
+Se conservan los límites de caché configurados; no se cachean respaldos.
 
-Se conserva un reintento acotado por `done_reason=length`, igual al modo clínico,
-y los intentos del proveedor ante transporte/respuesta vacía/500/503. No existen
-parseo ni reintento de sobre JSON. Una plantilla educativa inválida no hace otra
-llamada. Clínico vacío o truncamiento persistente producen HTTP 502 sin caché,
-conservando las demás excepciones 413, 503 y 504 del endpoint.
+Clínico cacheado y paciente ausente: se publica el clínico, se pide turno
+`interactiva` solo para el paciente y se consume el plazo restante. Si falla la
+espera: 200 con clínico y motivo `ocupado` o `timeout`. `cached=true` exige ambos
+aciertos; `generacion.cache` informa los parciales. El interruptor apagado no
+cachea la plantilla. Las dos cachés se vuelven a consultar tras adquirir turno.
 
-La excepción urgente existente conserva HTTP 200 con `origen:determinista` y
-clínico determinista. En dual añade `salida_version`, `cached:false`, explicación
-nula y estado `rechazada`; **no incluye `generacion`**. Por tanto no acredita una
-inferencia completa ni habilita los bloques PDF condicionados a origen LLM.
-Nunca se cachea este respaldo clínico.
-
-## Caché y configuración local
-
-La RAM conserva los dos textos originales, estado y origen educativo. La clave
-excluye `receta_id`, distingue modos y añade versiones de prompt/perfil/pipeline,
-modelo y sampling/presupuesto/contexto/límite clínico. La política editorial
-`educacion-plantilla-usted-v3` y el perfil `refraccion-final-lejos-v2` invalidan las entradas duales anteriores sin
-cambiar el contrato HTTP ni la clave del modo legacy. Las representaciones
-equivalentes normalizadas pueden compartir clave. Se consulta otra vez después
-de adquirir turno, evitando dos generaciones secuenciales para solicitudes iguales
-que llegaron juntas. TTL 24 horas, LRU 500, concurrencia 1; conservar un worker.
-
-`OLLAMA_NUM_PREDICT=1024` gobierna ambos modos, con aumento acotado por
-truncamiento. `OLLAMA_DUAL_NUM_PREDICT` sigue aceptado por compatibilidad con
-`.env` existentes, pero ya no se usa, tampoco en caché. El default de
-`OLLAMA_NUM_CTX` sigue siendo 8192. Si el valor efectivo es menor, el `lifespan`
-registra «OLLAMA_NUM_CTX=%d < 8192: recetas con AKR y datos clínicos pueden devolver
-413». El despliegue debe verificar el valor efectivo en el equipo con GPU; esta
-implementación no modifica `.env` ni mide rendimiento del modelo.
-
-## Pruebas y evidencia
-
-`tests/test_patient_profile.py` cubre signos/potencias, transposición, mixtos,
-ceros/nulos, ADD sin presbicia, ojos diferentes, fuentes excluidas y las 144
-combinaciones de tipos y apoyo cercano del catálogo. `tests/test_dual_output.py`
-cubre igualdad de prompts y cuerpo HTTP entre modos sin `format`, una llamada
-normal, estados CPU, reintento clínico por longitud, errores y respuesta urgente,
-procedencia, clave legacy fijada antes de F0, invalidación dual y deduplicación
-de peticiones simultáneas. Las pruebas clínicas históricas conservan el modo legacy.
-
-La evidencia **histórica anterior a F0** del SaaS está en
-`C:/dev/optica/docs/validacion-explicacion-paciente/simulaciones-api.json`:
-caso miopía/astigmatismo bilateral (78 palabras, `generada`) y ojos distintos con
-ADD (85 palabras, `plantilla` tras candidato malicioso). Cada caso registra una
-llamada simulada inicial, cero adicionales por respaldo y cero al repetir con
-caché vigente; captura íntegros ambos prompts y las respuestas reales del endpoint.
-Estos fixtures registran el flujo anterior por LLM y no describen el comportamiento
-vigente. No son resultados obtenidos de Qwen ni benchmarks GPU. C1 (leyenda del PDF)
-y la UI de Laravel quedan fuera del alcance de este repositorio; F0 ia-api no
-certifica por sí solo el cierre completo de C1–C6.
+`GET /v1/tareas` describe `explicacion-paciente` como hija de `receta-clinica`,
+interactiva y de montaje manual, con dos llamadas. `GET /v1/metricas` cuenta
+solicitudes, motivos e intentos físicos por tarea y etapa, incluidos intentos
+fallidos o cancelados; no guarda prompts, respuestas ni datos del paciente.
+`scripts/probar_enrutado.py --modo simulado` comprueba tres llamadas en éxito
+y un respaldo. Las pruebas HTTP usan además el tokenizador oficial offline.

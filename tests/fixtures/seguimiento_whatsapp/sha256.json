@@ -1,0 +1,11 @@
+{
+  "g1-modelo-redaccion.json": "bce2c952e735d7f7fdd8a3e379972e317593ee543e3604efe50d455c34d33fdc",
+  "g1-request.json": "7fae8dbae27654ee25ed37af359a4a6d33a3030056fd9aecd4e223241a1f16a2",
+  "g1-respuesta-generada.json": "796e4b49608a3e2b420d052f0d905f640c59c8374d1413fc70e03c9557ca5956",
+  "g1-respuesta-plantilla.json": "88e30bfca0a85433a8218637e123dc68c2ba0ce7031ab994a4e680ff3f5d7b97",
+  "g2-request.json": "551eeb149c8eba586de9992449656e4f319d1d9905d93ead881e4b1dd4de2c81",
+  "g2-respuesta-plantilla.json": "55c5218acca52aad00f11f8baeaf11f06770d6e85bc5f03e98870945454fdedc",
+  "g3-request.json": "20faa4b8a1a509ba2a6233e327a8c72ff65bc3e012086f44b309e031b121bdc7",
+  "g3-respuesta-plantilla.json": "dcd2049dff1625434078fe3d2ced4fc4bf74ec81feea0d77ab73b5c254983c31",
+  "modelo-verificacion-false.json": "ff986203b997aa4e2f38697f8ea06adec77c8ace0117f14928d9e4e76160694d"
+}

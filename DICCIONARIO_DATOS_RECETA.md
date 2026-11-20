@@ -47,8 +47,9 @@ Leyenda de **Origen**:
 `salida_version` es `string` tipado con valores `clinica-v1` (default al omitir)
 y `clinica-paciente-v1`; nulo o cualquier otra versión produce 422. La opción no
 cambia los campos clínicos de entrada. En dual, ESF/CIL representan la receta
-final de lejos. La explicación requiere ESF/CIL explícitos de ambos ojos;
-cero es un dato válido, nulo es ausencia y AKR no lo reemplaza. No se agrega una
+final de lejos. Explicar la graduación requiere ESF/CIL explícitos de ambos ojos;
+la explicación de hallazgos documentados puede generarse sin ese perfil completo.
+Cero es un dato válido, nulo es ausencia y AKR no lo reemplaza. No se agrega una
 bandera de confirmación/guardado ni una obligación de guardar antes de generar.
 La aprobación y las ediciones ocurren en Óptica sin invocar la API al Guardar.
 El contrato dual completo está en [SALIDA_DUAL.md](SALIDA_DUAL.md).
@@ -76,9 +77,14 @@ Ambos ojos poseen idéntica estructura y reglas:
 | `esfera` | `number \| null` | DROPDOWN | `nullable\|numeric\|decimal:0,2\|between:-30,30` | Dropdown de **+20.00 a -20.00 D en pasos de 0.25** (161 opciones exactas generadas por `OpticaOptions::esfera()`). Default en creación: `0.00`. Rango de BD admite hasta ±30.00 D para alta miopía y afaquia extrema. |
 | `cilindro` | `number \| null` | DROPDOWN | `nullable\|numeric\|decimal:0,2\|between:-30,30` | Dropdown de **0.00 a -8.00 D en pasos de 0.25** (33 opciones en `OpticaOptions::cilindro()`). Siempre convención negativa (`≤ 0.00`). Default en creación: `0.00`. |
 | `eje` | `integer \| null` | NUM LIBRE | `nullable\|integer\|between:0,180` | **Validado formalmente entre 0 y 180 grados**. Pydantic conserva valores de 0 a 180; valores atípicos se normalizan módulo 180. Un eje nulo permanece nulo; no se necesita para nombrar los componentes educativos. |
-| `add` | `number \| null` | NUM LIBRE | `nullable\|numeric\|decimal:0,2\|between:0,30` | Entrada numérica con `step="0.25"`. El SaaS prohíbe negativos (`between:0,30`). Clínicamente oscila entre `+0.75` y `+3.50` D. Si llega `≤ 0.00`, la IA lo coerciona a `None` (sin adición). |
+| `add` | `number \| null` | NUM LIBRE | `nullable\|numeric\|decimal:0,2\|between:0,30` | Entrada numérica con `step="0.25"`. El SaaS prohíbe negativos (`between:0,30`). Clínicamente oscila entre `+0.75` y `+3.50` D. Si llega `≤ 0.00` o `> 30.00`, la IA lo coerciona a `None` (sin adición). |
 | `av_sc` | `string \| null` | DROPDOWN | `nullable\|string\|max:20` | Catálogo cerrado Snellen en pies (`OpticaOptions::av()`): `""` (vacío/guion), `20/10`, `20/15`, `20/20`, `20/25`, `20/30`, `20/40`, `20/50`, `20/60`, `20/70`, `20/80`, `20/100`, `20/120`, `20/160`, `20/200`, `20/400`, `20/600`. |
 | `av_cc` | `string \| null` | DROPDOWN | `nullable\|string\|max:20` | Mismo catálogo exacto de 16 valores Snellen de `av_sc`. |
+
+La API descarta ESF/CIL fuera de ±30.00 D. Si recibe cilindro positivo,
+también transpone la Rx final a cilindro negativo, conservando esfera o eje
+nulos cuando falten. El eje transpuesto usa `((eje + 90) % 180) or 180`;
+la esfera resultante vuelve a comprobarse contra el rango permitido.
 
 *Campos de graduación que NO viajan a la IA:* `dnp` (`decimal:0,2|between:0,100`), `altura_montaje` (`decimal:0,2|between:0,100`).
 
@@ -133,6 +139,11 @@ Solo disponible para optometristas con permiso `recetas.clinica`. Si el usuario 
 
 ---
 
+La API normaliza los textos clínicos conservando límites de línea y colapsando
+espacios dentro de cada línea; los trunca a 500 caracteres, salvo
+`recomendacion_seguimiento`, cuyo límite es 60000. Son límites de recepción de
+`app/schemas.py`; los máximos de captura del SaaS siguen siendo los de la tabla.
+
 ### 1.5 `tipo_lente`
 
 * **Tipo JSON:** `string`
@@ -144,6 +155,12 @@ Solo disponible para optometristas con permiso `recetas.clinica`. Si el usuario 
   4. `'flat_top'`: Bifocal de segmento visible flat-top (tratado como multifocal para justificar la adición).
 
 ---
+
+En la explicación para paciente solo se admite la descripción CPU de cada diseño
+en `app/paciente/contexto.py`. Monofocal no determina uso de lejos o cerca;
+la regla `lente` rechaza atribuirle esas distancias o lectura en la misma frase.
+Los efectos de la graduación y la ayuda de los lentes requieren respaldo en los
+hechos del caso, sin deducir adaptación, materiales ni tratamientos.
 
 ### 1.6 Campos de la Receta que NUNCA viajan a la IA
 
@@ -171,7 +188,7 @@ if (! $hasRefraccion && ! $hasClinica) {
 ```
 
 > **Regla para Generación de Payloads Ficticios:**
-> Un payload que únicamente envíe el bloque `paciente` (edad, ocupación, motivo) SIN refracción ni pruebas clínicas **será rechazado inmediatamente con error HTTP 422**. Todo caso de prueba válido debe tener al menos una esfera, cilindro, o prueba clínica registrada. El valor `0.00` en esfera o cilindro es considerado un dato clínico válido (emétrope o sin astigmatismo).
+> Un payload que únicamente envíe el bloque `paciente` (edad, ocupación, motivo) SIN refracción ni pruebas clínicas **será rechazado inmediatamente con error HTTP 422**. Todo caso de prueba válido debe tener al menos un valor en refracción, en `akr.od`/`akr.oi` o en clínica. La metadata AKR sola (`ticket_id`, `taken_at`, `pd`, `vd`, `ker_index`) no satisface `has_clinical_data`. El valor `0.00` en esfera o cilindro es un dato explícito válido; por sí solo no acredita normalidad del examen.
 
 ---
 
@@ -184,7 +201,7 @@ if (! $hasRefraccion && ! $hasClinica) {
 3. **Aplanado de Motilidad Ocular:**  
    En base de datos los 4 subcampos se guardan con saltos de línea (`\n`). `IaApiService::normalizeSingleLineString` colapsa todos los saltos de línea y múltiples espacios a un solo espacio antes de emitir el JSON.
 4. **Transposición de Cilindro Positivo en AKR:**  
-   El autorrefractómetro físico puede estar configurado en convención plus-cyl (`+cyl`). Si `ia-api` detecta cilindro positivo en `akr.od` o `akr.oi`, aplica automáticamente la transposición óptica (`esf' = esf + cil`, `cil' = -cil`, `eje' = (eje + 90) % 180`) para que las correlaciones clínicas puedan compararlo limpiamente contra la refracción final en convención minus-cyl.
+   El autorrefractómetro físico puede estar configurado en convención plus-cyl (`+cyl`). Si `ia-api` detecta cilindro positivo en `akr.od` o `akr.oi`, aplica automáticamente la transposición óptica (`esf' = esf + cil`, `cil' = -cil`, `eje' = ((eje + 90) % 180) or 180`) para que las correlaciones clínicas puedan compararlo limpiamente contra la refracción final en convención minus-cyl.
 
 ---
 
@@ -194,7 +211,11 @@ El ejemplo siguiente corresponde a `clinica-v1`. La respuesta dual añade
 `explicacion_paciente`, `explicacion_paciente_estado`, `salida_version`, `cached`
 booleano y `generacion` con origen/modelo/versiones/hash. El campo clínico válido
 se conserva si falla solo el educativo, con respaldo determinista `plantilla`
-sin otra inferencia. Detalles y excepción urgente sin origen LLM en
+tras redacción y verificación opcionales de la explicación. Si no hay plantilla
+ni acciones, la explicación puede ser nula con el estado del perfil;
+un fallo de ensamblado devuelve `rechazada` y motivo `error`.
+`PACIENTE_LLM_HABILITADO=false` omite ambas llamadas del paciente y su prosa
+cacheada; entrega respaldo CPU con motivo nulo salvo fallo de ensamblado. Detalles y excepción urgente sin origen LLM en
 [SALIDA_DUAL.md](SALIDA_DUAL.md). Los textos generados/corregidos y la metadata
 de revisión son **destinos**, nunca insumos para la siguiente inferencia.
 
@@ -212,7 +233,7 @@ La API responde exitosamente con HTTP 200 y el siguiente esquema JSON exacto:
 
 * **Consumo en Laravel:** Extrae `$response->json('impresion_clinica')`. Si es un string no vacío, lo asigna en tiempo real al componente Livewire:  
   `$this->form->clinica['impresion_clinica_plan'] = $resultado['impresion_clinica'];`
-* **Manejo de Errores:** En caso de error (HTTP 401, 413, 422, 502, 503, 504), la API devuelve `{"detail": "Mensaje de error"}`. Laravel extrae dicho `detail` y lo muestra al optometrista en un banner de alerta para permitirle continuar la captura manual.
+* **Manejo de Errores:** Los errores HTTP 401, 413, 500, 502, 503 y 504 devuelven `{"detail": "Mensaje de error"}`. Un 422 por validación estructural de FastAPI/Pydantic lleva una lista en `detail`; el rechazo por falta de datos clínicos lleva un mensaje. Laravel extrae dicho `detail` y lo muestra al optometrista en un banner de alerta para permitirle continuar la captura manual.
 
 ---
 
@@ -299,3 +320,113 @@ Cualquier generador de pruebas, LLM o evaluador debe tomar esta estructura como 
   "tipo_lente": "progresivo"
 }
 ```
+
+## 6. Contrato `seguimiento-whatsapp-v1`
+
+`POST /v1/inferencia/seguimiento-whatsapp`, con la misma autenticación Bearer
+que el endpoint clínico. HTTP 200 para solicitudes válidas, incluido el respaldo;
+401 sin token válido; 500 sin API_KEY configurada; 422 para solicitudes inválidas.
+
+Este contrato no modifica el payload clínico de las secciones 0–5.
+Laravel envía únicamente adultos con edad conocida y estado próximo o vencido;
+no se deducen patologías ni presbicia de la ADD.
+
+### Request
+ (`extra="forbid"`; todos los campos son obligatorios salvo que diga «opcional»)
+
+```json
+{
+  "contrato_version": "seguimiento-whatsapp-v1",
+  "paciente_ref": "3f9a1c0b7d2e4a51",
+  "tramo_edad": "18_39",
+  "estado_seguimiento": "proximo",
+  "meses_desde_ultima_receta": 11,
+  "recetas_previas": 2,
+  "costo": "incluida",
+  "ya_notificado_en_ciclo": false,
+  "variante": 0,
+  "rx_lejos": {"od": {"esfera": -2.25, "cilindro": -0.5, "add": null},
+               "oi": {"esfera": -2.0, "cilindro": 0.0, "add": null}},
+  "tipo_lente": "monofocal",
+  "uso_pantallas": "gt6",
+  "usa_armazon": null
+}
+```
+
+| Campo | Tipo / valores | Origen en Laravel |
+|---|---|---|
+| `contrato_version` | literal `"seguimiento-whatsapp-v1"` | constante |
+| `paciente_ref` | string `^[a-f0-9]{16}$` | `substr(hash_hmac('sha256', tenant_id.':'.paciente_id, config('app.key')), 0, 16)`; solo para correlacionar logs |
+| `tramo_edad` | `"18_39"` \| `"40_59"` \| `"60_mas"` | edad a hoy desde `pacientes.fecha_nacimiento`. **Menores y edad desconocida nunca se envían** (Laravel usa el genérico) |
+| `estado_seguimiento` | `"proximo"` \| `"vencido"` | `PacienteSeguimientoEstado` del paciente (los demás estados nunca se envían) |
+| `meses_desde_ultima_receta` | int 0..600 \| null | meses completos entre `fecha_receta` de la última receta y hoy; null si no hay recetas |
+| `recetas_previas` | int 0..1000 | número de recetas del paciente (tenant) |
+| `costo` | `"incluida"` \| `"con_costo"` | `pacientes.proxima_evaluacion_con_costo` (true → `con_costo`) |
+| `ya_notificado_en_ciclo` | bool | `pacientes.seguimiento_notificado_at !== null` |
+| `variante` | int 0..1000 | 0 al abrir el diálogo; «Regenerar con IA» manda un valor nuevo 1..1000 |
+| `rx_lejos` | objeto \| null | graduaciones OD/OI (`esfera`, `cilindro`, `add`, como float o null) de la **última receta** (`fecha_receta` desc, `id` desc). null si esa receta no tiene filas de graduación. Si falta una fila, ese ojo va con los tres valores null |
+| `tipo_lente` | `"monofocal"` \| `"bifocal"` \| `"progresivo"` \| `"otro"` \| null | `recetas.tipo_lente` de **la misma receta**: `monofocal`→`monofocal`; `bifocal_blended`/`flat_top`→`bifocal`; `progresivo`→`progresivo`; otro valor no vacío→`otro`; vacío→null |
+| `uso_pantallas` | `"lt2"` \| `"btw2_6"` \| `"gt6"` \| null | `receta_clinicas.uso_pantallas` de **la misma receta** |
+| `usa_armazon` | bool \| null | **v1: Laravel siempre manda null** (el dato no existe de forma confiable; el catálogo §6.6 lo exige). ia-api acepta true/false/null |
+
+Nunca viajan: nombre, teléfono, folio, fechas exactas, ocupación, motivo de consulta, notas, impresión clínica, correlaciones, patologías, AKR, eje, agudeza visual.
+
+ia-api normaliza `rx_lejos` con la misma lógica ya auditada de la Rx (rangos, transposición de cilindro positivo, `add <= 0` o `add > 30` = sin adición): reutiliza `app.schemas.Refraccion`/`GraduacionOjo`.
+
+
+### Respuesta, estados y motivos
+
+
+```json
+{
+  "status": "ok",
+  "contrato_version": "seguimiento-whatsapp-v1",
+  "estado": "generada",
+  "mensaje": "<apertura>\n\n<hecho1> <hecho2>\n\n<invitacion>\n\nSi prefiere no recibir estos recordatorios, solo díganoslo.",
+  "partes": {"apertura": "...", "hechos": ["miopia_lejos", "pantallas_muchas"], "invitacion": "...",
+             "baja": "Si prefiere no recibir estos recordatorios, solo díganoslo."},
+  "motivo": null,
+  "hechos_elegibles": ["miopia_ajuste", "..."],
+  "generacion": {"origen": "llm", "modelo": "qwen3.5:9b", "catalogo_version": "v1-revisado-2026-11-06",
+                 "prompt_version": "seguimiento-whatsapp-prompt-v1", "base_hash_api": "<64 hex>", "cached": false}
+}
+```
+
+Reglas:
+- `estado`: `"generada"` (Qwen redactó apertura/invitación y eligió hechos; pasó validador y verificación) o `"plantilla"` (mensaje 100 % del catálogo armado por el servidor, §8).
+- `generacion.origen`: `"llm"` si `estado="generada"`; `"catalogo"` si `estado="plantilla"`. `modelo` es string con `origen="llm"` y null con `"catalogo"`.
+- `motivo`: null si `generada`; si `plantilla`, uno de: `ia_ocupada`, `ia_timeout`, `ollama_error`, `json_invalido`, `validacion:<regla>` (p. ej. `validacion:palabras`, `validacion:tuteo`, `validacion:lexico`, `validacion:costo`, `validacion:combinacion`, `validacion:placeholders`, `validacion:pregunta`, `validacion:cifras`), `verificacion`, `presupuesto` o `ia_deshabilitada` (ia-api con `SEGUIMIENTO_LLM_HABILITADO=false`).
+- `mensaje` = `apertura + "\n\n" + " ".join(frases de los hechos en el orden de partes.hechos) + "\n\n" + invitacion + "\n\n" + baja`. Si `hechos` está vacío: `apertura + "\n\n" + invitacion + "\n\n" + baja`.
+- Orden de `partes.hechos`: primero el del grupo A y después el del B; si los dos son del B, en el orden de prioridad del §8. (Si Qwen los devuelve en otro orden, el servidor los reordena antes de ensamblar.)
+- `hechos_elegibles` va en el orden en que el catálogo lista los hechos (§2 del .md: primero los 12 del grupo A, luego los 8 del B).
+- `mensaje` contiene **exactamente una vez** `:paciente` y **exactamente una vez** `:clinica`, ambos dentro de `apertura`. Ningún otro marcador `:palabra`. Longitud ≤ 2000 caracteres. Termina con la línea de baja.
+- `generacion.base_hash_api`: sha256 hex (64) de la clave de caché del request.
+- `cached`: true si salió de la caché de ia-api (solo se cachean respuestas `generada`).
+
+Laravel valida esta forma de manera estricta; cualquier desviación → mensaje genérico local con motivo `respuesta_invalida`.
+
+
+### Versiones, respaldo y fixtures compartidos
+
+- Catálogo: `v1-revisado-2026-11-06`.
+- Redacción: `seguimiento-whatsapp-prompt-v1`.
+- Verificación: `seguimiento-verificacion-v1`.
+- Contrato: `seguimiento-whatsapp-v1`.
+
+Los fixtures normativos, copiados sin cambios, están en
+`tests/fixtures/seguimiento_whatsapp/`: `g1-request.json`, `g2-request.json`,
+`g3-request.json`, las tres respuestas `gN-respuesta-plantilla.json`,
+`g1-modelo-redaccion.json`, `modelo-verificacion-false.json` y
+`g1-respuesta-generada.json`. `sha256.json` fija sus hashes originales.
+
+El respaldo usa textos literales del catálogo, alterna frases del grupo A por
+paridad de `recetas_previas` y minimiza la suma de rangos de combinaciones válidas.
+No se cachea. La respuesta generada pasa validación determinista y verificación
+de apertura/invitación, y se cachea en memoria con LRU + TTL. La clave excluye
+`paciente_ref` e incluye modelo, versiones y opciones, incluida la semilla efectiva.
+
+Laravel sustituye `:paciente` y `:clinica` una sola vez al mostrar o aprobar;
+ia-api nunca recibe los nombres ni abre WhatsApp. La prosa completa se revisa
+antes de que el operador acepte. `usa_armazon` se admite como true/false/null,
+pero Laravel envía null en v1. Los meses se conservan en la clave de caché y no
+se muestran al modelo. Logs de seguimiento sin contenido ni cifras de Rx.

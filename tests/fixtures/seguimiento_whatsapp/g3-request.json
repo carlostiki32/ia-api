@@ -1,0 +1,15 @@
+{
+  "contrato_version": "seguimiento-whatsapp-v1",
+  "paciente_ref": "0123456789abcdef",
+  "tramo_edad": "40_59",
+  "estado_seguimiento": "proximo",
+  "meses_desde_ultima_receta": null,
+  "recetas_previas": 0,
+  "costo": "incluida",
+  "ya_notificado_en_ciclo": false,
+  "variante": 0,
+  "rx_lejos": null,
+  "tipo_lente": null,
+  "uso_pantallas": null,
+  "usa_armazon": null
+}

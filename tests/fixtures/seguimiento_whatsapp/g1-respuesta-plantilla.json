@@ -1,0 +1,35 @@
+{
+  "status": "ok",
+  "contrato_version": "seguimiento-whatsapp-v1",
+  "estado": "plantilla",
+  "mensaje": "Hola, :paciente, le saludamos de :clinica. Se acerca la fecha de su revisión visual de control y quisimos avisarle con tiempo.\n\nEn la revisión comprobamos si sus lentes le siguen dando una visión de lejos cómoda para sus actividades diarias. Si pasa muchas horas frente a pantallas, en la revisión podemos ver qué tan cómodos le resultan sus lentes para esas actividades.\n\nLa revisión está incluida en su atención. ¿Qué día de la semana le queda mejor para venir?\n\nSi prefiere no recibir estos recordatorios, solo díganoslo.",
+  "partes": {
+    "apertura": "Hola, :paciente, le saludamos de :clinica. Se acerca la fecha de su revisión visual de control y quisimos avisarle con tiempo.",
+    "hechos": [
+      "miopia_lejos",
+      "pantallas_muchas"
+    ],
+    "invitacion": "La revisión está incluida en su atención. ¿Qué día de la semana le queda mejor para venir?",
+    "baja": "Si prefiere no recibir estos recordatorios, solo díganoslo."
+  },
+  "motivo": "ia_ocupada",
+  "hechos_elegibles": [
+    "miopia_ajuste",
+    "miopia_lejos",
+    "astigmatismo_detalle",
+    "pantallas_muchas",
+    "pantallas_ratos",
+    "incluida_sin_costo",
+    "comodidad_general",
+    "general_periodica",
+    "traer_lentes"
+  ],
+  "generacion": {
+    "origen": "catalogo",
+    "modelo": null,
+    "catalogo_version": "v1-revisado-2026-11-06",
+    "prompt_version": "seguimiento-whatsapp-prompt-v1",
+    "base_hash_api": "0000000000000000000000000000000000000000000000000000000000000000",
+    "cached": false
+  }
+}

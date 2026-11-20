@@ -11,6 +11,7 @@ import re
 from dataclasses import replace
 
 from app.correlaciones.base import _memoize_cond
+from app.correlaciones.vocabulario import DIPLOPIA, PERDIDA_VISION
 from app.correlaciones.pupilas_motilidad import _cronologia_de_clausula, _ocurrencias_oculares
 from app.correlaciones.texto import (
     _contains_keyword,
@@ -111,7 +112,7 @@ def _sintomas_visuales_actuales(req: ImpresionClinicaRequest, *, cerca: bool = F
     motivo = req.paciente.motivo_consulta if req.paciente else None
     if not motivo:
         return []
-    especificos = ("diplopia", "vision doble", "veo doble", "imagenes dobles", "astenopia",
+    especificos = DIPLOPIA + PERDIDA_VISION + ("astenopia",
                    "perdida visual", "perdida de vision", "perdida subita de vision", "perdida repentina de vision", "perdida de la vision",
                    "fatiga visual", "fatiga ocular", "vista cansada", "cansancio visual", "cansancio ocular",
                    "ojos cansados", "vision borrosa", "borroso", "borrosa", "dificultad para enfocar",
@@ -144,9 +145,8 @@ def _episodios_visuales(req: ImpresionClinicaRequest):
     """Hechos del paciente con certeza y cronologia propia; 'hoy revision' no fecha el sintoma."""
     motivo = req.paciente.motivo_consulta if req.paciente else None
     mapa = {k: etiqueta for etiqueta, claves in (
-        ("diplopia", ("diplopia", "vision doble", "veo doble")),
-        ("perdida visual", ("perdida visual", "perdida de vision", "perdida subita de vision",
-                            "perdida repentina de vision", "perdida de la vision")),
+        ("diplopia", DIPLOPIA),
+        ("perdida visual", PERDIDA_VISION),
         ("dolor ocular", ("dolor ocular", "dolor en el ojo", "dolor en los ojos")),
         ("traumatismo", ("traumatismo", "trauma", "golpe")),
         ("ojo rojo", ("ojo rojo", "ojos rojos")),

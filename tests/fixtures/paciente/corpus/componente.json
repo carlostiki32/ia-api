@@ -1,0 +1,463 @@
+[
+  {
+    "id": "componente-001",
+    "esperado": "rechazar",
+    "regla": "componente",
+    "nota": "El perfil rx es nulo pero el candidato menciona graduación refractiva.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con hallazgos de fondo de ojo que requieren valoración sin refracción completa.",
+      "rx": null,
+      "motivo": "Revisión de salud visual.",
+      "sintomas_referidos": [],
+      "pantallas": null,
+      "lente": null,
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Su graduación le permitirá enfocar con mayor nitidez los objetos distantes.",
+          "fuentes": [
+            "clinico"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "componente-002",
+    "esperado": "rechazar",
+    "regla": "componente",
+    "nota": "El perfil rx es nulo pero el candidato promete corregir desenfoque refractivo con lentes.",
+    "caso": {
+      "impresion_clinica_final": "Paciente en protocolo de retina sin datos refractivos definitivos.",
+      "rx": null,
+      "motivo": "Molestia ocular.",
+      "sintomas_referidos": [],
+      "pantallas": null,
+      "lente": null,
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "La fórmula de sus lentes puede corregir el desenfoque en ambos ojos.",
+          "fuentes": [
+            "clinico"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "componente-003",
+    "esperado": "rechazar",
+    "regla": "componente",
+    "nota": "Confusión de lateralidad: afirma hipermetropía en ojo derecho cuando OD tiene miopía y OI hipermetropía.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con miopía en ojo derecho e hipermetropía en ojo izquierdo.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "hipermetropía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión desigual.",
+      "sintomas_referidos": [
+        "vision_borrosa"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "En su ojo derecho presenta hipermetropía que puede dificultar el enfoque.",
+          "fuentes": [
+            "rx.od"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "componente-004",
+    "esperado": "rechazar",
+    "regla": "componente",
+    "nota": "Confusión de lateralidad: afirma astigmatismo en ojo izquierdo cuando OD tiene astigmatismo y OI miopía.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con astigmatismo en ojo derecho y miopía en ojo izquierdo.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión borrosa.",
+      "sintomas_referidos": [
+        "vision_borrosa"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Su ojo izquierdo presenta astigmatismo que puede generar sombras.",
+          "fuentes": [
+            "rx.oi"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "componente-005",
+    "esperado": "rechazar",
+    "regla": "componente",
+    "nota": "Componente inventado: afirma astigmatismo en perfil de miopía pura bilateral.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con miopía en ambos ojos.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión borrosa de lejos.",
+      "sintomas_referidos": [
+        "vision_borrosa_lejos"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "En su ojo derecho se detectó astigmatismo que puede distorsionar las letras.",
+          "fuentes": [
+            "rx.od"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "componente-006",
+    "esperado": "rechazar",
+    "regla": "componente",
+    "nota": "Componente inventado: afirma miopía en perfil de astigmatismo puro bilateral.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con astigmatismo bilateral.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión borrosa.",
+      "sintomas_referidos": [
+        "vision_borrosa"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Su ojo izquierdo presenta miopía que puede restar claridad a la distancia.",
+          "fuentes": [
+            "rx.oi"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "componente-007",
+    "esperado": "rechazar",
+    "regla": "componente",
+    "nota": "Componente inventado: afirma astigmatismo en perfil de hipermetropía pura bilateral.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con hipermetropía bilateral.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "hipermetropía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "hipermetropía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Cansancio visual al leer.",
+      "sintomas_referidos": [
+        "fatiga_visual"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Presenta astigmatismo en su ojo derecho que puede generar cansancio ocular.",
+          "fuentes": [
+            "rx.od"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "componente-008",
+    "esperado": "rechazar",
+    "regla": "componente",
+    "nota": "Afirma miopía en ojo derecho que está diagnosticado como plano.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con ojo derecho plano y miopía en ojo izquierdo.",
+      "rx": {
+        "od": {
+          "componentes": [],
+          "apoyo_cerca": false,
+          "plano": true
+        },
+        "oi": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión borrosa de lejos.",
+      "sintomas_referidos": [
+        "vision_borrosa_lejos"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Su ojo derecho presenta miopía que puede dificultar ver a la distancia.",
+          "fuentes": [
+            "rx.od"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "componente-009",
+    "esperado": "rechazar",
+    "regla": "componente",
+    "nota": "Afirma astigmatismo en ojo izquierdo que está diagnosticado como plano.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con astigmatismo en ojo derecho y ojo izquierdo plano.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [],
+          "apoyo_cerca": false,
+          "plano": true
+        }
+      },
+      "motivo": "Visión borrosa.",
+      "sintomas_referidos": [
+        "vision_borrosa"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "En su ojo izquierdo se identificó astigmatismo que distorsiona las líneas.",
+          "fuentes": [
+            "rx.oi"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "componente-010",
+    "esperado": "rechazar",
+    "regla": "componente",
+    "nota": "El perfil rx es nulo pero el candidato menciona prescripción compensatoria.",
+    "caso": {
+      "impresion_clinica_final": "Paciente evaluado por conjuntivitis alérgica sin graduación prescrita.",
+      "rx": null,
+      "motivo": "Comezón ocular.",
+      "sintomas_referidos": [
+        "comezon"
+      ],
+      "pantallas": null,
+      "lente": null,
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "La prescripción para sus ojos puede compensar la graduación de enfoque.",
+          "fuentes": [
+            "clinico"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "componente-011",
+    "esperado": "rechazar",
+    "regla": "componente",
+    "nota": "Afirma componente refractivo en ojo izquierdo cuando solo el ojo derecho tiene astigmatismo y el izquierdo es plano.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con astigmatismo en ojo derecho y ojo izquierdo plano.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "astigmatismo"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [],
+          "apoyo_cerca": false,
+          "plano": true
+        }
+      },
+      "motivo": "Visión borrosa.",
+      "sintomas_referidos": [
+        "vision_borrosa"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Su ojo izquierdo presenta astigmatismo que puede desenfocar los contornos.",
+          "fuentes": [
+            "rx.oi"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "componente-012",
+    "esperado": "rechazar",
+    "regla": "componente",
+    "nota": "Afirma hipermetropía cuando el perfil solo presenta miopía bilateral.",
+    "caso": {
+      "impresion_clinica_final": "Paciente con miopía en ambos ojos.",
+      "rx": {
+        "od": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        },
+        "oi": {
+          "componentes": [
+            "miopía"
+          ],
+          "apoyo_cerca": false,
+          "plano": false
+        }
+      },
+      "motivo": "Visión borrosa de lejos.",
+      "sintomas_referidos": [
+        "vision_borrosa_lejos"
+      ],
+      "pantallas": null,
+      "lente": "monofocal",
+      "correlaciones": [],
+      "acciones_obligatorias": []
+    },
+    "candidato": {
+      "frases": [
+        {
+          "texto": "Su hipermetropía en el ojo derecho puede cansar su vista durante la lectura.",
+          "fuentes": [
+            "rx.od"
+          ]
+        }
+      ]
+    }
+  }
+]

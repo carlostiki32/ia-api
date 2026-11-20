@@ -16,6 +16,8 @@ class InferenceCache:
     """In-memory cache for inference results, keyed by payload hash (excluding receta_id)."""
 
     def __init__(self, max_size: int, ttl_seconds: int):
+        if max_size < 0:
+            raise ValueError("max_size debe ser no negativo")
         self._store: OrderedDict[str, tuple[str | DualInferenceResult, float]] = OrderedDict()
         self._lock = threading.Lock()
         self._max_size = max_size
@@ -51,6 +53,8 @@ class InferenceCache:
         return hashlib.sha256(raw.encode()).hexdigest()
 
     def get(self, payload: ImpresionClinicaRequest, key: str | None = None) -> str | DualInferenceResult | None:
+        if self._max_size == 0:
+            return None
         if key is None:
             key = self.build_key(payload)
         with self._lock:
@@ -67,6 +71,8 @@ class InferenceCache:
             return value
 
     def put(self, payload: ImpresionClinicaRequest, result: str | DualInferenceResult, key: str | None = None) -> None:
+        if self._max_size == 0:
+            return
         if key is None:
             key = self.build_key(payload)
         with self._lock:

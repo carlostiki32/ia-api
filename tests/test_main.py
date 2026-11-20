@@ -153,7 +153,9 @@ def test_endpoint_reporta_correlaciones_activadas(monkeypatch):
     assert "fondo_periferico_riesgo" in body["correlaciones_activadas"]
 
 
-def test_health_when_ollama_offline_returns_503():
+def test_health_when_ollama_offline_returns_503(monkeypatch):
+    # Desactivar caché para no contaminar la prueba siguiente con el estado offline.
+    monkeypatch.setattr(main.settings, "health_cache_segundos", 0.0)
     with TestClient(main.app) as client:
         response = client.get("/health")
 
@@ -169,6 +171,7 @@ def test_health_when_ollama_offline_returns_503():
 
 
 def test_health_when_ollama_ready_returns_200(monkeypatch):
+    monkeypatch.setattr(main.settings, "health_cache_segundos", 0.0)
     # Producción exige API_KEY: sin ella el POST clínico responde 500 y /health debe degradarse.
     monkeypatch.setattr(main.settings, "api_key", "secret-token")
 
@@ -207,7 +210,8 @@ def test_health_when_ollama_ready_returns_200(monkeypatch):
 
 def test_endpoint_queue_saturated_returns_503(monkeypatch):
     monkeypatch.setattr(main.settings, "api_key", "secret-token")
-    monkeypatch.setattr(main, "_queue_waiting", main.settings.max_queue_size)
+    monkeypatch.setattr(main.settings, "max_queue_size", 0)
+    monkeypatch.setattr(main.gpu_scheduler, "_ocupantes", {object(): "interactiva"})
     main.inference_cache.clear()
 
     payload = {
@@ -227,7 +231,7 @@ def test_endpoint_queue_saturated_returns_503(monkeypatch):
 
 
 def test_inference_slot_releases_semaphore_on_exception():
-    initial_val = main._inference_semaphore._value
+    initial_val = len(main.gpu_scheduler._ocupantes)
 
     async def _fail_inside():
         async with main._inference_slot("test-fail"):
@@ -238,12 +242,12 @@ def test_inference_slot_releases_semaphore_on_exception():
     except RuntimeError:
         pass
 
-    assert main._inference_semaphore._value == initial_val
-    assert main._queue_waiting == 0
+    assert len(main.gpu_scheduler._ocupantes) == initial_val
+    assert main.gpu_scheduler.en_cola == 0
 
 
 def test_inference_slot_releases_semaphore_on_cancellation():
-    initial_val = main._inference_semaphore._value
+    initial_val = len(main.gpu_scheduler._ocupantes)
 
     async def _cancel_task():
         started = asyncio.Event()
@@ -263,7 +267,7 @@ def test_inference_slot_releases_semaphore_on_cancellation():
 
     asyncio.run(_cancel_task())
 
-    assert main._inference_semaphore._value == initial_val
-    assert main._queue_waiting == 0
+    assert len(main.gpu_scheduler._ocupantes) == initial_val
+    assert main.gpu_scheduler.en_cola == 0
 
 

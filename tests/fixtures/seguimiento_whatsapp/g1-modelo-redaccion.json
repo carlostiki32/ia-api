@@ -1,0 +1,8 @@
+{
+  "apertura": "Hola, :paciente, le saludamos de :clinica. Ya se acerca su revisión visual de control y quisimos escribirle con tiempo para que la organice a su ritmo.",
+  "hechos": [
+    "miopia_lejos",
+    "pantallas_muchas"
+  ],
+  "invitacion": "La revisión está incluida en su atención, y con gusto le buscamos un horario que se acomode a sus actividades. ¿Qué día de la semana le resulta más cómodo para venir?"
+}

@@ -9,6 +9,8 @@ Autoría: Claude (Opus) redacta; Codex (gpt-6.1-sol) y Antigravity (Gemini) audi
 
 ## A. Texto simple para el paciente: dictamen
 
+> **Actualización 2026-11-07: CERTIFICADO** (C1–C4 y C6; C5 certificado en código y pendiente de confirmar `OLLAMA_NUM_CTX=8192` en la PC con GPU). C1 se cerró con la corrección F0-FIX. Acta: [auditoria/2026-11-07-recertificacion-y-seguimiento/01-recertificacion-c1-c6.md](auditoria/2026-11-07-recertificacion-y-seguimiento/01-recertificacion-c1-c6.md).
+
 **Veredicto: NO CERTIFICADO todavía (seguro, pero no cumple el criterio "el paciente entiende qué dice su graduación").** Coinciden Codex (no certificable), el agente certificador (no certificado) y agy (hueco MAYOR; certificable solo con condiciones).
 
 Lo que está bien (verificado por los tres): clasificación óptica S / S+C correcta en casos frontera; catálogo cerrado imposible de "colar"; 144 perfiles → 143 textos válidos de 62–85 palabras y 1 sin componentes; contrato de estados API↔Laravel correcto; `rechazada` no se cachea; el PDF solo imprime texto aprobado; 220 pruebas de perfil/dual pasan.
@@ -134,5 +136,7 @@ Lo que este documento **no** afirma: latencias, tasas de aceptación ni conversi
 4. Redactar y firmar el catálogo de hechos del WhatsApp (F1).
 5. Mecanismo de consentimiento y revisión con un asesor legal (D-17).
 6. Horario en que la PC con GPU suele estar encendida (para D-7, tras el piloto).
+
+**Resuelto el 2026-11-07:** (1) F0 autorizada y certificada; (4) el catálogo v1-revisado se usa tal cual, con los valores por omisión de su §6; (5) consentimiento: el dueño declara tener acuerdos con sus pacientes y que la IA es local, así que el sistema no exige un registro de consentimiento. F1–F3 implementadas (diálogo editable con aprobación humana; detalle en `auditoria/2026-11-07-recertificacion-y-seguimiento/02-implementacion-y-auditoria.md`). Quedan (3) umbrales de magnitud —no se usan— y (6) horario de la PC con GPU, que solo importa para D-7 tras el piloto.
 
 Informes completos del debate: `auditoria/2026-11-06-texto-paciente-y-propuesta/`.

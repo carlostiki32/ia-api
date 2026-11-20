@@ -259,7 +259,7 @@ def test_c13_5_activa_pero_perdida_visual_aguda_conserva_alerta_propia():
     assert "glaucoma_asimetrico" in sin and "pupilas_alteradas" not in sin
     con = activas(**kw, motivo="Perdida visual OD desde hoy")
     assert "glaucoma_asimetrico" in con and con["pupilas_alteradas"].startswith("Hallazgo urgente:")
-    assert alertas_h01(**kw, motivo="Perdida visual OD desde hoy") == {"pupilas_alteradas"}
+    assert alertas_h01(**kw, motivo="Perdida visual OD desde hoy") == {"pupilas_alteradas", "sintomas_alarma_traccion_vitreoretina"}
 
 
 def test_c13_dpar_nuevo_con_5_conserva_prioridad():

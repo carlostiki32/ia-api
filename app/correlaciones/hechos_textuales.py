@@ -7,14 +7,25 @@ from __future__ import annotations
 
 import re
 
-_FAMILIAR = r"(?:madre|padre|herman[oa]|hij[oa]|abuel[oa]|espos[oa]|pareja|ti[oa]|prim[oa]|familiar)"
+_FAMILIAR = r"(?:madre|padre|herman[oa]|hij[oa]|abuel[oa]|espos[oa]|pareja|ti[oa]|prim[oa]|familiar|papa|mama)"
+_INFORMANTE_SUJETO = rf"(?:{_FAMILIAR}|acompanante|tutor[ao]?|cuidador[ao]?)"
+_VERBO_REPORTE = (
+    r"(?:refiere|refirio|comenta|comento|menciona|menciono|dice|dijo|reporta|reporto|informa|informo|indica|indico|senala|senalo|"
+    r"nota|noto|ha\s+notado|observa|observo|cuenta|conto|relata|relato|manifiesta|manifesto|expresa|expreso|describe|describio)"
+)
+_INFORMANTE = re.compile(
+    rf"\b(?:(?:mi|su|la|el|una?|del?)\s+)?{_INFORMANTE_SUJETO}\b"
+    r"(?:\s+(?:del?\s+paciente|de\s+la\s+paciente))?"
+    r"(?:,\s*que\s+l[eao]s?\s+acompa\w*,\s*)?"
+    rf"(?:\s+que)?\s+(?:(?:nos|le|me|se)\s+)?{_VERBO_REPORTE}\b"
+)
 _SUJETO_FAMILIAR = re.compile(
     rf"\b(?:(?:mi|su|la|el|una?|del?)\s+)?{_FAMILIAR}\b"
     r"(?:\s+(?:del?\s+paciente|de\s+la\s+paciente))?"
-    r"(?:\s+que)?\s+(?:se\s+)?(?:tiene|tuvo|tenia|ha\s+tenido|presenta|presento|ha\s+presentado|padece|padecio|refiere|refirio|con|"
-    r"sufre|sufrio|describe|reporta|perdio|perdia|nota|noto|ha\s+notado|desarrollo|experimenta|operad[oa]|diagnosticad[oa]|"
+    r"(?:\s+que)?\s+(?:se\s+)?(?:tiene|tuvo|tenia|ha\s+tenido|presenta|presento|ha\s+presentado|padece|padecio|con|"
+    r"sufre|sufrio|perdio|perdia|desarrollo|experimenta|operad[oa]|diagnosticad[oa]|"
     r"es|esta|fue|queja|quejo|quejaba|comenzo|comienza|empezo|empieza|inicio|inicia|siente|sintio|ve|veia|vio|acusa|acuso|"
-    r"manifiesta|manifesto|cursa|lleva|llevaba|sigue|continua)\b"
+    r"cursa|lleva|llevaba|sigue|continua)\b"
     # «familiares?» exigia la «e» y no reconocia el singular «antecedente familiar».
     r"|\bantecedentes?\s+(?:familiar(?:es)?|heredofamiliar(?:es)?)\b"
 )
@@ -61,8 +72,19 @@ def _sujeto_es_paciente(texto: str, inicio: int, fin: int) -> bool:
     # «madre del paciente presenta»: «paciente» completa al familiar, no es un sujeto nuevo.
     paciente = [m for m in _SUJETO_PACIENTE.finditer(prefijo)
                 if not re.search(r"\b(?:del|de\s+la)\s*$", prefijo[:m.start()])]
+    informantes = list(_INFORMANTE.finditer(prefijo))
+    # El reporte abre el contenido del paciente; un familiar posterior con
+    # «tuvo/tiene/padece...» sigue siendo sujeto de su propio antecedente.
+    if informantes and (not familiar or informantes[-1].start() >= familiar[-1].start()):
+        familiar = []
     if familiar and (not paciente or familiar[-1].start() > paciente[-1].start()):
-        return False
+        # Un reporte explícito tras antecedentes familiares abre el episodio
+        # del paciente; no cambia el alcance de ningún negador.
+        antecedente = re.match(r"antecedentes?\s+(?:familiar|heredofamiliar)", familiar[-1][0])
+        reporte = re.search(r",\s*(?:refiere|reporta|presenta|comenta|describe|nota|percibe)\b",
+                            texto[izq + familiar[-1].end():inicio])
+        if not (antecedente and reporte):
+            return False
     if _ATRIBUCION_POSTERIOR.search(texto[fin:der]):
         return False
     # «Mi madre: DGM» / «antecedentes de mi padre: ...» también explicitan sujeto.
