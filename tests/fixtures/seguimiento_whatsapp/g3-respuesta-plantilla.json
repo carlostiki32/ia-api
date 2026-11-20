@@ -1,28 +1,28 @@
 {
-  "status": "ok",
-  "contrato_version": "seguimiento-whatsapp-v1",
-  "estado": "plantilla",
-  "mensaje": "Hola, :paciente, le saludamos de :clinica. Se acerca la fecha de su revisión visual de control y quisimos avisarle con tiempo.\n\nSu revisión de seguimiento está incluida en su atención, sin ningún costo adicional para usted. Si usa lentes, le sugerimos traerlos a la consulta, así podemos revisarlos junto con su graduación.\n\nNosotros le buscamos un horario que le acomode. ¿Le gustaría que le apartemos una cita?\n\nSi prefiere no recibir estos recordatorios, solo díganoslo.",
-  "partes": {
-    "apertura": "Hola, :paciente, le saludamos de :clinica. Se acerca la fecha de su revisión visual de control y quisimos avisarle con tiempo.",
-    "hechos": [
-      "incluida_sin_costo",
-      "traer_lentes"
-    ],
-    "invitacion": "Nosotros le buscamos un horario que le acomode. ¿Le gustaría que le apartemos una cita?",
-    "baja": "Si prefiere no recibir estos recordatorios, solo díganoslo."
-  },
-  "motivo": "ia_ocupada",
-  "hechos_elegibles": [
-    "incluida_sin_costo",
-    "traer_lentes"
-  ],
-  "generacion": {
-    "origen": "catalogo",
-    "modelo": null,
-    "catalogo_version": "v1-revisado-2026-11-06",
-    "prompt_version": "seguimiento-whatsapp-prompt-v1",
-    "base_hash_api": "0000000000000000000000000000000000000000000000000000000000000000",
-    "cached": false
-  }
+ "status": "ok",
+ "contrato_version": "seguimiento-whatsapp-v2",
+ "estado": "plantilla",
+ "mensaje": "Hola, :paciente. En :clinica le tenemos presente y queremos acompañarle; por eso le escribimos con gusto.\n\nNos acordamos de sus lentes y de lo que hace con ellos día con día.\n\nQueremos acompañarle con calma, cuando y como usted lo prefiera.\n\nNos dará gusto leerle: ¿cómo le va con sus lentes? Si lo desea, le buscamos un horario para su revisión, que está incluida en su atención.\n\nSi prefiere no recibir estos mensajes, solo díganoslo.",
+ "partes": {
+  "apertura": "Hola, :paciente. En :clinica le tenemos presente y queremos acompañarle; por eso le escribimos con gusto.",
+  "apertura_id": "AP_PROX_PRIM_4",
+  "frase_uso": "Nos acordamos de sus lentes y de lo que hace con ellos día con día.",
+  "frase_fecha": "Queremos acompañarle con calma, cuando y como usted lo prefiera.",
+  "hechos": [],
+  "cierre": "Nos dará gusto leerle: ¿cómo le va con sus lentes? Si lo desea, le buscamos un horario para su revisión, que está incluida en su atención.",
+  "cierre_id": "CI_INC_6",
+  "baja": "Si prefiere no recibir estos mensajes, solo díganoslo."
+ },
+ "motivo": "ollama_error",
+ "hechos_elegibles": [],
+ "generacion": {
+  "origen": "catalogo",
+  "modelo": null,
+  "catalogo_version": "v2-borrador-2026-11-20",
+  "prompt_version": "seguimiento-whatsapp-prompt-v3",
+  "base_hash_api": "0000000000000000000000000000000000000000000000000000000000000000",
+  "cached": false
+ },
+ "uso_lentes": "desconocido",
+ "origen_uso": "reglas"
 }

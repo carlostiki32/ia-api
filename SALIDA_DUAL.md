@@ -40,8 +40,7 @@ estricto. Con contador exacto verificado se usa BPE en ambos modos.
 Techos de entrada: 7000/7400; entrada más salida: 7384/7432, por debajo de 7782
 con contexto efectivo 8192. Conteo oficial del system: redacción 1012 tokens
 (incluye objetivo y glosario), verificación 174. El glosario aislado cuenta 419.
-El [material generado para revisión](auditoria/2026-11-08-explicacion-paciente/02-catalogo-y-prompts-para-revision.md)
-contiene los textos literales y las versiones; se regenera con
+El material para revisión del dueño, con los textos literales y las versiones, se genera con
 `python scripts/catalogo_paciente.py --salida RUTA.md --tokenizer RUTA_TOKENIZER_JSON`.
 Cada llamada cuenta la entrada completa con roles y envoltura; el esquema no se concatena al prompt. No existe
 un máximo finito de longitud del clínico final: un contexto excesivo usa respaldo.

@@ -321,7 +321,7 @@ Cualquier generador de pruebas, LLM o evaluador debe tomar esta estructura como 
 }
 ```
 
-## 6. Contrato `seguimiento-whatsapp-v1`
+## 6. Contrato `seguimiento-whatsapp-v2`
 
 `POST /v1/inferencia/seguimiento-whatsapp`, con la misma autenticación Bearer
 que el endpoint clínico. HTTP 200 para solicitudes válidas, incluido el respaldo;
@@ -336,7 +336,7 @@ no se deducen patologías ni presbicia de la ADD.
 
 ```json
 {
-  "contrato_version": "seguimiento-whatsapp-v1",
+  "contrato_version": "seguimiento-whatsapp-v2",
   "paciente_ref": "3f9a1c0b7d2e4a51",
   "tramo_edad": "18_39",
   "estado_seguimiento": "proximo",
@@ -349,13 +349,23 @@ no se deducen patologías ni presbicia de la ADD.
                "oi": {"esfera": -2.0, "cilindro": 0.0, "add": null}},
   "tipo_lente": "monofocal",
   "uso_pantallas": "gt6",
-  "usa_armazon": null
+  "usa_armazon": null,
+  "contexto_uso": {
+    "ocupacion": "Estudiante",
+    "motivo_consulta": "Revisión anual",
+    "impresion_clinica": null,
+    "explicacion_paciente": null,
+    "observaciones_receta": null,
+    "recomendacion_seguimiento": null
+  },
+  "fecha_revision": "2026-12-15",
+  "meses_periodo": 12
 }
 ```
 
 | Campo | Tipo / valores | Origen en Laravel |
 |---|---|---|
-| `contrato_version` | literal `"seguimiento-whatsapp-v1"` | constante |
+| `contrato_version` | literal `"seguimiento-whatsapp-v2"` | constante |
 | `paciente_ref` | string `^[a-f0-9]{16}$` | `substr(hash_hmac('sha256', tenant_id.':'.paciente_id, config('app.key')), 0, 16)`; solo para correlacionar logs |
 | `tramo_edad` | `"18_39"` \| `"40_59"` \| `"60_mas"` | edad a hoy desde `pacientes.fecha_nacimiento`. **Menores y edad desconocida nunca se envían** (Laravel usa el genérico) |
 | `estado_seguimiento` | `"proximo"` \| `"vencido"` | `PacienteSeguimientoEstado` del paciente (los demás estados nunca se envían) |
@@ -365,11 +375,14 @@ no se deducen patologías ni presbicia de la ADD.
 | `ya_notificado_en_ciclo` | bool | `pacientes.seguimiento_notificado_at !== null` |
 | `variante` | int 0..1000 | 0 al abrir el diálogo; «Regenerar con IA» manda un valor nuevo 1..1000 |
 | `rx_lejos` | objeto \| null | graduaciones OD/OI (`esfera`, `cilindro`, `add`, como float o null) de la **última receta** (`fecha_receta` desc, `id` desc). null si esa receta no tiene filas de graduación. Si falta una fila, ese ojo va con los tres valores null |
-| `tipo_lente` | `"monofocal"` \| `"bifocal"` \| `"progresivo"` \| `"otro"` \| null | `recetas.tipo_lente` de **la misma receta**: `monofocal`→`monofocal`; `bifocal_blended`/`flat_top`→`bifocal`; `progresivo`→`progresivo`; otro valor no vacío→`otro`; vacío→null |
+| `tipo_lente` | `"monofocal"` \| `"bifocal"` \| `"progresivo"` \| `"otro"` \| null | `recetas.tipo_lente` de **la misma receta** |
 | `uso_pantallas` | `"lt2"` \| `"btw2_6"` \| `"gt6"` \| null | `receta_clinicas.uso_pantallas` de **la misma receta** |
-| `usa_armazon` | bool \| null | **v1: Laravel siempre manda null** (el dato no existe de forma confiable; el catálogo §6.6 lo exige). ia-api acepta true/false/null |
+| `usa_armazon` | bool \| null | **v2: Laravel siempre manda null** (el dato no existe de forma confiable; el catálogo §6.6 lo exige). ia-api acepta true/false/null |
+| `contexto_uso` | objeto \| null | contexto cualitativo anonimizado (`extra="forbid"`): `ocupacion` (≤120), `motivo_consulta` (≤1000), `impresion_clinica` (≤1500), `explicacion_paciente` (≤1500), `observaciones_receta` (≤1500), `recomendacion_seguimiento` (≤1500). Cadenas vacías se normalizan a null. |
+| `fecha_revision` | `date` \| null | fecha sugerida para la revisión (solo con `estado=proximo`; con `vencido` debe ser null) |
+| `meses_periodo` | int 3..60 \| null | meses del periodo indicado para la revisión (solo con `estado=proximo`; con `vencido` debe ser null) |
 
-Nunca viajan: nombre, teléfono, folio, fechas exactas, ocupación, motivo de consulta, notas, impresión clínica, correlaciones, patologías, AKR, eje, agudeza visual.
+Nunca viajan: nombre, teléfono, folio, fechas de nacimiento exactas, notas privadas, correlaciones, patologías, AKR, eje, agudeza visual.
 
 ia-api normaliza `rx_lejos` con la misma lógica ya auditada de la Rx (rangos, transposición de cilindro positivo, `add <= 0` o `add > 30` = sin adición): reutiliza `app.schemas.Refraccion`/`GraduacionOjo`.
 
@@ -380,53 +393,60 @@ ia-api normaliza `rx_lejos` con la misma lógica ya auditada de la Rx (rangos, t
 ```json
 {
   "status": "ok",
-  "contrato_version": "seguimiento-whatsapp-v1",
+  "contrato_version": "seguimiento-whatsapp-v2",
   "estado": "generada",
-  "mensaje": "<apertura>\n\n<hecho1> <hecho2>\n\n<invitacion>\n\nSi prefiere no recibir estos recordatorios, solo díganoslo.",
-  "partes": {"apertura": "...", "hechos": ["miopia_lejos", "pantallas_muchas"], "invitacion": "...",
-             "baja": "Si prefiere no recibir estos recordatorios, solo díganoslo."},
+  "mensaje": "<apertura>\n\n<frase_uso>\n\n<frase_fecha>\n\n<hecho>\n\n<cierre>\n\nSi prefiere no recibir estos mensajes, solo díganoslo.",
+  "partes": {
+    "apertura": "...",
+    "apertura_id": null,
+    "frase_uso": "...",
+    "frase_fecha": "...",
+    "hechos": ["progresivo_zonas"],
+    "cierre": "...",
+    "cierre_id": "CI_INC_1",
+    "baja": "Si prefiere no recibir estos mensajes, solo díganoslo."
+  },
   "motivo": null,
-  "hechos_elegibles": ["miopia_ajuste", "..."],
-  "generacion": {"origen": "llm", "modelo": "qwen3.5:9b", "catalogo_version": "v1-revisado-2026-11-06",
-                 "prompt_version": "seguimiento-whatsapp-prompt-v1", "base_hash_api": "<64 hex>", "cached": false}
+  "hechos_elegibles": ["progresivo_zonas"],
+  "generacion": {
+    "origen": "llm",
+    "modelo": "qwen3.5:9b",
+    "catalogo_version": "v2-borrador-2026-11-20",
+    "prompt_version": "seguimiento-whatsapp-prompt-v3",
+    "base_hash_api": "<64 hex>",
+    "cached": false
+  },
+  "uso_lentes": "estudiar",
+  "origen_uso": "llm"
 }
 ```
 
 Reglas:
-- `estado`: `"generada"` (Qwen redactó apertura/invitación y eligió hechos; pasó validador y verificación) o `"plantilla"` (mensaje 100 % del catálogo armado por el servidor, §8).
+- `estado`: `"generada"` (Qwen redactó apertura, seleccionó hechos [0–1] y cierre de catálogo; pasó validador y verificación) o `"plantilla"` (mensaje 100 % del catálogo armado por el servidor).
 - `generacion.origen`: `"llm"` si `estado="generada"`; `"catalogo"` si `estado="plantilla"`. `modelo` es string con `origen="llm"` y null con `"catalogo"`.
-- `motivo`: null si `generada`; si `plantilla`, uno de: `ia_ocupada`, `ia_timeout`, `ollama_error`, `json_invalido`, `validacion:<regla>` (p. ej. `validacion:palabras`, `validacion:tuteo`, `validacion:lexico`, `validacion:costo`, `validacion:combinacion`, `validacion:placeholders`, `validacion:pregunta`, `validacion:cifras`), `verificacion`, `presupuesto` o `ia_deshabilitada` (ia-api con `SEGUIMIENTO_LLM_HABILITADO=false`).
-- `mensaje` = `apertura + "\n\n" + " ".join(frases de los hechos en el orden de partes.hechos) + "\n\n" + invitacion + "\n\n" + baja`. Si `hechos` está vacío: `apertura + "\n\n" + invitacion + "\n\n" + baja`.
-- Orden de `partes.hechos`: primero el del grupo A y después el del B; si los dos son del B, en el orden de prioridad del §8. (Si Qwen los devuelve en otro orden, el servidor los reordena antes de ensamblar.)
-- `hechos_elegibles` va en el orden en que el catálogo lista los hechos (§2 del .md: primero los 12 del grupo A, luego los 8 del B).
-- `mensaje` contiene **exactamente una vez** `:paciente` y **exactamente una vez** `:clinica`, ambos dentro de `apertura`. Ningún otro marcador `:palabra`. Longitud ≤ 2000 caracteres. Termina con la línea de baja.
-- `generacion.base_hash_api`: sha256 hex (64) de la clave de caché del request.
+- `motivo`: null si `generada`; si `plantilla`, uno de: `ia_ocupada`, `ia_timeout`, `ollama_error`, `json_invalido`, `validacion:<regla>`, `verificacion`, `presupuesto` o `ia_deshabilitada` (ia-api con `SEGUIMIENTO_LLM_HABILITADO=false`).
+- `mensaje` = partes no vacías unidas con `\n\n` en el orden: `apertura` → `frase_uso` → `frase_fecha` → `hechos` (0–1) → `cierre` → `baja`. Longitud 60–140 palabras (sin la baja), ≤ 2000 caracteres.
+- `partes.hechos`: lista de 0 a 1 hechos conservados.
+- `hechos_elegibles`: lista de hechos elegibles según el catálogo v2.
+- `mensaje` contiene **exactamente una vez** `:paciente` y **exactamente una vez** `:clinica`, ambos dentro de `apertura`. La apertura no contiene «¿» ni «?». El cierre contiene exactamente un «¿» y un «?».
+- `generacion.base_hash_api`: sha256 hex (64) de la clave de caché del request (`contexto_uso` entra solo como su sha256, nunca en claro).
 - `cached`: true si salió de la caché de ia-api (solo se cachean respuestas `generada`).
+- `uso_lentes`: etiqueta de uso clasificada por la etapa `uso` o por reglas deterministas.
+- `origen_uso`: `"llm"` si provino de la etapa `uso`; `"reglas"` si provino de reglas deterministas.
 
 Laravel valida esta forma de manera estricta; cualquier desviación → mensaje genérico local con motivo `respuesta_invalida`.
 
 
 ### Versiones, respaldo y fixtures compartidos
 
-- Catálogo: `v1-revisado-2026-11-06`.
-- Redacción: `seguimiento-whatsapp-prompt-v1`.
+- Catálogo: `v2-borrador-2026-11-20`.
+- Redacción: `seguimiento-whatsapp-prompt-v3`.
 - Verificación: `seguimiento-verificacion-v1`.
-- Contrato: `seguimiento-whatsapp-v1`.
+- Uso: `seguimiento-uso-v1`.
+- Contrato: `seguimiento-whatsapp-v2`.
 
-Los fixtures normativos, copiados sin cambios, están en
-`tests/fixtures/seguimiento_whatsapp/`: `g1-request.json`, `g2-request.json`,
-`g3-request.json`, las tres respuestas `gN-respuesta-plantilla.json`,
-`g1-modelo-redaccion.json`, `modelo-verificacion-false.json` y
-`g1-respuesta-generada.json`. `sha256.json` fija sus hashes originales.
+Los fixtures normativos están en `tests/fixtures/seguimiento_whatsapp/`: `g1-request.json`, `g2-request.json`, `g3-request.json`, las respuestas `gN-respuesta-plantilla.json`, `g1-modelo-uso.json`, `g1-modelo-redaccion.json`, `modelo-verificacion-false.json` y `g1-respuesta-generada.json`. `sha256.json` fija sus hashes.
 
-El respaldo usa textos literales del catálogo, alterna frases del grupo A por
-paridad de `recetas_previas` y minimiza la suma de rangos de combinaciones válidas.
-No se cachea. La respuesta generada pasa validación determinista y verificación
-de apertura/invitación, y se cachea en memoria con LRU + TTL. La clave excluye
-`paciente_ref` e incluye modelo, versiones y opciones, incluida la semilla efectiva.
+El respaldo usa textos literales del catálogo con rotación determinista por sha256. No se cachea. La respuesta generada pasa validación determinista y verificación de apertura, y se cachea en memoria con LRU + TTL. La clave excluye `paciente_ref` y anonimiza `contexto_uso` como sha256.
 
-Laravel sustituye `:paciente` y `:clinica` una sola vez al mostrar o aprobar;
-ia-api nunca recibe los nombres ni abre WhatsApp. La prosa completa se revisa
-antes de que el operador acepte. `usa_armazon` se admite como true/false/null,
-pero Laravel envía null en v1. Los meses se conservan en la clave de caché y no
-se muestran al modelo. Logs de seguimiento sin contenido ni cifras de Rx.
+Laravel sustituye `:paciente` y `:clinica` una sola vez al mostrar o aprobar; ia-api nunca recibe los nombres ni abre WhatsApp. La prosa completa se revisa antes de que el operador acepte. Logs de seguimiento sin contenido ni textos clínicos de `contexto_uso`.

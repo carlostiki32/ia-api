@@ -1,6 +1,14 @@
 """La suite es offline: ASGI y MockTransport funcionan sin conexiones reales."""
-import httpx
-import pytest
+import os
+
+# El .env local no debe cambiar resultados. num_ctx se fija ANTES de importar app
+# (pydantic-settings prioriza el entorno sobre .env, y ollama._OLLAMA_OPTIONS se calcula al importar).
+# Con OLLAMA_NUM_CTX=4096 el seguimiento caia a plantilla por presupuesto y colgaba
+# test_enrutado::test_receta_entre_redaccion_y_verificacion. Debe igualar el valor por defecto de app/config.py.
+os.environ["OLLAMA_NUM_CTX"] = "8192"
+
+import httpx  # noqa: E402
+import pytest  # noqa: E402
 
 
 _original_handle_sync = httpx.HTTPTransport.handle_request
@@ -35,3 +43,10 @@ def conteo_offline(monkeypatch):
     token = politica_actual.set('conservador')
     yield
     politica_actual.reset(token)
+
+
+@pytest.fixture(autouse=True, scope="session")
+def num_ctx_igual_al_del_codigo():
+    from app.config import settings
+    esperado = type(settings).model_fields["ollama_num_ctx"].default
+    assert settings.ollama_num_ctx == esperado, "Actualiza OLLAMA_NUM_CTX en tests/conftest.py al default de app/config.py"

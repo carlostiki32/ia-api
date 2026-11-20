@@ -2,8 +2,9 @@ import re
 import unicodedata
 
 from app.patient_profile import word_count
-from app.seguimiento.catalogo import BAJA, POR_ID
+from app.seguimiento.catalogo import BAJA, FRASES_FECHA, FRASES_USO, POR_ID
 from app.seguimiento.combinacion import combinacion_valida
+from app.seguimiento.fechas import formatear_fecha, periodo_en_palabras
 
 LEXICO = (
     "miopia", "hipermetropia", "astigmatismo", "presbicia", "catarata", "glaucoma", "enfermedad",
@@ -39,17 +40,18 @@ _TUTEO_RE = re.compile(
 )
 
 
-
 def normalizar(texto: str) -> str:
     return "".join(c for c in unicodedata.normalize("NFD", texto.lower()) if not unicodedata.combining(c))
 
 
-def ensamblar(apertura: str, ids: list[str], invitacion: str) -> str:
-    return "\n\n".join(p for p in (apertura, " ".join(POR_ID[id].texto for id in ids), invitacion, BAJA) if p)
+def ensamblar(apertura: str, frase_uso: str, frase_fecha: str, hechos: list[str], cierre: str) -> str:
+    hechos_str = " ".join(POR_ID[h].texto for h in hechos if h in POR_ID)
+    partes = [apertura, frase_uso, frase_fecha, hechos_str, cierre, BAJA]
+    return "\n\n".join(p for p in partes if p)
 
 
-def validar_estilo(apertura: str, invitacion: str) -> str | None:
-    texto = apertura + " " + invitacion
+def validar_estilo(apertura: str, invitacion: str = "") -> str | None:
+    texto = (apertura + " " + invitacion).strip() if invitacion else apertura
     marcadores = re.findall(r":[a-z_]+", texto, re.I)
     if (sorted(marcadores) != [":clinica", ":paciente"] or
         apertura.count(":paciente") != 1 or apertura.count(":clinica") != 1 or
@@ -57,6 +59,8 @@ def validar_estilo(apertura: str, invitacion: str) -> str | None:
         return "placeholders"
     if re.search(r"\d", texto):
         return "cifras"
+    if "¿" in apertura or "?" in apertura:
+        return "apertura"
     libre = normalizar(texto)
     if _TUTEO_RE.search(libre):
         return "tuteo"
@@ -66,45 +70,80 @@ def validar_estilo(apertura: str, invitacion: str) -> str | None:
     return None
 
 
-def validar(req, apertura: str, ids: list[str], invitacion: str, elegibles: list[str], *, mensaje: str | None = None) -> str | None:
-    frases = " ".join(POR_ID[id].texto for id in ids if id in POR_ID)
-    texto = " ".join((apertura, frases, invitacion))
-    if (not apertura.strip() or not invitacion.strip() or
-        any(len(p) > 300 or "\n" in p or "\r" in p for p in (apertura, invitacion)) or
-        not 50 <= word_count(texto) <= 110 or len(texto) + len(BAJA) + 8 > 2000):
+def validar(req, partes_v2, elegibles: list[str], uso_lentes: str, *, mensaje: str | None = None) -> str | None:
+    if hasattr(partes_v2, "apertura"):
+        apertura = partes_v2.apertura
+        frase_uso = partes_v2.frase_uso
+        frase_fecha = partes_v2.frase_fecha
+        hechos = partes_v2.hechos
+        cierre = partes_v2.cierre
+        cierre_id = partes_v2.cierre_id
+    else:
+        apertura = partes_v2.get("apertura", "")
+        frase_uso = partes_v2.get("frase_uso", "")
+        frase_fecha = partes_v2.get("frase_fecha", "")
+        hechos = partes_v2.get("hechos", [])
+        cierre = partes_v2.get("cierre", "")
+        cierre_id = partes_v2.get("cierre_id", "")
+
+    hechos_texto = " ".join(POR_ID[h].texto for h in hechos if h in POR_ID)
+    cuerpo = "\n\n".join(p for p in (apertura, frase_uso, frase_fecha, hechos_texto, cierre) if p)
+    palabras = word_count(cuerpo)
+    total_len = len(cuerpo) + len(BAJA) + 2
+
+    if not apertura.strip() or not (60 <= palabras <= 140) or total_len > 2000:
         return "palabras"
-    estilo = validar_estilo(apertura, invitacion)
-    # El orden normativo pone pregunta antes que tuteo y léxico.
-    if estilo in ("placeholders", "cifras"):
-        return estilo
-    if not invitacion.endswith("?") or "¿" not in invitacion:
-        return "pregunta"
+
+    if len(apertura) > 300 or "\n" in apertura or "\r" in apertura:
+        return "apertura"
+
+    estilo = validar_estilo(apertura)
     if estilo:
         return estilo
-    libre = normalizar(apertura + " " + invitacion)
-    invit = normalizar(invitacion)
-    # La condición se comunica en el hecho o la invitación, una sola vez.
-    if re.search(r"\b(?:costo|incluid[oa]s?)\b", normalizar(apertura)):
-        return "costo"
-    if req.costo == "con_costo":
-        if re.search(r"\b(?:incluid[oa]s?|sin costo|gratis)\b|\bgratuit", libre):
-            return "costo"
-        if ("costo" in invit) == ("con_costo_claro" in ids):
-            return "costo"
-        if invit.count("costo") > 1:
-            return "costo"
+
+    if not cierre.strip() or len(cierre) > 300 or "\n" in cierre or "\r" in cierre:
+        return "cierre"
+    if cierre.count("¿") != 1 or cierre.count("?") != 1:
+        return "cierre"
+    cierre_norm = normalizar(cierre)
+    if req.costo == "incluida":
+        if not cierre_id.startswith("CI_INC_") or "incluida" not in cierre_norm or "costo" in cierre_norm:
+            return "cierre"
     else:
-        if re.search(r"\b(?:tiene costo|tiene un costo|monto|tarifa|arancel|cuota|importe)\b|\b(?:cobr|pag)", libre):
-            return "costo"
-        if "incluida_sin_costo" in ids:
-            if "incluida" in invit or "costo" in invit:
-                return "costo"
-        elif "incluida" not in invit:
-            return "costo"
-        if invit.count("incluida") > 1:
-            return "costo"
-    if not combinacion_valida(ids, elegibles):
-        return "combinacion"
-    if mensaje is not None and mensaje != ensamblar(apertura, ids, invitacion):
+        if not cierre_id.startswith("CI_COS_") or "costo" not in cierre_norm or any(w in cierre_norm for w in ("incluida", "gratis", "sin costo")):
+            return "cierre"
+
+    frases_validas_uso = [texto for _, texto in FRASES_USO.get(uso_lentes, [])]
+    if frase_uso not in frases_validas_uso:
+        return "uso"
+
+    if req.estado_seguimiento == "proximo" and not req.ya_notificado_en_ciclo and req.fecha_revision is not None:
+        if req.meses_periodo is not None and 3 <= req.meses_periodo <= 24:
+            grupo_fecha = "P"
+        else:
+            grupo_fecha = "PS"
+    else:
+        grupo_fecha = "N"
+
+    frases_validas_fecha = []
+    for _, plantilla in FRASES_FECHA.get(grupo_fecha, []):
+        if grupo_fecha == "P":
+            frases_validas_fecha.append(plantilla.format(
+                fecha=formatear_fecha(req.fecha_revision),
+                periodo=periodo_en_palabras(req.meses_periodo),
+            ))
+        elif grupo_fecha == "PS":
+            frases_validas_fecha.append(plantilla.format(fecha=formatear_fecha(req.fecha_revision)))
+        else:
+            frases_validas_fecha.append(plantilla)
+
+    if frase_fecha not in frases_validas_fecha:
+        return "fecha"
+
+    if not combinacion_valida(hechos, elegibles):
         return "hechos"
+
+    if mensaje is not None and mensaje != ensamblar(apertura, frase_uso, frase_fecha, hechos, cierre):
+        return "hechos"
+
     return None

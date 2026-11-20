@@ -105,7 +105,9 @@ class Handler(BaseHandler):
                         return
                 time.sleep(.001)
             raw = "Se registra refraccion final para correccion de lejos y apoyo cercano."
-            if e == "redaccion":
+            if e == "uso":
+                raw = json.dumps(dict(uso_lentes="estudiar", fuente="ocupacion"), ensure_ascii=False)
+            elif e == "redaccion":
                 if tarea == "explicacion-paciente":
                     user = body.get("messages", [{}])[-1].get("content", "")
                     obj = dict(frases=[])
@@ -130,24 +132,24 @@ class Handler(BaseHandler):
                     raw = json.dumps(obj, ensure_ascii=False)
                 else:
                     enum = body.get("format", {}).get("properties", {}).get("hechos", {}).get("items", {}).get("enum")
-                    if enum and not (self.server.abstencion_paciente or self.server.forzar_respaldo):
+                    cierres_enum = body.get("format", {}).get("properties", {}).get("cierre", {}).get("enum", [])
+                    if enum is not None and not (self.server.abstencion_paciente or self.server.forzar_respaldo):
                         from app.seguimiento.combinacion import seleccionar_respaldo, ordenar_hechos
-                        from app.seguimiento.catalogo import APERTURAS, INVITACIONES
+                        from app.seguimiento.catalogo import APERTURAS_V2
                         user_text = body.get("messages", [{}])[-1].get("content", "")
                         con_costo = "Condición: con_costo" in user_text
                         vencido = "Retomar sin reproche" in user_text
                         notificado = "Segundo recordatorio" in user_text
-                        edad60 = "No usar I6" in user_text
+                        visitado = "Ya nos ha visitado" in user_text
                         ids = ordenar_hechos(seleccionar_respaldo(enum, 0))
-                        a = ("A4" if vencido else "A3" if notificado
-                             else "A6" if edad60 else "A9" if con_costo else "A1")
-                        i_id = ("I3" if con_costo and "con_costo_claro" not in ids
-                                else "I2" if not con_costo and "incluida_sin_costo" not in ids else "I1")
-                        obj = dict(apertura=APERTURAS[a], hechos=ids, invitacion=INVITACIONES[i_id])
+                        grupo_a = ("AP_SEG" if notificado else "AP_VENC" if vencido else "AP_PROX_CONT" if visitado else "AP_PROX_PRIM")
+                        apertura_texto = APERTURAS_V2[grupo_a][0][1]
+                        c_id = cierres_enum[0] if cierres_enum else ("CI_COS_1" if con_costo else "CI_INC_1")
+                        obj = dict(apertura=apertura_texto, hechos=ids, cierre=c_id)
                         raw = json.dumps(obj, ensure_ascii=False)
                     else:
                         raw = json.dumps(leer("g1-modelo-redaccion"), ensure_ascii=False)
-            if e == "verificacion":
+            elif e == "verificacion":
                 raw = '{"valido":true}' if tarea == "explicacion-paciente" else '{"afirma_algo_de_salud":false}'
             mensajes = body.get("messages", [])
             if len(mensajes) == 2:

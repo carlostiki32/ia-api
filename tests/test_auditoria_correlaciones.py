@@ -89,14 +89,10 @@ def test_t1_04_sin_datos_desprendimiento_retina():
     assert "fondo_periferico_riesgo" not in act
 
 
-def test_t1_05_sin_signos_edema_papila_bilateral():
-    act = activas(fondo="Sin signos de edema de papila bilateral")
-    assert "papila_patologica" not in act
+# t1_05 retirada: duplicado exacto de test_c04_16 (auditoría 2026-11-20).
 
 
-def test_t1_06_sin_presencia_drusas_maculares():
-    act = activas(fondo="Sin presencia de drusas maculares")
-    assert "fondo_macular_dmae" not in act
+# t1_06 retirada: duplicado exacto de test_c08_16 (auditoría 2026-11-20).
 
 
 def test_t1_07_sin_signos_blefaritis_anterior():
@@ -252,10 +248,7 @@ def test_t9_04_lattice_con_papila_normal():
     assert "fondo_periferico_riesgo" in act
 
 
-def test_t9_05_papiledema_con_macula_normal():
-    act = activas(fondo="Papiledema con macula normal")
-    assert "papila_patologica" in act
-    assert "Hallazgo urgente:" in act["papila_patologica"]
+# t9_05 retirada: duplicado exacto de test_c04_17 (auditoría 2026-11-20).
 
 
 def test_t9_06_palidez_papilar_con_macula_normal():
@@ -345,10 +338,7 @@ def test_t11_07_edema_papila_presente():
 # ============================================================================
 
 
-def test_t10_01_descartar_ovcr_sospecha_activa():
-    act = activas(fondo="Hemorragias en llama en 4 cuadrantes OD, descartar OVCR")
-    assert "fondo_oclusion_vascular_urgente" in act
-    assert "Hallazgo urgente:" in act["fondo_oclusion_vascular_urgente"]
+# t10_01 retirada: duplicado exacto de test_c03_07 (auditoría 2026-11-20).
 
 
 def test_t10_02_descarte_con_resolucion_sin_hallazgos():

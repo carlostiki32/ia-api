@@ -1,5 +1,5 @@
 {
-  "contrato_version": "seguimiento-whatsapp-v1",
+  "contrato_version": "seguimiento-whatsapp-v2",
   "paciente_ref": "3f9a1c0b7d2e4a51",
   "tramo_edad": "18_39",
   "estado_seguimiento": "proximo",
@@ -22,5 +22,15 @@
   },
   "tipo_lente": "monofocal",
   "uso_pantallas": "gt6",
-  "usa_armazon": null
+  "usa_armazon": null,
+  "fecha_revision": "2026-12-15",
+  "meses_periodo": 12,
+  "contexto_uso": {
+    "ocupacion": "Estudiante",
+    "motivo_consulta": null,
+    "impresion_clinica": null,
+    "explicacion_paciente": null,
+    "observaciones_receta": null,
+    "recomendacion_seguimiento": null
+  }
 }

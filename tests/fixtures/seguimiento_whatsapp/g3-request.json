@@ -1,5 +1,5 @@
 {
-  "contrato_version": "seguimiento-whatsapp-v1",
+  "contrato_version": "seguimiento-whatsapp-v2",
   "paciente_ref": "0123456789abcdef",
   "tramo_edad": "40_59",
   "estado_seguimiento": "proximo",
@@ -11,5 +11,15 @@
   "rx_lejos": null,
   "tipo_lente": null,
   "uso_pantallas": null,
-  "usa_armazon": null
+  "usa_armazon": null,
+  "fecha_revision": null,
+  "meses_periodo": null,
+  "contexto_uso": {
+    "ocupacion": null,
+    "motivo_consulta": null,
+    "impresion_clinica": null,
+    "explicacion_paciente": null,
+    "observaciones_receta": null,
+    "recomendacion_seguimiento": null
+  }
 }

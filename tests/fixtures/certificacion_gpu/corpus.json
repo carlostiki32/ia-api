@@ -5124,10 +5124,12 @@
       "categoria": "proximo_incluida_18_39",
       "elegible_personalizacion": true,
       "payload": {
-        "contrato_version": "seguimiento-whatsapp-v1",
+        "contrato_version": "seguimiento-whatsapp-v2",
         "paciente_ref": "0000000000000001",
         "tramo_edad": "18_39",
         "estado_seguimiento": "proximo",
+        "fecha_revision": "2026-12-15",
+        "meses_periodo": 24,
         "meses_desde_ultima_receta": null,
         "recetas_previas": 0,
         "costo": "incluida",
@@ -5147,7 +5149,10 @@
         },
         "tipo_lente": null,
         "uso_pantallas": null,
-        "usa_armazon": null
+        "usa_armazon": null,
+        "contexto_uso": {
+          "ocupacion": "estudiante"
+        }
       }
     },
     {
@@ -5155,10 +5160,12 @@
       "categoria": "vencido_incluida_40_59",
       "elegible_personalizacion": true,
       "payload": {
-        "contrato_version": "seguimiento-whatsapp-v1",
+        "contrato_version": "seguimiento-whatsapp-v2",
         "paciente_ref": "0000000000000002",
         "tramo_edad": "40_59",
         "estado_seguimiento": "vencido",
+        "fecha_revision": null,
+        "meses_periodo": null,
         "meses_desde_ultima_receta": 7,
         "recetas_previas": 1,
         "costo": "incluida",
@@ -5178,7 +5185,10 @@
         },
         "tipo_lente": "monofocal",
         "uso_pantallas": "lt2",
-        "usa_armazon": true
+        "usa_armazon": true,
+        "contexto_uso": {
+          "ocupacion": "chofer"
+        }
       }
     },
     {
@@ -5186,10 +5196,12 @@
       "categoria": "proximo_con_costo_60_mas",
       "elegible_personalizacion": true,
       "payload": {
-        "contrato_version": "seguimiento-whatsapp-v1",
+        "contrato_version": "seguimiento-whatsapp-v2",
         "paciente_ref": "0000000000000003",
         "tramo_edad": "60_mas",
         "estado_seguimiento": "proximo",
+        "fecha_revision": "2026-12-15",
+        "meses_periodo": 24,
         "meses_desde_ultima_receta": 8,
         "recetas_previas": 2,
         "costo": "con_costo",
@@ -5209,7 +5221,10 @@
         },
         "tipo_lente": "bifocal",
         "uso_pantallas": "btw2_6",
-        "usa_armazon": false
+        "usa_armazon": false,
+        "contexto_uso": {
+          "ocupacion": "programador"
+        }
       }
     },
     {
@@ -5217,10 +5232,12 @@
       "categoria": "vencido_con_costo_18_39",
       "elegible_personalizacion": true,
       "payload": {
-        "contrato_version": "seguimiento-whatsapp-v1",
+        "contrato_version": "seguimiento-whatsapp-v2",
         "paciente_ref": "0000000000000004",
         "tramo_edad": "18_39",
         "estado_seguimiento": "vencido",
+        "fecha_revision": null,
+        "meses_periodo": null,
         "meses_desde_ultima_receta": 9,
         "recetas_previas": 3,
         "costo": "con_costo",
@@ -5240,7 +5257,10 @@
         },
         "tipo_lente": "progresivo",
         "uso_pantallas": "gt6",
-        "usa_armazon": null
+        "usa_armazon": null,
+        "contexto_uso": {
+          "ocupacion": null
+        }
       }
     },
     {
@@ -5248,10 +5268,12 @@
       "categoria": "proximo_incluida_40_59",
       "elegible_personalizacion": true,
       "payload": {
-        "contrato_version": "seguimiento-whatsapp-v1",
+        "contrato_version": "seguimiento-whatsapp-v2",
         "paciente_ref": "0000000000000005",
         "tramo_edad": "40_59",
         "estado_seguimiento": "proximo",
+        "fecha_revision": "2026-12-15",
+        "meses_periodo": 24,
         "meses_desde_ultima_receta": 10,
         "recetas_previas": 4,
         "costo": "incluida",
@@ -5271,7 +5293,10 @@
         },
         "tipo_lente": "otro",
         "uso_pantallas": null,
-        "usa_armazon": true
+        "usa_armazon": true,
+        "contexto_uso": {
+          "ocupacion": "estudiante"
+        }
       }
     },
     {
@@ -5279,10 +5304,12 @@
       "categoria": "vencido_incluida_60_mas",
       "elegible_personalizacion": true,
       "payload": {
-        "contrato_version": "seguimiento-whatsapp-v1",
+        "contrato_version": "seguimiento-whatsapp-v2",
         "paciente_ref": "0000000000000006",
         "tramo_edad": "60_mas",
         "estado_seguimiento": "vencido",
+        "fecha_revision": null,
+        "meses_periodo": null,
         "meses_desde_ultima_receta": 11,
         "recetas_previas": 0,
         "costo": "incluida",
@@ -5302,7 +5329,10 @@
         },
         "tipo_lente": null,
         "uso_pantallas": "lt2",
-        "usa_armazon": false
+        "usa_armazon": false,
+        "contexto_uso": {
+          "ocupacion": "chofer"
+        }
       }
     },
     {
@@ -5310,10 +5340,12 @@
       "categoria": "proximo_con_costo_18_39",
       "elegible_personalizacion": true,
       "payload": {
-        "contrato_version": "seguimiento-whatsapp-v1",
+        "contrato_version": "seguimiento-whatsapp-v2",
         "paciente_ref": "0000000000000007",
         "tramo_edad": "18_39",
         "estado_seguimiento": "proximo",
+        "fecha_revision": "2026-12-15",
+        "meses_periodo": 24,
         "meses_desde_ultima_receta": 12,
         "recetas_previas": 1,
         "costo": "con_costo",
@@ -5333,7 +5365,10 @@
         },
         "tipo_lente": "monofocal",
         "uso_pantallas": "btw2_6",
-        "usa_armazon": null
+        "usa_armazon": null,
+        "contexto_uso": {
+          "ocupacion": "programador"
+        }
       }
     },
     {
@@ -5341,10 +5376,12 @@
       "categoria": "vencido_con_costo_40_59",
       "elegible_personalizacion": true,
       "payload": {
-        "contrato_version": "seguimiento-whatsapp-v1",
+        "contrato_version": "seguimiento-whatsapp-v2",
         "paciente_ref": "0000000000000008",
         "tramo_edad": "40_59",
         "estado_seguimiento": "vencido",
+        "fecha_revision": null,
+        "meses_periodo": null,
         "meses_desde_ultima_receta": 13,
         "recetas_previas": 2,
         "costo": "con_costo",
@@ -5364,7 +5401,10 @@
         },
         "tipo_lente": "bifocal",
         "uso_pantallas": "gt6",
-        "usa_armazon": true
+        "usa_armazon": true,
+        "contexto_uso": {
+          "ocupacion": null
+        }
       }
     },
     {
@@ -5372,10 +5412,12 @@
       "categoria": "proximo_incluida_60_mas",
       "elegible_personalizacion": true,
       "payload": {
-        "contrato_version": "seguimiento-whatsapp-v1",
+        "contrato_version": "seguimiento-whatsapp-v2",
         "paciente_ref": "0000000000000009",
         "tramo_edad": "60_mas",
         "estado_seguimiento": "proximo",
+        "fecha_revision": "2026-12-15",
+        "meses_periodo": 24,
         "meses_desde_ultima_receta": 14,
         "recetas_previas": 3,
         "costo": "incluida",
@@ -5395,7 +5437,10 @@
         },
         "tipo_lente": "progresivo",
         "uso_pantallas": null,
-        "usa_armazon": false
+        "usa_armazon": false,
+        "contexto_uso": {
+          "ocupacion": "estudiante"
+        }
       }
     },
     {
@@ -5403,10 +5448,12 @@
       "categoria": "vencido_incluida_18_39",
       "elegible_personalizacion": true,
       "payload": {
-        "contrato_version": "seguimiento-whatsapp-v1",
+        "contrato_version": "seguimiento-whatsapp-v2",
         "paciente_ref": "000000000000000a",
         "tramo_edad": "18_39",
         "estado_seguimiento": "vencido",
+        "fecha_revision": null,
+        "meses_periodo": null,
         "meses_desde_ultima_receta": 15,
         "recetas_previas": 4,
         "costo": "incluida",
@@ -5415,7 +5462,10 @@
         "rx_lejos": null,
         "tipo_lente": "otro",
         "uso_pantallas": "lt2",
-        "usa_armazon": null
+        "usa_armazon": null,
+        "contexto_uso": {
+          "ocupacion": "chofer"
+        }
       }
     },
     {
@@ -5423,10 +5473,12 @@
       "categoria": "proximo_con_costo_40_59",
       "elegible_personalizacion": true,
       "payload": {
-        "contrato_version": "seguimiento-whatsapp-v1",
+        "contrato_version": "seguimiento-whatsapp-v2",
         "paciente_ref": "000000000000000b",
         "tramo_edad": "40_59",
         "estado_seguimiento": "proximo",
+        "fecha_revision": "2026-12-15",
+        "meses_periodo": 24,
         "meses_desde_ultima_receta": 16,
         "recetas_previas": 0,
         "costo": "con_costo",
@@ -5446,7 +5498,10 @@
         },
         "tipo_lente": null,
         "uso_pantallas": "btw2_6",
-        "usa_armazon": true
+        "usa_armazon": true,
+        "contexto_uso": {
+          "ocupacion": "programador"
+        }
       }
     },
     {
@@ -5454,10 +5509,12 @@
       "categoria": "vencido_con_costo_60_mas",
       "elegible_personalizacion": true,
       "payload": {
-        "contrato_version": "seguimiento-whatsapp-v1",
+        "contrato_version": "seguimiento-whatsapp-v2",
         "paciente_ref": "000000000000000c",
         "tramo_edad": "60_mas",
         "estado_seguimiento": "vencido",
+        "fecha_revision": null,
+        "meses_periodo": null,
         "meses_desde_ultima_receta": null,
         "recetas_previas": 1,
         "costo": "con_costo",
@@ -5477,7 +5534,10 @@
         },
         "tipo_lente": "monofocal",
         "uso_pantallas": "gt6",
-        "usa_armazon": false
+        "usa_armazon": false,
+        "contexto_uso": {
+          "ocupacion": null
+        }
       }
     },
     {
@@ -5485,10 +5545,12 @@
       "categoria": "proximo_incluida_18_39",
       "elegible_personalizacion": true,
       "payload": {
-        "contrato_version": "seguimiento-whatsapp-v1",
+        "contrato_version": "seguimiento-whatsapp-v2",
         "paciente_ref": "000000000000000d",
         "tramo_edad": "18_39",
         "estado_seguimiento": "proximo",
+        "fecha_revision": "2026-12-15",
+        "meses_periodo": 24,
         "meses_desde_ultima_receta": 18,
         "recetas_previas": 2,
         "costo": "incluida",
@@ -5508,7 +5570,10 @@
         },
         "tipo_lente": "bifocal",
         "uso_pantallas": null,
-        "usa_armazon": null
+        "usa_armazon": null,
+        "contexto_uso": {
+          "ocupacion": "estudiante"
+        }
       }
     },
     {
@@ -5516,10 +5581,12 @@
       "categoria": "vencido_incluida_40_59",
       "elegible_personalizacion": true,
       "payload": {
-        "contrato_version": "seguimiento-whatsapp-v1",
+        "contrato_version": "seguimiento-whatsapp-v2",
         "paciente_ref": "000000000000000e",
         "tramo_edad": "40_59",
         "estado_seguimiento": "vencido",
+        "fecha_revision": null,
+        "meses_periodo": null,
         "meses_desde_ultima_receta": 19,
         "recetas_previas": 3,
         "costo": "incluida",
@@ -5539,7 +5606,10 @@
         },
         "tipo_lente": "progresivo",
         "uso_pantallas": "lt2",
-        "usa_armazon": true
+        "usa_armazon": true,
+        "contexto_uso": {
+          "ocupacion": "chofer"
+        }
       }
     },
     {
@@ -5547,10 +5617,12 @@
       "categoria": "proximo_con_costo_60_mas",
       "elegible_personalizacion": true,
       "payload": {
-        "contrato_version": "seguimiento-whatsapp-v1",
+        "contrato_version": "seguimiento-whatsapp-v2",
         "paciente_ref": "000000000000000f",
         "tramo_edad": "60_mas",
         "estado_seguimiento": "proximo",
+        "fecha_revision": "2026-12-15",
+        "meses_periodo": 24,
         "meses_desde_ultima_receta": 20,
         "recetas_previas": 4,
         "costo": "con_costo",
@@ -5570,7 +5642,10 @@
         },
         "tipo_lente": "otro",
         "uso_pantallas": "btw2_6",
-        "usa_armazon": false
+        "usa_armazon": false,
+        "contexto_uso": {
+          "ocupacion": "programador"
+        }
       }
     },
     {
@@ -5578,10 +5653,12 @@
       "categoria": "vencido_con_costo_18_39",
       "elegible_personalizacion": true,
       "payload": {
-        "contrato_version": "seguimiento-whatsapp-v1",
+        "contrato_version": "seguimiento-whatsapp-v2",
         "paciente_ref": "0000000000000010",
         "tramo_edad": "18_39",
         "estado_seguimiento": "vencido",
+        "fecha_revision": null,
+        "meses_periodo": null,
         "meses_desde_ultima_receta": 21,
         "recetas_previas": 0,
         "costo": "con_costo",
@@ -5601,7 +5678,10 @@
         },
         "tipo_lente": null,
         "uso_pantallas": "gt6",
-        "usa_armazon": null
+        "usa_armazon": null,
+        "contexto_uso": {
+          "ocupacion": null
+        }
       }
     },
     {
@@ -5609,10 +5689,12 @@
       "categoria": "proximo_incluida_40_59",
       "elegible_personalizacion": true,
       "payload": {
-        "contrato_version": "seguimiento-whatsapp-v1",
+        "contrato_version": "seguimiento-whatsapp-v2",
         "paciente_ref": "0000000000000011",
         "tramo_edad": "40_59",
         "estado_seguimiento": "proximo",
+        "fecha_revision": "2026-12-15",
+        "meses_periodo": 24,
         "meses_desde_ultima_receta": 22,
         "recetas_previas": 1,
         "costo": "incluida",
@@ -5632,7 +5714,10 @@
         },
         "tipo_lente": "monofocal",
         "uso_pantallas": null,
-        "usa_armazon": true
+        "usa_armazon": true,
+        "contexto_uso": {
+          "ocupacion": "estudiante"
+        }
       }
     },
     {
@@ -5640,10 +5725,12 @@
       "categoria": "vencido_incluida_60_mas",
       "elegible_personalizacion": true,
       "payload": {
-        "contrato_version": "seguimiento-whatsapp-v1",
+        "contrato_version": "seguimiento-whatsapp-v2",
         "paciente_ref": "0000000000000012",
         "tramo_edad": "60_mas",
         "estado_seguimiento": "vencido",
+        "fecha_revision": null,
+        "meses_periodo": null,
         "meses_desde_ultima_receta": 23,
         "recetas_previas": 2,
         "costo": "incluida",
@@ -5663,7 +5750,10 @@
         },
         "tipo_lente": "bifocal",
         "uso_pantallas": "lt2",
-        "usa_armazon": false
+        "usa_armazon": false,
+        "contexto_uso": {
+          "ocupacion": "chofer"
+        }
       }
     },
     {
@@ -5671,10 +5761,12 @@
       "categoria": "proximo_con_costo_18_39",
       "elegible_personalizacion": true,
       "payload": {
-        "contrato_version": "seguimiento-whatsapp-v1",
+        "contrato_version": "seguimiento-whatsapp-v2",
         "paciente_ref": "0000000000000013",
         "tramo_edad": "18_39",
         "estado_seguimiento": "proximo",
+        "fecha_revision": "2026-12-15",
+        "meses_periodo": 24,
         "meses_desde_ultima_receta": 24,
         "recetas_previas": 3,
         "costo": "con_costo",
@@ -5694,7 +5786,10 @@
         },
         "tipo_lente": "progresivo",
         "uso_pantallas": "btw2_6",
-        "usa_armazon": null
+        "usa_armazon": null,
+        "contexto_uso": {
+          "ocupacion": "programador"
+        }
       }
     },
     {
@@ -5702,10 +5797,12 @@
       "categoria": "vencido_con_costo_40_59",
       "elegible_personalizacion": true,
       "payload": {
-        "contrato_version": "seguimiento-whatsapp-v1",
+        "contrato_version": "seguimiento-whatsapp-v2",
         "paciente_ref": "0000000000000014",
         "tramo_edad": "40_59",
         "estado_seguimiento": "vencido",
+        "fecha_revision": null,
+        "meses_periodo": null,
         "meses_desde_ultima_receta": 6,
         "recetas_previas": 4,
         "costo": "con_costo",
@@ -5714,7 +5811,10 @@
         "rx_lejos": null,
         "tipo_lente": "otro",
         "uso_pantallas": "gt6",
-        "usa_armazon": true
+        "usa_armazon": true,
+        "contexto_uso": {
+          "ocupacion": null
+        }
       }
     },
     {
@@ -5722,10 +5822,12 @@
       "categoria": "proximo_incluida_60_mas",
       "elegible_personalizacion": true,
       "payload": {
-        "contrato_version": "seguimiento-whatsapp-v1",
+        "contrato_version": "seguimiento-whatsapp-v2",
         "paciente_ref": "0000000000000015",
         "tramo_edad": "60_mas",
         "estado_seguimiento": "proximo",
+        "fecha_revision": "2026-12-15",
+        "meses_periodo": 24,
         "meses_desde_ultima_receta": 7,
         "recetas_previas": 0,
         "costo": "incluida",
@@ -5745,7 +5847,10 @@
         },
         "tipo_lente": null,
         "uso_pantallas": null,
-        "usa_armazon": false
+        "usa_armazon": false,
+        "contexto_uso": {
+          "ocupacion": "estudiante"
+        }
       }
     },
     {
@@ -5753,10 +5858,12 @@
       "categoria": "vencido_incluida_18_39",
       "elegible_personalizacion": true,
       "payload": {
-        "contrato_version": "seguimiento-whatsapp-v1",
+        "contrato_version": "seguimiento-whatsapp-v2",
         "paciente_ref": "0000000000000016",
         "tramo_edad": "18_39",
         "estado_seguimiento": "vencido",
+        "fecha_revision": null,
+        "meses_periodo": null,
         "meses_desde_ultima_receta": 8,
         "recetas_previas": 1,
         "costo": "incluida",
@@ -5776,7 +5883,10 @@
         },
         "tipo_lente": "monofocal",
         "uso_pantallas": "lt2",
-        "usa_armazon": null
+        "usa_armazon": null,
+        "contexto_uso": {
+          "ocupacion": "chofer"
+        }
       }
     },
     {
@@ -5784,10 +5894,12 @@
       "categoria": "proximo_con_costo_40_59",
       "elegible_personalizacion": true,
       "payload": {
-        "contrato_version": "seguimiento-whatsapp-v1",
+        "contrato_version": "seguimiento-whatsapp-v2",
         "paciente_ref": "0000000000000017",
         "tramo_edad": "40_59",
         "estado_seguimiento": "proximo",
+        "fecha_revision": "2026-12-15",
+        "meses_periodo": 24,
         "meses_desde_ultima_receta": null,
         "recetas_previas": 2,
         "costo": "con_costo",
@@ -5807,7 +5919,10 @@
         },
         "tipo_lente": "bifocal",
         "uso_pantallas": "btw2_6",
-        "usa_armazon": true
+        "usa_armazon": true,
+        "contexto_uso": {
+          "ocupacion": "programador"
+        }
       }
     },
     {
@@ -5815,10 +5930,12 @@
       "categoria": "vencido_con_costo_60_mas",
       "elegible_personalizacion": true,
       "payload": {
-        "contrato_version": "seguimiento-whatsapp-v1",
+        "contrato_version": "seguimiento-whatsapp-v2",
         "paciente_ref": "0000000000000018",
         "tramo_edad": "60_mas",
         "estado_seguimiento": "vencido",
+        "fecha_revision": null,
+        "meses_periodo": null,
         "meses_desde_ultima_receta": 10,
         "recetas_previas": 3,
         "costo": "con_costo",
@@ -5838,7 +5955,10 @@
         },
         "tipo_lente": "progresivo",
         "uso_pantallas": "gt6",
-        "usa_armazon": false
+        "usa_armazon": false,
+        "contexto_uso": {
+          "ocupacion": null
+        }
       }
     },
     {
@@ -5846,10 +5966,12 @@
       "categoria": "proximo_incluida_18_39",
       "elegible_personalizacion": true,
       "payload": {
-        "contrato_version": "seguimiento-whatsapp-v1",
+        "contrato_version": "seguimiento-whatsapp-v2",
         "paciente_ref": "0000000000000019",
         "tramo_edad": "18_39",
         "estado_seguimiento": "proximo",
+        "fecha_revision": "2026-12-15",
+        "meses_periodo": 24,
         "meses_desde_ultima_receta": 11,
         "recetas_previas": 4,
         "costo": "incluida",
@@ -5869,7 +5991,10 @@
         },
         "tipo_lente": "otro",
         "uso_pantallas": null,
-        "usa_armazon": null
+        "usa_armazon": null,
+        "contexto_uso": {
+          "ocupacion": "estudiante"
+        }
       }
     },
     {
@@ -5877,10 +6002,12 @@
       "categoria": "vencido_incluida_40_59",
       "elegible_personalizacion": true,
       "payload": {
-        "contrato_version": "seguimiento-whatsapp-v1",
+        "contrato_version": "seguimiento-whatsapp-v2",
         "paciente_ref": "000000000000001a",
         "tramo_edad": "40_59",
         "estado_seguimiento": "vencido",
+        "fecha_revision": null,
+        "meses_periodo": null,
         "meses_desde_ultima_receta": 12,
         "recetas_previas": 0,
         "costo": "incluida",
@@ -5900,7 +6027,10 @@
         },
         "tipo_lente": null,
         "uso_pantallas": "lt2",
-        "usa_armazon": true
+        "usa_armazon": true,
+        "contexto_uso": {
+          "ocupacion": "chofer"
+        }
       }
     },
     {
@@ -5908,10 +6038,12 @@
       "categoria": "proximo_con_costo_60_mas",
       "elegible_personalizacion": true,
       "payload": {
-        "contrato_version": "seguimiento-whatsapp-v1",
+        "contrato_version": "seguimiento-whatsapp-v2",
         "paciente_ref": "000000000000001b",
         "tramo_edad": "60_mas",
         "estado_seguimiento": "proximo",
+        "fecha_revision": "2026-12-15",
+        "meses_periodo": 24,
         "meses_desde_ultima_receta": 13,
         "recetas_previas": 1,
         "costo": "con_costo",
@@ -5931,7 +6063,10 @@
         },
         "tipo_lente": "monofocal",
         "uso_pantallas": "btw2_6",
-        "usa_armazon": false
+        "usa_armazon": false,
+        "contexto_uso": {
+          "ocupacion": "programador"
+        }
       }
     },
     {
@@ -5939,10 +6074,12 @@
       "categoria": "vencido_con_costo_18_39",
       "elegible_personalizacion": true,
       "payload": {
-        "contrato_version": "seguimiento-whatsapp-v1",
+        "contrato_version": "seguimiento-whatsapp-v2",
         "paciente_ref": "000000000000001c",
         "tramo_edad": "18_39",
         "estado_seguimiento": "vencido",
+        "fecha_revision": null,
+        "meses_periodo": null,
         "meses_desde_ultima_receta": 14,
         "recetas_previas": 2,
         "costo": "con_costo",
@@ -5962,7 +6099,10 @@
         },
         "tipo_lente": "bifocal",
         "uso_pantallas": "gt6",
-        "usa_armazon": null
+        "usa_armazon": null,
+        "contexto_uso": {
+          "ocupacion": null
+        }
       }
     },
     {
@@ -5970,10 +6110,12 @@
       "categoria": "proximo_incluida_40_59",
       "elegible_personalizacion": true,
       "payload": {
-        "contrato_version": "seguimiento-whatsapp-v1",
+        "contrato_version": "seguimiento-whatsapp-v2",
         "paciente_ref": "000000000000001d",
         "tramo_edad": "40_59",
         "estado_seguimiento": "proximo",
+        "fecha_revision": "2026-12-15",
+        "meses_periodo": 24,
         "meses_desde_ultima_receta": 15,
         "recetas_previas": 3,
         "costo": "incluida",
@@ -5993,7 +6135,10 @@
         },
         "tipo_lente": "progresivo",
         "uso_pantallas": null,
-        "usa_armazon": true
+        "usa_armazon": true,
+        "contexto_uso": {
+          "ocupacion": "estudiante"
+        }
       }
     },
     {
@@ -6001,10 +6146,12 @@
       "categoria": "vencido_incluida_60_mas",
       "elegible_personalizacion": true,
       "payload": {
-        "contrato_version": "seguimiento-whatsapp-v1",
+        "contrato_version": "seguimiento-whatsapp-v2",
         "paciente_ref": "000000000000001e",
         "tramo_edad": "60_mas",
         "estado_seguimiento": "vencido",
+        "fecha_revision": null,
+        "meses_periodo": null,
         "meses_desde_ultima_receta": 16,
         "recetas_previas": 4,
         "costo": "incluida",
@@ -6013,7 +6160,10 @@
         "rx_lejos": null,
         "tipo_lente": "otro",
         "uso_pantallas": "lt2",
-        "usa_armazon": false
+        "usa_armazon": false,
+        "contexto_uso": {
+          "ocupacion": "chofer"
+        }
       }
     },
     {
@@ -6021,10 +6171,12 @@
       "categoria": "proximo_con_costo_18_39",
       "elegible_personalizacion": true,
       "payload": {
-        "contrato_version": "seguimiento-whatsapp-v1",
+        "contrato_version": "seguimiento-whatsapp-v2",
         "paciente_ref": "000000000000001f",
         "tramo_edad": "18_39",
         "estado_seguimiento": "proximo",
+        "fecha_revision": "2026-12-15",
+        "meses_periodo": 24,
         "meses_desde_ultima_receta": 17,
         "recetas_previas": 0,
         "costo": "con_costo",
@@ -6044,7 +6196,10 @@
         },
         "tipo_lente": null,
         "uso_pantallas": "btw2_6",
-        "usa_armazon": null
+        "usa_armazon": null,
+        "contexto_uso": {
+          "ocupacion": "programador"
+        }
       }
     },
     {
@@ -6052,10 +6207,12 @@
       "categoria": "vencido_con_costo_40_59",
       "elegible_personalizacion": true,
       "payload": {
-        "contrato_version": "seguimiento-whatsapp-v1",
+        "contrato_version": "seguimiento-whatsapp-v2",
         "paciente_ref": "0000000000000020",
         "tramo_edad": "40_59",
         "estado_seguimiento": "vencido",
+        "fecha_revision": null,
+        "meses_periodo": null,
         "meses_desde_ultima_receta": 18,
         "recetas_previas": 1,
         "costo": "con_costo",
@@ -6075,7 +6232,10 @@
         },
         "tipo_lente": "monofocal",
         "uso_pantallas": "gt6",
-        "usa_armazon": true
+        "usa_armazon": true,
+        "contexto_uso": {
+          "ocupacion": null
+        }
       }
     },
     {
@@ -6083,10 +6243,12 @@
       "categoria": "proximo_incluida_60_mas",
       "elegible_personalizacion": true,
       "payload": {
-        "contrato_version": "seguimiento-whatsapp-v1",
+        "contrato_version": "seguimiento-whatsapp-v2",
         "paciente_ref": "0000000000000021",
         "tramo_edad": "60_mas",
         "estado_seguimiento": "proximo",
+        "fecha_revision": "2026-12-15",
+        "meses_periodo": 24,
         "meses_desde_ultima_receta": 19,
         "recetas_previas": 2,
         "costo": "incluida",
@@ -6106,7 +6268,10 @@
         },
         "tipo_lente": "bifocal",
         "uso_pantallas": null,
-        "usa_armazon": false
+        "usa_armazon": false,
+        "contexto_uso": {
+          "ocupacion": "estudiante"
+        }
       }
     },
     {
@@ -6114,10 +6279,12 @@
       "categoria": "vencido_incluida_18_39",
       "elegible_personalizacion": true,
       "payload": {
-        "contrato_version": "seguimiento-whatsapp-v1",
+        "contrato_version": "seguimiento-whatsapp-v2",
         "paciente_ref": "0000000000000022",
         "tramo_edad": "18_39",
         "estado_seguimiento": "vencido",
+        "fecha_revision": null,
+        "meses_periodo": null,
         "meses_desde_ultima_receta": null,
         "recetas_previas": 3,
         "costo": "incluida",
@@ -6137,7 +6304,10 @@
         },
         "tipo_lente": "progresivo",
         "uso_pantallas": "lt2",
-        "usa_armazon": null
+        "usa_armazon": null,
+        "contexto_uso": {
+          "ocupacion": "chofer"
+        }
       }
     },
     {
@@ -6145,10 +6315,12 @@
       "categoria": "proximo_con_costo_40_59",
       "elegible_personalizacion": true,
       "payload": {
-        "contrato_version": "seguimiento-whatsapp-v1",
+        "contrato_version": "seguimiento-whatsapp-v2",
         "paciente_ref": "0000000000000023",
         "tramo_edad": "40_59",
         "estado_seguimiento": "proximo",
+        "fecha_revision": "2026-12-15",
+        "meses_periodo": 24,
         "meses_desde_ultima_receta": 21,
         "recetas_previas": 4,
         "costo": "con_costo",
@@ -6168,7 +6340,10 @@
         },
         "tipo_lente": "otro",
         "uso_pantallas": "btw2_6",
-        "usa_armazon": true
+        "usa_armazon": true,
+        "contexto_uso": {
+          "ocupacion": "programador"
+        }
       }
     },
     {
@@ -6176,10 +6351,12 @@
       "categoria": "vencido_con_costo_60_mas",
       "elegible_personalizacion": true,
       "payload": {
-        "contrato_version": "seguimiento-whatsapp-v1",
+        "contrato_version": "seguimiento-whatsapp-v2",
         "paciente_ref": "0000000000000024",
         "tramo_edad": "60_mas",
         "estado_seguimiento": "vencido",
+        "fecha_revision": null,
+        "meses_periodo": null,
         "meses_desde_ultima_receta": 22,
         "recetas_previas": 0,
         "costo": "con_costo",
@@ -6199,7 +6376,10 @@
         },
         "tipo_lente": null,
         "uso_pantallas": "gt6",
-        "usa_armazon": false
+        "usa_armazon": false,
+        "contexto_uso": {
+          "ocupacion": null
+        }
       }
     },
     {
@@ -6207,10 +6387,12 @@
       "categoria": "proximo_incluida_18_39",
       "elegible_personalizacion": true,
       "payload": {
-        "contrato_version": "seguimiento-whatsapp-v1",
+        "contrato_version": "seguimiento-whatsapp-v2",
         "paciente_ref": "0000000000000025",
         "tramo_edad": "18_39",
         "estado_seguimiento": "proximo",
+        "fecha_revision": "2026-12-15",
+        "meses_periodo": 24,
         "meses_desde_ultima_receta": 23,
         "recetas_previas": 1,
         "costo": "incluida",
@@ -6230,7 +6412,10 @@
         },
         "tipo_lente": "monofocal",
         "uso_pantallas": null,
-        "usa_armazon": null
+        "usa_armazon": null,
+        "contexto_uso": {
+          "ocupacion": "estudiante"
+        }
       }
     },
     {
@@ -6238,10 +6423,12 @@
       "categoria": "vencido_incluida_40_59",
       "elegible_personalizacion": true,
       "payload": {
-        "contrato_version": "seguimiento-whatsapp-v1",
+        "contrato_version": "seguimiento-whatsapp-v2",
         "paciente_ref": "0000000000000026",
         "tramo_edad": "40_59",
         "estado_seguimiento": "vencido",
+        "fecha_revision": null,
+        "meses_periodo": null,
         "meses_desde_ultima_receta": 24,
         "recetas_previas": 2,
         "costo": "incluida",
@@ -6261,7 +6448,10 @@
         },
         "tipo_lente": "bifocal",
         "uso_pantallas": "lt2",
-        "usa_armazon": true
+        "usa_armazon": true,
+        "contexto_uso": {
+          "ocupacion": "chofer"
+        }
       }
     },
     {
@@ -6269,10 +6459,12 @@
       "categoria": "proximo_con_costo_60_mas",
       "elegible_personalizacion": true,
       "payload": {
-        "contrato_version": "seguimiento-whatsapp-v1",
+        "contrato_version": "seguimiento-whatsapp-v2",
         "paciente_ref": "0000000000000027",
         "tramo_edad": "60_mas",
         "estado_seguimiento": "proximo",
+        "fecha_revision": "2026-12-15",
+        "meses_periodo": 24,
         "meses_desde_ultima_receta": 6,
         "recetas_previas": 3,
         "costo": "con_costo",
@@ -6292,7 +6484,10 @@
         },
         "tipo_lente": "progresivo",
         "uso_pantallas": "btw2_6",
-        "usa_armazon": false
+        "usa_armazon": false,
+        "contexto_uso": {
+          "ocupacion": "programador"
+        }
       }
     },
     {
@@ -6300,10 +6495,12 @@
       "categoria": "vencido_con_costo_18_39",
       "elegible_personalizacion": true,
       "payload": {
-        "contrato_version": "seguimiento-whatsapp-v1",
+        "contrato_version": "seguimiento-whatsapp-v2",
         "paciente_ref": "0000000000000028",
         "tramo_edad": "18_39",
         "estado_seguimiento": "vencido",
+        "fecha_revision": null,
+        "meses_periodo": null,
         "meses_desde_ultima_receta": 7,
         "recetas_previas": 4,
         "costo": "con_costo",
@@ -6312,7 +6509,10 @@
         "rx_lejos": null,
         "tipo_lente": "otro",
         "uso_pantallas": "gt6",
-        "usa_armazon": null
+        "usa_armazon": null,
+        "contexto_uso": {
+          "ocupacion": null
+        }
       }
     },
     {
@@ -6320,10 +6520,12 @@
       "categoria": "proximo_incluida_40_59",
       "elegible_personalizacion": true,
       "payload": {
-        "contrato_version": "seguimiento-whatsapp-v1",
+        "contrato_version": "seguimiento-whatsapp-v2",
         "paciente_ref": "0000000000000029",
         "tramo_edad": "40_59",
         "estado_seguimiento": "proximo",
+        "fecha_revision": "2026-12-15",
+        "meses_periodo": 24,
         "meses_desde_ultima_receta": 8,
         "recetas_previas": 0,
         "costo": "incluida",
@@ -6343,7 +6545,10 @@
         },
         "tipo_lente": null,
         "uso_pantallas": null,
-        "usa_armazon": true
+        "usa_armazon": true,
+        "contexto_uso": {
+          "ocupacion": "estudiante"
+        }
       }
     },
     {
@@ -6351,10 +6556,12 @@
       "categoria": "vencido_incluida_60_mas",
       "elegible_personalizacion": true,
       "payload": {
-        "contrato_version": "seguimiento-whatsapp-v1",
+        "contrato_version": "seguimiento-whatsapp-v2",
         "paciente_ref": "000000000000002a",
         "tramo_edad": "60_mas",
         "estado_seguimiento": "vencido",
+        "fecha_revision": null,
+        "meses_periodo": null,
         "meses_desde_ultima_receta": 9,
         "recetas_previas": 1,
         "costo": "incluida",
@@ -6374,7 +6581,10 @@
         },
         "tipo_lente": "monofocal",
         "uso_pantallas": "lt2",
-        "usa_armazon": false
+        "usa_armazon": false,
+        "contexto_uso": {
+          "ocupacion": "chofer"
+        }
       }
     },
     {
@@ -6382,10 +6592,12 @@
       "categoria": "proximo_con_costo_18_39",
       "elegible_personalizacion": true,
       "payload": {
-        "contrato_version": "seguimiento-whatsapp-v1",
+        "contrato_version": "seguimiento-whatsapp-v2",
         "paciente_ref": "000000000000002b",
         "tramo_edad": "18_39",
         "estado_seguimiento": "proximo",
+        "fecha_revision": "2026-12-15",
+        "meses_periodo": 24,
         "meses_desde_ultima_receta": 10,
         "recetas_previas": 2,
         "costo": "con_costo",
@@ -6405,7 +6617,10 @@
         },
         "tipo_lente": "bifocal",
         "uso_pantallas": "btw2_6",
-        "usa_armazon": null
+        "usa_armazon": null,
+        "contexto_uso": {
+          "ocupacion": "programador"
+        }
       }
     },
     {
@@ -6413,10 +6628,12 @@
       "categoria": "vencido_con_costo_40_59",
       "elegible_personalizacion": true,
       "payload": {
-        "contrato_version": "seguimiento-whatsapp-v1",
+        "contrato_version": "seguimiento-whatsapp-v2",
         "paciente_ref": "000000000000002c",
         "tramo_edad": "40_59",
         "estado_seguimiento": "vencido",
+        "fecha_revision": null,
+        "meses_periodo": null,
         "meses_desde_ultima_receta": 11,
         "recetas_previas": 3,
         "costo": "con_costo",
@@ -6436,7 +6653,10 @@
         },
         "tipo_lente": "progresivo",
         "uso_pantallas": "gt6",
-        "usa_armazon": true
+        "usa_armazon": true,
+        "contexto_uso": {
+          "ocupacion": null
+        }
       }
     },
     {
@@ -6444,10 +6664,12 @@
       "categoria": "proximo_incluida_60_mas",
       "elegible_personalizacion": true,
       "payload": {
-        "contrato_version": "seguimiento-whatsapp-v1",
+        "contrato_version": "seguimiento-whatsapp-v2",
         "paciente_ref": "000000000000002d",
         "tramo_edad": "60_mas",
         "estado_seguimiento": "proximo",
+        "fecha_revision": "2026-12-15",
+        "meses_periodo": 24,
         "meses_desde_ultima_receta": null,
         "recetas_previas": 4,
         "costo": "incluida",
@@ -6467,7 +6689,10 @@
         },
         "tipo_lente": "otro",
         "uso_pantallas": null,
-        "usa_armazon": false
+        "usa_armazon": false,
+        "contexto_uso": {
+          "ocupacion": "estudiante"
+        }
       }
     },
     {
@@ -6475,10 +6700,12 @@
       "categoria": "vencido_incluida_18_39",
       "elegible_personalizacion": true,
       "payload": {
-        "contrato_version": "seguimiento-whatsapp-v1",
+        "contrato_version": "seguimiento-whatsapp-v2",
         "paciente_ref": "000000000000002e",
         "tramo_edad": "18_39",
         "estado_seguimiento": "vencido",
+        "fecha_revision": null,
+        "meses_periodo": null,
         "meses_desde_ultima_receta": 13,
         "recetas_previas": 0,
         "costo": "incluida",
@@ -6498,7 +6725,10 @@
         },
         "tipo_lente": null,
         "uso_pantallas": "lt2",
-        "usa_armazon": null
+        "usa_armazon": null,
+        "contexto_uso": {
+          "ocupacion": "chofer"
+        }
       }
     },
     {
@@ -6506,10 +6736,12 @@
       "categoria": "proximo_con_costo_40_59",
       "elegible_personalizacion": true,
       "payload": {
-        "contrato_version": "seguimiento-whatsapp-v1",
+        "contrato_version": "seguimiento-whatsapp-v2",
         "paciente_ref": "000000000000002f",
         "tramo_edad": "40_59",
         "estado_seguimiento": "proximo",
+        "fecha_revision": "2026-12-15",
+        "meses_periodo": 24,
         "meses_desde_ultima_receta": 14,
         "recetas_previas": 1,
         "costo": "con_costo",
@@ -6529,7 +6761,10 @@
         },
         "tipo_lente": "monofocal",
         "uso_pantallas": "btw2_6",
-        "usa_armazon": true
+        "usa_armazon": true,
+        "contexto_uso": {
+          "ocupacion": "programador"
+        }
       }
     },
     {
@@ -6537,10 +6772,12 @@
       "categoria": "vencido_con_costo_60_mas",
       "elegible_personalizacion": true,
       "payload": {
-        "contrato_version": "seguimiento-whatsapp-v1",
+        "contrato_version": "seguimiento-whatsapp-v2",
         "paciente_ref": "0000000000000030",
         "tramo_edad": "60_mas",
         "estado_seguimiento": "vencido",
+        "fecha_revision": null,
+        "meses_periodo": null,
         "meses_desde_ultima_receta": 15,
         "recetas_previas": 2,
         "costo": "con_costo",
@@ -6560,7 +6797,10 @@
         },
         "tipo_lente": "bifocal",
         "uso_pantallas": "gt6",
-        "usa_armazon": false
+        "usa_armazon": false,
+        "contexto_uso": {
+          "ocupacion": null
+        }
       }
     },
     {
@@ -6568,10 +6808,12 @@
       "categoria": "proximo_incluida_18_39",
       "elegible_personalizacion": true,
       "payload": {
-        "contrato_version": "seguimiento-whatsapp-v1",
+        "contrato_version": "seguimiento-whatsapp-v2",
         "paciente_ref": "0000000000000031",
         "tramo_edad": "18_39",
         "estado_seguimiento": "proximo",
+        "fecha_revision": "2026-12-15",
+        "meses_periodo": 24,
         "meses_desde_ultima_receta": 16,
         "recetas_previas": 3,
         "costo": "incluida",
@@ -6591,7 +6833,10 @@
         },
         "tipo_lente": "progresivo",
         "uso_pantallas": null,
-        "usa_armazon": null
+        "usa_armazon": null,
+        "contexto_uso": {
+          "ocupacion": "estudiante"
+        }
       }
     },
     {
@@ -6599,10 +6844,12 @@
       "categoria": "vencido_incluida_40_59",
       "elegible_personalizacion": true,
       "payload": {
-        "contrato_version": "seguimiento-whatsapp-v1",
+        "contrato_version": "seguimiento-whatsapp-v2",
         "paciente_ref": "0000000000000032",
         "tramo_edad": "40_59",
         "estado_seguimiento": "vencido",
+        "fecha_revision": null,
+        "meses_periodo": null,
         "meses_desde_ultima_receta": 17,
         "recetas_previas": 4,
         "costo": "incluida",
@@ -6611,7 +6858,10 @@
         "rx_lejos": null,
         "tipo_lente": "otro",
         "uso_pantallas": "lt2",
-        "usa_armazon": true
+        "usa_armazon": true,
+        "contexto_uso": {
+          "ocupacion": "chofer"
+        }
       }
     }
   ]

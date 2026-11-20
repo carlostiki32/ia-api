@@ -129,8 +129,12 @@ def test_peor_seguimiento_admitido(monkeypatch):
             req=SeguimientoWhatsappRequest(**{**fixture('g1-request'),'tramo_edad':edad,'estado_seguimiento':estado,
                 'costo':costo,'uso_pantallas':pantallas,'tipo_lente':lente,'usa_armazon':armazon,
                 'ya_notificado_en_ciclo':notificado,'recetas_previas':1000,'variante':1000,'meses_desde_ultima_receta':600,
+                'fecha_revision': None if estado == 'vencido' else '2026-12-15',
+                'meses_periodo': None if estado == 'vencido' else 12,
                 'rx_lejos':{lado:dict(esfera=esfera,cilindro=cilindro,add=add) for lado in ('od','oi')}})
-            n=p.contar(SYSTEM_PROMPT_REDACCION,build_user_prompt_redaccion(req,hechos_elegibles(req)),'estricto')
+            eleg = hechos_elegibles(req, 'desconocido')
+            cierres = ['CI_INC_1', 'CI_INC_2', 'CI_INC_3', 'CI_INC_4', 'CI_INC_5', 'CI_INC_6'] if costo == 'incluida' else ['CI_COS_1', 'CI_COS_2', 'CI_COS_3', 'CI_COS_4', 'CI_COS_5', 'CI_COS_6']
+            n=p.contar(SYSTEM_PROMPT_REDACCION,build_user_prompt_redaccion(req,eleg,'desconocido',cierres),'estricto')
             maximo=max(n,maximo)
     assert maximo<=7400
     assert maximo+settings.seguimiento_num_predict<=p.limite_contexto()

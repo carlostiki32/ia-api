@@ -1,11 +1,13 @@
 {
-  "g1-modelo-redaccion.json": "bce2c952e735d7f7fdd8a3e379972e317593ee543e3604efe50d455c34d33fdc",
-  "g1-request.json": "7fae8dbae27654ee25ed37af359a4a6d33a3030056fd9aecd4e223241a1f16a2",
-  "g1-respuesta-generada.json": "796e4b49608a3e2b420d052f0d905f640c59c8374d1413fc70e03c9557ca5956",
-  "g1-respuesta-plantilla.json": "88e30bfca0a85433a8218637e123dc68c2ba0ce7031ab994a4e680ff3f5d7b97",
-  "g2-request.json": "551eeb149c8eba586de9992449656e4f319d1d9905d93ead881e4b1dd4de2c81",
-  "g2-respuesta-plantilla.json": "55c5218acca52aad00f11f8baeaf11f06770d6e85bc5f03e98870945454fdedc",
-  "g3-request.json": "20faa4b8a1a509ba2a6233e327a8c72ff65bc3e012086f44b309e031b121bdc7",
-  "g3-respuesta-plantilla.json": "dcd2049dff1625434078fe3d2ced4fc4bf74ec81feea0d77ab73b5c254983c31",
-  "modelo-verificacion-false.json": "ff986203b997aa4e2f38697f8ea06adec77c8ace0117f14928d9e4e76160694d"
+  "g1-modelo-redaccion.json": "c4102ddb828c4b0e40f5926a415c3a3f4ed07ec6b8b1e80e9399235950eae4be",
+  "g1-modelo-uso.json": "cac36c311923a10fd90a8e8667df44c32dcb47e679d9984c103e1cd6c85f994c",
+  "g1-request.json": "a9573f3e5c20631ff784bd6c3ca5e6e2678d36d3df5ed0da61efc2c4ae730911",
+  "g1-respuesta-generada.json": "a7ad34d9c056d53a20814d91427d4fee408dcb6707693a9b9bd025d4c1c13628",
+  "g1-respuesta-plantilla.json": "9d52fe86d0e1bf7d43b3c32595a9c539b7a6c154488b3324bf11b277aed59e38",
+  "g2-request.json": "fa370a94fb73a3d932ea3038cf74cd670fe42fd56bfcbbc52b622b85ce180935",
+  "g2-respuesta-plantilla.json": "d649e6ee703cb5a774a17bd435b43a157bf814774331253eb298b01d9dff43f8",
+  "g3-request.json": "ba6a00874d203f9134dcd8ef03fc22d5d170318d75e46ff9500d9f21427b6bbb",
+  "g3-respuesta-plantilla.json": "83ea16bcfda36b285c0dde657b746f063b9464d6d468b4b48ba071730c544366",
+  "modelo-verificacion-false.json": "ff986203b997aa4e2f38697f8ea06adec77c8ace0117f14928d9e4e76160694d",
+  "perfiles_t3.json": "bddfa8e6e2faf028932d194e9d9b032b73e0b1989f110c531a9553bb30c8bdeb"
 }

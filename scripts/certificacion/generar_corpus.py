@@ -285,15 +285,19 @@ def generar():
         estado = "vencido" if n % 2 else "proximo"
         costo = "incluida" if n % 4 < 2 else "con_costo"
         tramo = ("18_39", "40_59", "60_mas")[n % 3]
-        req = dict(contrato_version="seguimiento-whatsapp-v1", paciente_ref=f"{n+1:016x}",
+        ocupacion = ("estudiante", "chofer", "programador", None)[n % 4]
+        req = dict(contrato_version="seguimiento-whatsapp-v2", paciente_ref=f"{n+1:016x}",
             tramo_edad=tramo, estado_seguimiento=estado,
+            fecha_revision=None if estado == "vencido" else "2026-12-15",
+            meses_periodo=None if estado == "vencido" else (12 if n % 2 else 24),
             meses_desde_ultima_receta=None if n % 11 == 0 else 6 + n % 19,
             recetas_previas=n % 5, costo=costo,
             ya_notificado_en_ciclo=bool(n % 3), variante=n,
             rx_lejos=None if n % 10 == 9 else rx,
             tipo_lente=(None, "monofocal", "bifocal", "progresivo", "otro")[n % 5],
             uso_pantallas=(None, "lt2", "btw2_6", "gt6")[n % 4],
-            usa_armazon=(None, True, False)[n % 3])
+            usa_armazon=(None, True, False)[n % 3],
+            contexto_uso=dict(ocupacion=ocupacion))
         whatsapps.append(dict(id=f"W{n+1:03}", categoria=f"{estado}_{costo}_{tramo}",
             elegible_personalizacion=True, payload=req))
     return dict(version="corpus-gpu-v2", recetas=recetas, whatsapp=whatsapps)

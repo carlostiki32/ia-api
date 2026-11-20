@@ -10,7 +10,7 @@ def test_interruptor_default():
 
 def test_apagado_antes_de_cache_y_proveedor(monkeypatch):
     req = request()
-    esperado = servicio.respaldo(req, motivo="ia_deshabilitada").model_dump()
+    esperado = servicio.respaldo(req, motivo="ia_deshabilitada").model_dump(mode="json")
     assert esperado["estado"] == "plantilla" and esperado["motivo"] == "ia_deshabilitada"
     # Una respuesta válida existente tampoco puede eludir el interruptor.
     generada = servicio.respaldo(req)
@@ -28,7 +28,7 @@ def test_apagado_antes_de_cache_y_proveedor(monkeypatch):
     async def run():
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app=main.app),
             base_url="http://test", headers={"Authorization": "Bearer secret"}) as c:
-            r = await c.post("/v1/inferencia/seguimiento-whatsapp", json=req.model_dump())
+            r = await c.post("/v1/inferencia/seguimiento-whatsapp", json=req.model_dump(mode="json"))
             assert r.status_code == 200
             assert r.json() == esperado
     try:

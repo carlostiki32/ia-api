@@ -1,37 +1,28 @@
 {
-  "status": "ok",
-  "contrato_version": "seguimiento-whatsapp-v1",
-  "estado": "plantilla",
-  "mensaje": "Hola, :paciente, le saludamos de :clinica. Sabemos que el tiempo se va rápido entre tantas ocupaciones; cuando usted quiera, retomamos su revisión visual.\n\nEn sus lentes progresivos revisamos que la zona de lejos, la intermedia y la de cerca sigan acomodándose a sus actividades. Si ha pasado un tiempo desde su última revisión, retomarla es sencillo y la hacemos a su ritmo, sin prisas.\n\nLa revisión tiene un costo; si lo desea, con gusto le compartimos el detalle antes de agendar. ¿Le gustaría que veamos juntos un horario?\n\nSi prefiere no recibir estos recordatorios, solo díganoslo.",
-  "partes": {
-    "apertura": "Hola, :paciente, le saludamos de :clinica. Sabemos que el tiempo se va rápido entre tantas ocupaciones; cuando usted quiera, retomamos su revisión visual.",
-    "hechos": [
-      "progresivo_zonas",
-      "vencida_retomar"
-    ],
-    "invitacion": "La revisión tiene un costo; si lo desea, con gusto le compartimos el detalle antes de agendar. ¿Le gustaría que veamos juntos un horario?",
-    "baja": "Si prefiere no recibir estos recordatorios, solo díganoslo."
-  },
-  "motivo": "ia_ocupada",
-  "hechos_elegibles": [
-    "hipermetropia_ajuste",
-    "hipermetropia_cerca",
-    "astigmatismo_detalle",
-    "cerca_adecuado",
-    "cerca_distancias",
-    "progresivo_zonas",
-    "vencida_retomar",
-    "con_costo_claro",
-    "comodidad_general",
-    "general_periodica",
-    "traer_lentes"
-  ],
-  "generacion": {
-    "origen": "catalogo",
-    "modelo": null,
-    "catalogo_version": "v1-revisado-2026-11-06",
-    "prompt_version": "seguimiento-whatsapp-prompt-v1",
-    "base_hash_api": "0000000000000000000000000000000000000000000000000000000000000000",
-    "cached": false
-  }
+ "status": "ok",
+ "contrato_version": "seguimiento-whatsapp-v2",
+ "estado": "plantilla",
+ "mensaje": "Buen día, :paciente. Le escribimos otra vez de :clinica, con calma, porque nos interesa saber cómo se encuentra.\n\nNos acordamos de sus lentes para pasar de ver de lejos a ver de cerca durante el día.\n\nPara nosotros es un gusto seguir en contacto con usted, a su ritmo y sin prisas.\n\n¿Qué tal le han funcionado sus lentes en su día a día? Cuando usted quiera, le contamos el costo de la revisión y, si le parece, le apartamos un espacio.\n\nSi prefiere no recibir estos mensajes, solo díganoslo.",
+ "partes": {
+  "apertura": "Buen día, :paciente. Le escribimos otra vez de :clinica, con calma, porque nos interesa saber cómo se encuentra.",
+  "apertura_id": "AP_SEG_2",
+  "frase_uso": "Nos acordamos de sus lentes para pasar de ver de lejos a ver de cerca durante el día.",
+  "frase_fecha": "Para nosotros es un gusto seguir en contacto con usted, a su ritmo y sin prisas.",
+  "hechos": [],
+  "cierre": "¿Qué tal le han funcionado sus lentes en su día a día? Cuando usted quiera, le contamos el costo de la revisión y, si le parece, le apartamos un espacio.",
+  "cierre_id": "CI_COS_4",
+  "baja": "Si prefiere no recibir estos mensajes, solo díganoslo."
+ },
+ "motivo": "ollama_error",
+ "hechos_elegibles": [],
+ "generacion": {
+  "origen": "catalogo",
+  "modelo": null,
+  "catalogo_version": "v2-borrador-2026-11-20",
+  "prompt_version": "seguimiento-whatsapp-prompt-v3",
+  "base_hash_api": "0000000000000000000000000000000000000000000000000000000000000000",
+  "cached": false
+ },
+ "uso_lentes": "lejos_y_cerca",
+ "origen_uso": "reglas"
 }

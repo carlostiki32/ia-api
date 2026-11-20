@@ -138,9 +138,3 @@ def test_dpar_posible_conserva_incertidumbre_y_papila_independiente():
                          ids=[f'E{n:02}-{i:02}' for i, (n, *_resto) in enumerate(EXTRAS, 1)])
 def test_bordes_fondo(numero, nombre, entrada, esperado):
     test_conformidad_fondo(nombre, dict(entrada=entrada, esperado=esperado))
-
-
-@pytest.mark.parametrize('numero,nombre,entrada,esperado', EXTRAS,
-                         ids=[f'E{n:02}-{i:02}' for i, (n, *_resto) in enumerate(EXTRAS, 1)])
-def test_bordes_fondo(numero, nombre, entrada, esperado):
-    test_conformidad_fondo(nombre, dict(entrada=entrada, esperado=esperado))

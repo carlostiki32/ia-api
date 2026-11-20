@@ -33,8 +33,7 @@ omite redacción/verificación y no recupera prosa paciente cacheada; devuelve
 acciones + plantilla CPU, o el estado del perfil si no hay texto. El motivo es
 nulo salvo fallo de ensamblado (`rechazada`/`error`). El clínico sigue su flujo.
 
-El [material para el dueño](../../auditoria/2026-11-08-explicacion-paciente/02-catalogo-y-prompts-para-revision.md)
-se regenera desde el código con `scripts/catalogo_paciente.py`; incluye acciones,
+El material para el dueño se genera desde el código con `scripts/catalogo_paciente.py`; incluye acciones,
 glosario, system prompts, descripciones CPU del lente y versiones.
 
 ## Oráculo independiente

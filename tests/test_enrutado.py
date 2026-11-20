@@ -10,6 +10,7 @@ from app.gpu_scheduler import GPUScheduler
 from app.providers import ollama
 from app.prompt_builder import build_system_prompt
 from app.seguimiento.prompts import SYSTEM_PROMPT_REDACCION, SYSTEM_PROMPT_VERIFICACION
+from app.seguimiento.uso import SYSTEM_PROMPT_USO
 from app.seguimiento.servicio import seguimiento_cache
 from tests.seguimiento_helpers import fixture
 
@@ -28,7 +29,8 @@ def registro(monkeypatch):
         cuerpo = json.loads(req.content)
         llamadas.append(cuerpo)
         formato = cuerpo.get("format", {}).get("properties", {})
-        texto = (json.dumps(fixture("g1-modelo-redaccion")) if "apertura" in formato else
+        texto = (json.dumps(fixture("g1-modelo-uso")) if "uso_lentes" in formato else
+                 json.dumps(fixture("g1-modelo-redaccion")) if "apertura" in formato else
                  json.dumps(fixture("modelo-verificacion-false")) if "afirma_algo_de_salud" in formato else
                  "Se registra refraccion final para correccion de lejos.")
         return httpx.Response(200, json={"message": {"content": texto}, "done_reason": "stop"})
@@ -64,14 +66,16 @@ def test_tabla_coincide_con_llamadas_y_alias(registro):
             fresco = await c.post("/v1/inferencia/receta-clinica", json=payload())
             assert fresco.json() == a.json() and len(registro) == 3
             r = await c.post(SEGUIMIENTO, json=fixture("g1-request"))
-            assert r.json()["estado"] == "generada" and len(registro) == 5
+            assert r.json()["estado"] == "generada" and len(registro) == 6
             assert all("format" not in x for x in registro[:3])
             assert all(x["messages"][0]["content"] == build_system_prompt() for x in registro[:3])
-            assert registro[3]["messages"][0]["content"] == SYSTEM_PROMPT_REDACCION
-            assert registro[4]["messages"][0]["content"] == SYSTEM_PROMPT_VERIFICACION
-            assert len({x["messages"][0]["content"] for x in registro[2:]}) == 3
-            assert set(registro[3]["format"]["properties"]) == {"apertura", "hechos", "invitacion"}
-            assert set(registro[4]["format"]["properties"]) == {"afirma_algo_de_salud"}
+            assert registro[3]["messages"][0]["content"] == SYSTEM_PROMPT_USO
+            assert registro[4]["messages"][0]["content"] == SYSTEM_PROMPT_REDACCION
+            assert registro[5]["messages"][0]["content"] == SYSTEM_PROMPT_VERIFICACION
+            assert len({x["messages"][0]["content"] for x in registro[2:]}) == 4
+            assert set(registro[3]["format"]["properties"]) == {"uso_lentes", "fuente"}
+            assert set(registro[4]["format"]["properties"]) == {"apertura", "hechos", "cierre"}
+            assert set(registro[5]["format"]["properties"]) == {"afirma_algo_de_salud"}
             assert len(tabla["explicacion-paciente"]["llamadas"]) == 2
             assert tabla["explicacion-paciente"]["usa_llm"] is True
             assert tabla["explicacion-paciente"]["prioridad"] == "interactiva"
@@ -81,7 +85,7 @@ def test_tabla_coincide_con_llamadas_y_alias(registro):
                     assert etapa["temperature"] == cuerpo["options"]["temperature"]
                     assert etapa["num_predict"] == cuerpo["options"]["num_predict"]
                     assert (etapa["formato"] == "json-schema") == ("format" in cuerpo)
-            assert [c["options"]["temperature"] for c in registro[3:]] == [.4, 0.0]
+            assert [c["options"]["temperature"] for c in registro[3:]] == [0.0, .4, 0.0]
             return tabla
     tabla = asyncio.run(run())
     assert tabla["receta-clinica"]["prioridad"] == "interactiva"
@@ -115,9 +119,10 @@ def test_receta_entre_redaccion_y_verificacion(monkeypatch, registro):
             assert r.json()["motivo"] == "ia_ocupada"
             liberar_receta.set()
             assert (await receta).status_code == 200
-            assert len(registro) == 2
-            assert "apertura" in registro[0]["format"]["properties"]
-            assert "format" not in registro[1]
+            assert len(registro) == 3
+            assert "uso_lentes" in registro[0]["format"]["properties"]
+            assert "apertura" in registro[1]["format"]["properties"]
+            assert "format" not in registro[2]
     asyncio.run(run())
 
 
@@ -128,8 +133,8 @@ def test_tareas_autenticada_y_settings_vivos(monkeypatch):
             monkeypatch.setattr(main.settings, "seguimiento_temperature", .7)
             monkeypatch.setattr(main.settings, "seguimiento_num_predict", 222)
             tabla = (await c.get("/v1/tareas", headers=HEADERS)).json()
-            assert tabla["seguimiento-whatsapp"]["llamadas"][0]["temperature"] == .7
-            assert tabla["seguimiento-whatsapp"]["llamadas"][0]["num_predict"] == 222
+            assert tabla["seguimiento-whatsapp"]["llamadas"][1]["temperature"] == .7
+            assert tabla["seguimiento-whatsapp"]["llamadas"][1]["num_predict"] == 222
     monkeypatch.setattr(main.settings, "api_key", "secret")
     asyncio.run(run())
 

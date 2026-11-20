@@ -49,8 +49,10 @@ def etapa(cuerpo):
     if system.startswith("Revise fidelidad, no redacte."):
         return "verificacion", "paciente-verificacion-v1"
     props = cuerpo.get("format", {}).get("properties", {})
+    if "uso_lentes" in props:
+        return "uso", "seguimiento-uso-v1"
     if "apertura" in props:
-        return "redaccion", "seguimiento-whatsapp-prompt-v1"
+        return "redaccion", "seguimiento-whatsapp-prompt-v3"
     if "afirma_algo_de_salud" in props:
         return "verificacion", "seguimiento-verificacion-v1"
     return "clinica", "clinica-v1"
@@ -100,7 +102,8 @@ class Handler(BaseHTTPRequestHandler):
                 self.server.redactando.set()
             time.sleep(self.server.demora)
         nombre = etapa(cuerpo)[0]
-        contenido = (json.dumps(leer("g1-modelo-redaccion"), ensure_ascii=False) if nombre == "redaccion" else
+        contenido = (json.dumps(leer("g1-modelo-uso"), ensure_ascii=False) if nombre == "uso" else
+                     json.dumps(leer("g1-modelo-redaccion"), ensure_ascii=False) if nombre == "redaccion" else
                      '{"afirma_algo_de_salud": false}' if nombre == "verificacion" else
                      "Se registra refraccion final para correccion de lejos y apoyo cercano.")
         if etapa(cuerpo)[1].startswith("paciente-"):
@@ -170,17 +173,17 @@ def peticiones(client, simulado=None):
             estado = obj.get("estado", obj.get("explicacion_paciente_estado", obj.get("status", "ok")))
             motivo = obj.get("motivo", obj.get("generacion", {}).get("motivo_explicacion"))
             print(f"{ruta} ({caso}) | {len(cuerpos)} | {'; '.join(detalles) or '—'} | {r.status_code} {estado}" + (f"/{motivo}" if motivo else ""))
-            esperado = {"tareas": 0, "clinica-v1": 1, "clinica-paciente-v1": 3, "dual-respaldo": 2, "alias/cache": 0, "G1": 2, "G2": 1, "G3": 1}[caso]
+            esperado = {"tareas": 0, "clinica-v1": 1, "clinica-paciente-v1": 3, "dual-respaldo": 2, "alias/cache": 0, "G1": 3, "G2": 2, "G3": 3}[caso]
             assert len(cuerpos) == esperado, f"{caso}: esperaba {esperado} llamadas"
             if caso == "clinica-paciente-v1":
                 assert obj["explicacion_paciente_estado"] == "generada"
                 assert obj["generacion"]["motivo_explicacion"] is None
             if caso == "dual-respaldo":
                 assert obj["generacion"]["motivo_explicacion"] == "abstencion"
-            if caso == "G1":
+            if caso in ("G1", "G3"):
                 assert estado == "generada"
-            if caso in ("G2", "G3"):
-                assert estado == "plantilla"  # El modelo fijo G1 no es válido para estos perfiles.
+            if caso == "G2":
+                assert estado == "plantilla"  # El modelo fijo G1 no es válido para G2 (costo con_costo).
         else:
             print(f"{ruta} ({caso}) | {r.status_code} | {duracion:.2f}s | {obj.get('estado', '—')} | {obj.get('motivo') or '—'}")
             fallos = fallos or r.status_code != 200
@@ -215,7 +218,7 @@ def prioridad(client, simulado):
     print(f"Seguimiento: HTTP {a.status_code}, {a.json()['estado']}/{a.json()['motivo']}")
     print(f"Receta: HTTP {b.status_code}, {b.json()['status']}")
     print("Verificación: rechazada inmediatamente porque la receta esperaba el turno.")
-    assert orden == ["redaccion", "clinica"]
+    assert orden == ["uso", "redaccion", "clinica"]
     assert a.status_code == b.status_code == 200
     assert a.json()["motivo"] == "ia_ocupada"
 
